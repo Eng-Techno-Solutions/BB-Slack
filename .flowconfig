@@ -1,0 +1,9 @@
+[ignore]
+
+[include]
+
+[libs]
+node_modules/react-native/Libraries/Components
+
+[options]
+module.system=haste

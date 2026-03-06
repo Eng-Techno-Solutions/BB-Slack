@@ -1,0 +1,30 @@
+{
+  "name": "BBWeather",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node node_modules/react-native/local-cli/cli.js start",
+    "android": "node node_modules/react-native/local-cli/cli.js run-android",
+    "web": "react-scripts start"
+  },
+  "dependencies": {
+    "ajv": "^8.18.0",
+    "react": "^16.14.0",
+    "react-dom": "^16.14.0",
+    "react-native": "0.53.3",
+    "react-native-web": "^0.17.7",
+    "react-scripts": "^5.0.1"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
