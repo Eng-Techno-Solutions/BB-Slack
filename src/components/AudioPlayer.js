@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
+import Icon from './Icon';
 
 function formatSecs(s) {
   var m = Math.floor(s / 60);
@@ -186,7 +187,7 @@ export default class AudioPlayer extends Component {
             style={styles.playBtn}
             onPress={function () { self.togglePlay(); }}
           >
-            <Text style={styles.playIcon}>{s.playing ? '\u275A\u275A' : '\u25B6'}</Text>
+            <Icon name={s.playing ? 'pause' : 'play'} size={18} color="#FFFFFF" />
           </TouchableOpacity>
           <View style={styles.sliderArea}>
             <View style={styles.progressTrack}>
@@ -229,7 +230,7 @@ export default class AudioPlayer extends Component {
                   style={styles.closeBtn}
                   onPress={function () { self.handleClose(); }}
                 >
-                  <Text style={styles.closeText}>X</Text>
+                  <Icon name="close" size={16} color="#D1D2D3" />
                 </TouchableOpacity>
               </View>
               {Platform.OS === 'web'
@@ -282,11 +283,6 @@ var styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: 12,
   },
-  closeText: {
-    color: '#D1D2D3',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
   playerArea: {
     padding: 20,
   },
@@ -303,10 +299,7 @@ var styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
   },
-  playIcon: {
-    color: '#FFFFFF',
-    fontSize: 16,
-  },
+  playIcon: {},
   sliderArea: {
     flex: 1,
   },

@@ -9,6 +9,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import Header from '../components/Header';
+import Icon from '../components/Icon';
 import { getChannelDisplayName } from '../utils/format';
 
 var TABS = [
@@ -63,7 +64,7 @@ export default class ChannelListScreen extends Component {
     var unread = item.unread_count_display || 0;
     var prefix = '';
     if (!item.is_im && !item.is_mpim) {
-      prefix = item.is_private ? 'lock ' : '# ';
+      prefix = item.is_private ? 'lock' : '# ';
     }
 
     return (
@@ -72,9 +73,14 @@ export default class ChannelListScreen extends Component {
         onPress={function () { onSelect(item); }}
       >
         <View style={styles.itemLeft}>
-          <Text style={[styles.itemName, unread > 0 && styles.itemNameUnread]} numberOfLines={1}>
-            {prefix}{name}
-          </Text>
+          <View style={styles.itemNameRow}>
+            {prefix === 'lock' ? (
+              <Icon name="lock" size={14} color={unread > 0 ? '#FFFFFF' : '#ABABAD'} />
+            ) : null}
+            <Text style={[styles.itemName, unread > 0 && styles.itemNameUnread, prefix === 'lock' && { marginLeft: 4 }]} numberOfLines={1}>
+              {prefix === 'lock' ? '' : prefix}{name}
+            </Text>
+          </View>
           {item.topic && item.topic.value ? (
             <Text style={styles.itemTopic} numberOfLines={1}>{item.topic.value}</Text>
           ) : null}
@@ -201,6 +207,10 @@ var styles = StyleSheet.create({
   },
   itemLeft: {
     flex: 1,
+  },
+  itemNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   itemName: {
     color: '#ABABAD',

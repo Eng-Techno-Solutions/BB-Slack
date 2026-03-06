@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import Icon from './Icon';
 
 export default class Header extends Component {
   render() {
@@ -9,7 +10,7 @@ export default class Header extends Component {
         <View style={styles.left}>
           {onBack ? (
             <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-              <Text style={styles.backText}>{'<'}</Text>
+              <Icon name="chevron-left" size={22} color="#D1D2D3" />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -52,11 +53,6 @@ var styles = StyleSheet.create({
   },
   backBtn: {
     padding: 4,
-  },
-  backText: {
-    color: '#D1D2D3',
-    fontSize: 20,
-    fontWeight: 'bold',
   },
   title: {
     color: '#FFFFFF',

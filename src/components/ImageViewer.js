@@ -11,6 +11,7 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
+import Icon from './Icon';
 
 export default class ImageViewer extends Component {
   constructor(props) {
@@ -177,7 +178,7 @@ export default class ImageViewer extends Component {
               </Text>
             </View>
             <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-              <Text style={styles.closeText}>X</Text>
+              <Icon name="close" size={18} color="#D1D2D3" />
             </TouchableOpacity>
           </View>
 
@@ -230,11 +231,6 @@ var styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 12,
-  },
-  closeText: {
-    color: '#D1D2D3',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   imageArea: {
     flex: 1,

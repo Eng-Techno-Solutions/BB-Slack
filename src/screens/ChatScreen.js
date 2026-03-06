@@ -10,6 +10,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import Header from '../components/Header';
+import Icon from '../components/Icon';
 import MessageItem from '../components/MessageItem';
 import ActionSheet from '../components/ActionSheet';
 import ImageViewer from '../components/ImageViewer';
@@ -343,7 +344,7 @@ export default class ChatScreen extends Component {
               {sending ? (
                 <ActivityIndicator size="small" color="#ffffff" />
               ) : (
-                <Text style={styles.sendText}>Send</Text>
+                <Icon name="send" size={18} color="#ffffff" />
               )}
             </TouchableOpacity>
           </View>

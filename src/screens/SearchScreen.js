@@ -9,6 +9,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import Header from '../components/Header';
+import Icon from '../components/Icon';
 import { formatDateFull, getUserName } from '../utils/format';
 
 export default class SearchScreen extends Component {
@@ -81,7 +82,7 @@ export default class SearchScreen extends Component {
             style={styles.searchBtn}
             onPress={function () { self.doSearch(); }}
           >
-            <Text style={styles.searchBtnText}>Go</Text>
+            <Icon name="search" size={18} color="#ffffff" />
           </TouchableOpacity>
         </View>
 

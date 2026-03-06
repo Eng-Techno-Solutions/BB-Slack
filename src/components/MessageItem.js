@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { View, Text, Image, TouchableOpacity, Linking, StyleSheet, Platform } from 'react-native';
 import { formatTime, getUserName } from '../utils/format';
 import { emojiFromName, replaceEmojisInText } from '../utils/emoji';
+import Icon from './Icon';
 
 var AVATAR_COLORS = [
   '#E8912D', '#2BAC76', '#CD2553', '#1264A3',
@@ -113,7 +114,7 @@ export default class MessageItem extends Component {
         }}
       >
         <View style={styles.audioPlayBtn}>
-          <Text style={styles.audioPlayIcon}>{'\u25B6'}</Text>
+          <Icon name="play" size={16} color="#FFFFFF" />
         </View>
         <View style={styles.audioContent}>
           <View style={styles.waveformRow}>
@@ -332,7 +333,7 @@ var styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
     marginRight: 10,
   },
-  audioPlayIcon: { color: '#FFFFFF', fontSize: 14, marginLeft: 2 },
+  audioPlayIcon: { marginLeft: 1 },
   audioContent: { flex: 1 },
   waveformRow: { flexDirection: 'row', alignItems: 'center', height: 28 },
   waveBar: { width: 3, backgroundColor: '#1264A3', borderRadius: 1, marginRight: 1 },

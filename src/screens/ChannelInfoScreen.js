@@ -9,6 +9,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import Header from '../components/Header';
+import Icon from '../components/Icon';
 import { getUserName, getChannelDisplayName } from '../utils/format';
 
 export default class ChannelInfoScreen extends Component {
@@ -58,7 +59,7 @@ export default class ChannelInfoScreen extends Component {
         onPress={function () { onProfile && onProfile(userId); }}
       >
         <Text style={styles.memberName}>{name}</Text>
-        <Text style={styles.memberArrow}>{'>'}</Text>
+        <Icon name="chevron-right" size={16} color="#696969" />
       </TouchableOpacity>
     );
   }
@@ -227,10 +228,6 @@ var styles = StyleSheet.create({
     flex: 1,
     color: '#D1D2D3',
     fontSize: 15,
-  },
-  memberArrow: {
-    color: '#696969',
-    fontSize: 14,
   },
   pinItem: {
     paddingHorizontal: 16,
