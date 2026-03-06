@@ -67,7 +67,8 @@ export default class MessageItem extends Component {
   renderImageFile(f, i, token) {
     var onImagePress = this.props.onImagePress;
     var fullUrl = f.url_private || f.url_private_download || f.thumb_480 || f.thumb_360;
-    var thumbDataUri = getThumbDataUri(f);
+    var thumbUrl = f.thumb_480 || f.thumb_360 || f.thumb_160 || fullUrl;
+    var proxiedThumb = proxyUrl(thumbUrl, token);
     var proxiedFull = proxyUrl(fullUrl, token);
 
     var w = f.original_w || f.thumb_480_w || f.thumb_360_w || 300;
@@ -86,26 +87,11 @@ export default class MessageItem extends Component {
           onImagePress && onImagePress({ uri: proxiedFull, name: f.name || f.title || 'Image' });
         }}
       >
-        {thumbDataUri ? (
-          <View style={{ width: w, height: h, backgroundColor: '#222529' }}>
-            <Image
-              source={{ uri: thumbDataUri }}
-              style={{ width: w, height: h }}
-              resizeMode="cover"
-              blurRadius={1}
-            />
-            <View style={styles.imageOverlay}>
-              <View style={styles.viewImageBtn}>
-                <Text style={styles.viewImageText}>View Image</Text>
-              </View>
-            </View>
-          </View>
-        ) : (
-          <View style={[styles.imagePlaceholder, { width: w, height: Math.min(h, 120) }]}>
-            <Text style={styles.imagePlaceholderIcon}>IMG</Text>
-            <Text style={styles.imagePlaceholderName} numberOfLines={1}>{f.name || 'image'}</Text>
-          </View>
-        )}
+        <Image
+          source={{ uri: proxiedThumb }}
+          style={{ width: w, height: h, backgroundColor: '#222529' }}
+          resizeMode="cover"
+        />
       </TouchableOpacity>
     );
   }
