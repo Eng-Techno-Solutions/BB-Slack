@@ -41,6 +41,10 @@ module.exports = function (app) {
           return;
         }
         var ct = proxyRes.headers.get('content-type') || 'application/octet-stream';
+        var reqUrl = req.query.url || '';
+        if (reqUrl.match(/audio.*\.mp4/) || reqUrl.match(/\.m4a/)) {
+          ct = 'audio/mp4';
+        }
         res.set('Content-Type', ct);
         res.set('Cache-Control', 'public, max-age=3600');
         var nodeStream = Readable.fromWeb(proxyRes.body);

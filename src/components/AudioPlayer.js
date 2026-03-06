@@ -34,12 +34,14 @@ export default class AudioPlayer extends Component {
                 <audio
                   controls
                   autoPlay
-                  src={source}
                   style={{ width: '100%', height: 48 }}
                   onError={function () {
                     console.warn('Audio load error for:', source);
                   }}
-                />
+                >
+                  <source src={source} type="audio/mp4" />
+                  <source src={source} type="audio/mpeg" />
+                </audio>
               </View>
             </TouchableOpacity>
           </View>
