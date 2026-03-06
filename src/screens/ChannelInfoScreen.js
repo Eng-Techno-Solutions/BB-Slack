@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import Header from '../components/Header';
 import Icon from '../components/Icon';
+import SlackText from '../components/SlackText';
 import { getUserName, getChannelDisplayName } from '../utils/format';
 
 export default class ChannelInfoScreen extends Component {
@@ -93,10 +94,10 @@ export default class ChannelInfoScreen extends Component {
             {!channel.is_im ? '# ' : ''}{channelName}
           </Text>
           {channel.purpose && channel.purpose.value ? (
-            <Text style={styles.purpose}>{channel.purpose.value}</Text>
+            <SlackText text={channel.purpose.value} style={styles.purpose} />
           ) : null}
           {channel.topic && channel.topic.value ? (
-            <Text style={styles.topic}>Topic: {channel.topic.value}</Text>
+            <SlackText text={'Topic: ' + channel.topic.value} style={styles.topic} />
           ) : null}
           <Text style={styles.memberCount}>{members.length} members</Text>
         </View>

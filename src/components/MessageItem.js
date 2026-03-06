@@ -3,6 +3,7 @@ import { View, Text, Image, TouchableOpacity, Linking, StyleSheet, Platform } fr
 import { formatTime, getUserName } from '../utils/format';
 import { emojiFromName, replaceEmojisInText } from '../utils/emoji';
 import Icon from './Icon';
+import SlackText from './SlackText';
 
 var AVATAR_COLORS = [
   '#E8912D', '#2BAC76', '#CD2553', '#1264A3',
@@ -169,7 +170,7 @@ export default class MessageItem extends Component {
       return (
         <View style={styles.systemMsg}>
           <View style={styles.systemLine} />
-          <Text style={styles.systemText}>{replaceEmojisInText(message.text)}</Text>
+          <SlackText text={message.text} usersMap={usersMap} style={styles.systemText} />
           <View style={styles.systemLine} />
         </View>
       );
@@ -208,7 +209,7 @@ export default class MessageItem extends Component {
           </View>
 
           {message.text ? (
-            <Text style={styles.text}>{replaceEmojisInText(message.text)}</Text>
+            <SlackText text={message.text} usersMap={usersMap} style={styles.text} />
           ) : null}
 
           {files.length > 0 ? (

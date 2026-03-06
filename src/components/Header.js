@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from './Icon';
+import SlackText from './SlackText';
 
 export default class Header extends Component {
   render() {
@@ -16,7 +17,7 @@ export default class Header extends Component {
         </View>
         <View style={styles.center}>
           <Text style={styles.title} numberOfLines={1}>{title}</Text>
-          {subtitle ? <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text> : null}
+          {subtitle ? <SlackText text={subtitle} style={styles.subtitle} numberOfLines={1} /> : null}
         </View>
         <View style={styles.right}>
           {rightLabel && onRight ? (

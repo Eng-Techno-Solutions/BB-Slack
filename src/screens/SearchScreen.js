@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import Header from '../components/Header';
 import Icon from '../components/Icon';
+import SlackText from '../components/SlackText';
 import { formatDateFull, getUserName } from '../utils/format';
 
 export default class SearchScreen extends Component {
@@ -52,7 +53,7 @@ export default class SearchScreen extends Component {
           <Text style={styles.itemUser}>{userName}</Text>
           <Text style={styles.itemChannel}>{channelName}</Text>
         </View>
-        <Text style={styles.itemText} numberOfLines={3}>{item.text}</Text>
+        <SlackText text={item.text} usersMap={usersMap} style={styles.itemText} />
         <Text style={styles.itemTime}>{formatDateFull(item.ts)}</Text>
       </TouchableOpacity>
     );

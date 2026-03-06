@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import Header from '../components/Header';
 import Icon from '../components/Icon';
+import SlackText from '../components/SlackText';
 import { getChannelDisplayName } from '../utils/format';
 
 var TABS = [
@@ -82,7 +83,7 @@ export default class ChannelListScreen extends Component {
             </Text>
           </View>
           {item.topic && item.topic.value ? (
-            <Text style={styles.itemTopic} numberOfLines={1}>{item.topic.value}</Text>
+            <SlackText text={item.topic.value} style={styles.itemTopic} numberOfLines={1} />
           ) : null}
         </View>
         {unread > 0 ? (
