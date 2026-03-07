@@ -12,6 +12,7 @@ import {
 import Header from '../components/Header';
 import Icon from '../components/Icon';
 import MessageItem from '../components/MessageItem';
+import EmojiPicker from '../components/EmojiPicker';
 import { getUserName } from '../utils/format';
 
 export default class ThreadScreen extends Component {
@@ -23,6 +24,9 @@ export default class ThreadScreen extends Component {
       inputText: '',
       sending: false,
       pollTimer: null,
+      emojiPickerMode: null,
+      actionMessage: null,
+      reactionTarget: null,
     };
   }
 
@@ -89,6 +93,47 @@ export default class ThreadScreen extends Component {
     }
   }
 
+  async addReaction(message, name) {
+    var { slack, channel } = this.props;
+    try {
+      await slack.reactionsAdd(channel.id, name, message.ts);
+      this.setState({ reactionTarget: null });
+      this.pollReplies();
+    } catch (err) {
+      Alert.alert('Error', err.message);
+    }
+  }
+
+  async removeReaction(message, name) {
+    var { slack, channel } = this.props;
+    try {
+      await slack.reactionsRemove(channel.id, name, message.ts);
+      this.pollReplies();
+    } catch (err) {
+      Alert.alert('Error', err.message);
+    }
+  }
+
+  async toggleReaction(message, name, alreadyReacted) {
+    if (alreadyReacted) {
+      await this.removeReaction(message, name);
+    } else {
+      await this.addReaction(message, name);
+    }
+  }
+
+  onEmojiSelect(name, emoji) {
+    var mode = this.state.emojiPickerMode;
+    if (mode === 'reaction') {
+      this.addReaction(this.state.reactionTarget, name);
+    } else if (mode === 'input') {
+      this.setState(function (prev) {
+        return { inputText: prev.inputText + emoji };
+      });
+    }
+    this.setState({ emojiPickerMode: null });
+  }
+
   render() {
     var { slack, usersMap, currentUserId, onBack, parentMessage } = this.props;
     var { replies, loading, inputText, sending } = this.state;
@@ -119,6 +164,10 @@ export default class ThreadScreen extends Component {
                   usersMap={usersMap}
                   currentUserId={currentUserId}
                   token={slack.token}
+                  onLongPress={function (m) {
+                    self.setState({ reactionTarget: m, emojiPickerMode: 'reaction' });
+                  }}
+                  onReactionPress={function (m, name, reacted) { self.toggleReaction(m, name, reacted); }}
                 />
               );
             }}
@@ -131,6 +180,12 @@ export default class ThreadScreen extends Component {
         )}
 
         <View style={styles.inputRow}>
+          <TouchableOpacity
+            style={styles.emojiBtn}
+            onPress={function () { self.setState({ emojiPickerMode: 'input' }); }}
+          >
+            <Icon name="smile" size={22} color="#ABABAD" />
+          </TouchableOpacity>
           <TextInput
             style={styles.input}
             placeholder="Reply..."
@@ -153,6 +208,12 @@ export default class ThreadScreen extends Component {
             )}
           </TouchableOpacity>
         </View>
+
+        <EmojiPicker
+          visible={!!self.state.emojiPickerMode}
+          onSelect={function (name, emoji) { self.onEmojiSelect(name, emoji); }}
+          onClose={function () { self.setState({ emojiPickerMode: null }); }}
+        />
       </View>
     );
   }
@@ -196,6 +257,11 @@ var styles = StyleSheet.create({
   },
   sendDisabled: {
     opacity: 0.4,
+  },
+  emojiBtn: {
+    paddingHorizontal: 6,
+    paddingVertical: 9,
+    marginRight: 4,
   },
   sendText: {
     color: '#ffffff',

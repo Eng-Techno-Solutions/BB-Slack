@@ -67,9 +67,11 @@ export default class ChannelListScreen extends Component {
       var aUnread = (a.unread_count_display || 0) > 0 ? 1 : 0;
       var bUnread = (b.unread_count_display || 0) > 0 ? 1 : 0;
       if (bUnread !== aUnread) return bUnread - aUnread;
-      var aTs = parseFloat(a.latest_ts || a.updated || 0);
-      var bTs = parseFloat(b.latest_ts || b.updated || 0);
-      return bTs - aTs;
+      var aName = getChannelDisplayName(a, usersMap, currentUserId).toLowerCase();
+      var bName = getChannelDisplayName(b, usersMap, currentUserId).toLowerCase();
+      if (aName < bName) return -1;
+      if (aName > bName) return 1;
+      return 0;
     };
 
     if (tab === 'dms') {

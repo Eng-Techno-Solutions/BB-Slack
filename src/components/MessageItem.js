@@ -66,6 +66,11 @@ function getThumbDataUri(file) {
 }
 
 export default class MessageItem extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { showReactionUsers: null };
+  }
+
   renderImageFile(f, i, token) {
     var onImagePress = this.props.onImagePress;
     var fullUrl = f.url_private || f.url_private_download || f.thumb_480 || f.thumb_360;
@@ -228,14 +233,36 @@ export default class MessageItem extends Component {
             <View style={styles.reactionsRow}>
               {reactions.map(function (r, i) {
                 var emoji = emojiFromName(r.name);
+                var reacted = r.users && r.users.indexOf(currentUserId) !== -1;
+                var isExpanded = self.state.showReactionUsers === i;
                 return (
-                  <View key={i} style={styles.reactionBadge}>
-                    {emoji ? (
-                      <Text style={styles.reactionEmoji}>{emoji}</Text>
-                    ) : (
-                      <Text style={styles.reactionShortcode}>:{r.name}:</Text>
-                    )}
-                    <Text style={styles.reactionCount}>{r.count}</Text>
+                  <View key={i} style={{ position: 'relative' }}>
+                    <TouchableOpacity
+                      style={[styles.reactionBadge, reacted && styles.reactionBadgeActive]}
+                      activeOpacity={0.7}
+                      onPress={function () {
+                        if (self.props.onReactionPress) {
+                          self.props.onReactionPress(message, r.name, reacted);
+                        }
+                      }}
+                      onLongPress={function () {
+                        self.setState({ showReactionUsers: isExpanded ? null : i });
+                      }}
+                    >
+                      {emoji ? (
+                        <Text style={styles.reactionEmoji}>{emoji}</Text>
+                      ) : (
+                        <Text style={styles.reactionShortcode}>:{r.name}:</Text>
+                      )}
+                      <Text style={[styles.reactionCount, reacted && styles.reactionCountActive]}>{r.count}</Text>
+                    </TouchableOpacity>
+                    {isExpanded && r.users ? (
+                      <View style={styles.reactionTooltip}>
+                        <Text style={styles.reactionTooltipText}>
+                          {r.users.map(function (uid) { return getUserName(uid, usersMap); }).join(', ')}
+                        </Text>
+                      </View>
+                    ) : null}
                   </View>
                 );
               })}
@@ -373,7 +400,30 @@ var styles = StyleSheet.create({
   },
   reactionEmoji: { fontSize: 16, marginRight: 4 },
   reactionShortcode: { color: '#D1D2D3', fontSize: 12, marginRight: 4 },
+  reactionBadgeActive: {
+    backgroundColor: 'rgba(18, 100, 163, 0.2)',
+    borderColor: '#1264A3',
+  },
   reactionCount: { color: '#ABABAD', fontSize: 12, fontWeight: '600' },
+  reactionCountActive: { color: '#1D9BD1' },
+  reactionTooltip: {
+    position: 'absolute',
+    bottom: '100%',
+    left: 0,
+    backgroundColor: '#1A1D21',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#565856',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginBottom: 4,
+    minWidth: 80,
+    zIndex: 10,
+  },
+  reactionTooltipText: {
+    color: '#D1D2D3',
+    fontSize: 12,
+  },
 
   threadLink: { flexDirection: 'row', alignItems: 'center', marginTop: 6, paddingVertical: 4 },
   threadBar: { width: 2, height: 16, backgroundColor: '#1264A3', borderRadius: 1, marginRight: 8 },

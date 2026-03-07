@@ -19,6 +19,7 @@ import {
   Trash2,
   Play,
   Pause,
+  Smile,
 } from 'lucide-react';
 
 var ICON_MAP = {
@@ -41,6 +42,7 @@ var ICON_MAP = {
   'trash': Trash2,
   'play': Play,
   'pause': Pause,
+  'smile': Smile,
 };
 
 function Icon({ name, size, color }) {
