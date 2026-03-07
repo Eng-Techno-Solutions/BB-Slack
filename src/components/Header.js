@@ -5,7 +5,7 @@ import SlackText from './SlackText';
 
 export default class Header extends Component {
   render() {
-    var { title, subtitle, onBack, rightLabel, onRight } = this.props;
+    var { title, subtitle, onBack, rightLabel, rightIcon, onRight } = this.props;
     return (
       <View style={styles.header}>
         <View style={styles.left}>
@@ -20,9 +20,13 @@ export default class Header extends Component {
           {subtitle ? <SlackText text={subtitle} style={styles.subtitle} numberOfLines={1} /> : null}
         </View>
         <View style={styles.right}>
-          {rightLabel && onRight ? (
+          {onRight ? (
             <TouchableOpacity onPress={onRight} style={styles.rightBtn}>
-              <Text style={styles.rightText}>{rightLabel}</Text>
+              {rightIcon ? (
+                <Icon name={rightIcon} size={20} color="#D1D2D3" />
+              ) : rightLabel ? (
+                <Text style={styles.rightText}>{rightLabel}</Text>
+              ) : null}
             </TouchableOpacity>
           ) : null}
         </View>

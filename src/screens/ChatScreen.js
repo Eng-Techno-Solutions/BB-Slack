@@ -264,7 +264,7 @@ export default class ChatScreen extends Component {
           title={(!channel.is_im ? '# ' : '') + channelName}
           subtitle={channel.topic && channel.topic.value ? channel.topic.value : null}
           onBack={onBack}
-          rightLabel="Info"
+          rightIcon="info"
           onRight={onMembers}
         />
 

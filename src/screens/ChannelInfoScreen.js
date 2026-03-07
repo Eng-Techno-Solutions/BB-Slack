@@ -39,7 +39,11 @@ export default class ChannelInfoScreen extends Component {
       var res = await slack.conversationsMembers(channel.id);
       var activeMembers = (res.members || []).filter(function (id) {
         var u = usersMap[id];
-        return !u || !u.deleted;
+        if (!u) return true;
+        if (u.deleted) return false;
+        var name = (u.profile && u.profile.display_name) || u.real_name || u.name || '';
+        if (name.toLowerCase() === 'deactivateduser') return false;
+        return true;
       });
       this.setState({ members: activeMembers, loading: false });
     } catch (err) {
