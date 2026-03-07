@@ -6,6 +6,8 @@ import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.Promise;
 
 import java.io.BufferedReader;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -205,6 +207,126 @@ public class HttpModule extends ReactContextBaseJavaModule {
 
                     // End boundary
                     os.write(("--" + boundary + "--" + crlf).getBytes("UTF-8"));
+                    os.flush();
+                    os.close();
+
+                    int code = conn.getResponseCode();
+                    BufferedReader reader;
+                    if (code >= 200 && code < 400) {
+                        reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
+                    } else {
+                        reader = new BufferedReader(new InputStreamReader(conn.getErrorStream(), "UTF-8"));
+                    }
+
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        sb.append(line);
+                    }
+                    reader.close();
+
+                    JSONObject result = new JSONObject();
+                    result.put("status", code);
+                    result.put("body", sb.toString());
+                    promise.resolve(result.toString());
+                } catch (Exception e) {
+                    promise.reject("UPLOAD_ERROR", e.getMessage());
+                } finally {
+                    if (conn != null) conn.disconnect();
+                }
+            }
+        }).start();
+    }
+
+    private HttpURLConnection openConnectionWithTls(URL url) throws Exception {
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        if (conn instanceof HttpsURLConnection) {
+            SSLSocketFactory factory = createTls12SocketFactory();
+            if (factory != null) {
+                ((HttpsURLConnection) conn).setSSLSocketFactory(factory);
+            }
+        }
+        return conn;
+    }
+
+    private void downloadWithRedirects(String urlString, String token, String destPath, int maxRedirects) throws Exception {
+        HttpURLConnection conn = null;
+        try {
+            URL url = new URL(urlString);
+            conn = openConnectionWithTls(url);
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(30000);
+            conn.setReadTimeout(30000);
+            conn.setInstanceFollowRedirects(false);
+            if (token != null && !token.isEmpty()) {
+                conn.setRequestProperty("Authorization", "Bearer " + token);
+            }
+
+            int code = conn.getResponseCode();
+            if (code >= 300 && code < 400 && maxRedirects > 0) {
+                String location = conn.getHeaderField("Location");
+                conn.disconnect();
+                conn = null;
+                if (location != null) {
+                    downloadWithRedirects(location, token, destPath, maxRedirects - 1);
+                    return;
+                }
+                throw new Exception("Redirect with no Location header");
+            }
+
+            if (code >= 200 && code < 300) {
+                InputStream is = conn.getInputStream();
+                FileOutputStream fos = new FileOutputStream(destPath);
+                byte[] buffer = new byte[8192];
+                int len;
+                while ((len = is.read(buffer)) != -1) {
+                    fos.write(buffer, 0, len);
+                }
+                fos.close();
+                is.close();
+            } else {
+                throw new Exception("HTTP " + code);
+            }
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+    }
+
+    @ReactMethod
+    public void downloadFile(final String urlString, final String token, final String destPath, final Promise promise) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    downloadWithRedirects(urlString, token, destPath, 5);
+                    promise.resolve(destPath);
+                } catch (Exception e) {
+                    promise.reject("DOWNLOAD_ERROR", e.getMessage());
+                }
+            }
+        }).start();
+    }
+
+    @ReactMethod
+    public void uploadBinary(final String urlString, final String fileBase64, final String contentType, final Promise promise) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                HttpURLConnection conn = null;
+                try {
+                    URL url = new URL(urlString);
+                    conn = openConnectionWithTls(url);
+                    conn.setRequestMethod("POST");
+                    conn.setConnectTimeout(60000);
+                    conn.setReadTimeout(60000);
+                    conn.setDoOutput(true);
+                    conn.setRequestProperty("Content-Type", contentType);
+
+                    byte[] fileBytes = android.util.Base64.decode(fileBase64, android.util.Base64.DEFAULT);
+                    conn.setRequestProperty("Content-Length", String.valueOf(fileBytes.length));
+
+                    OutputStream os = conn.getOutputStream();
+                    os.write(fileBytes);
                     os.flush();
                     os.close();
 

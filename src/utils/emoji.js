@@ -716,8 +716,12 @@ export function emojiFromName(name) {
   return EMOJI_MAP[name] || null;
 }
 
+import { Platform } from 'react-native';
+
 export function replaceEmojisInText(text) {
   if (!text) return text;
+  // BB Q20 Android has no emoji font - keep shortcodes readable
+  if (Platform.OS === 'android') return text;
   return text.replace(/:([a-zA-Z0-9_+-]+):/g, function (match, name) {
     var emoji = EMOJI_MAP[name];
     return emoji || match;

@@ -55,3 +55,4 @@ payload-types.ts
 **/*.toc
 
 android/.gradle/
+**/.DS_Store

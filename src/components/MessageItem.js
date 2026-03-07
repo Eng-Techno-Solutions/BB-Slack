@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { View, Text, Image, TouchableOpacity, TouchableHighlight, Linking, StyleSheet, Platform } from 'react-native';
+var IS_ANDROID = Platform.OS === 'android';
 import { formatTime, getUserName } from '../utils/format';
 import { emojiFromName, replaceEmojisInText } from '../utils/emoji';
 import Icon from './Icon';
@@ -182,7 +183,7 @@ export default class MessageItem extends Component {
   }
 
   render() {
-    var { message, usersMap, currentUserId, onLongPress, onThreadPress, token } = this.props;
+    var { message, usersMap, currentUserId, onLongPress, onThreadPress, token, focused } = this.props;
     var c = getColors();
 
     if (message.subtype === 'channel_join' || message.subtype === 'channel_leave' ||
@@ -209,7 +210,7 @@ export default class MessageItem extends Component {
 
     return (
       <TouchableHighlight
-        style={styles.container}
+        style={[styles.container, focused && { backgroundColor: c.messageUnderlay }]}
         underlayColor={c.messageUnderlay}
         onLongPress={function () { onLongPress && onLongPress(message); }}
         data-type="message"
@@ -265,7 +266,7 @@ export default class MessageItem extends Component {
                         self.setState({ showReactionUsers: isExpanded ? null : i });
                       }}
                     >
-                      {emoji ? (
+                      {emoji && !IS_ANDROID ? (
                         <Text style={styles.reactionEmoji}>{emoji}</Text>
                       ) : (
                         <Text style={[styles.reactionShortcode, { color: c.textSecondary }]}>:{r.name}:</Text>

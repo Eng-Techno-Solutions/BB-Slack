@@ -1,4 +1,4 @@
-import { request, uploadFile } from './http';
+import { request, uploadFile, uploadBinary } from './http';
 import { Platform } from 'react-native';
 
 var BASE = Platform.OS === 'web' ? '/slack-api/' : 'https://slack.com/api/';
@@ -177,17 +177,54 @@ export default class SlackAPI {
   }
 
   // Files
-  filesUpload(channel, fileData, threadTs, comment) {
-    var url = BASE + 'files.upload';
-    var fields = { channels: channel };
-    if (fileData.name) fields.filename = fileData.name;
-    if (threadTs) fields.thread_ts = threadTs;
-    if (comment) fields.initial_comment = comment;
-    return uploadFile(url, this.token, fields, fileData).then(function (res) {
+  async filesUpload(channel, fileData, threadTs, comment) {
+    var self = this;
+    var fileName = fileData.name || 'file';
+    var fileSize = fileData.size || 0;
+
+    // Try new V2 upload API first
+    try {
+      var urlResult = await this._get('files.getUploadURLExternal', {
+        filename: fileName,
+        length: fileSize,
+      });
+
+      var uploadUrl = urlResult.upload_url;
+      var fileId = urlResult.file_id;
+
+      // Upload file binary to the presigned URL
+      var contentType = fileData.type || 'application/octet-stream';
+      if (fileData.base64) {
+        await uploadBinary(uploadUrl, fileData.base64, contentType);
+      } else {
+        // Web: use FormData upload
+        var formData = new FormData();
+        formData.append('file', fileData.file || fileData.blob, fileName);
+        await fetch(uploadUrl, { method: 'POST', body: formData }).then(function (res) {
+          if (!res.ok) throw new Error('Upload failed: ' + res.status);
+        });
+      }
+
+      // Complete the upload
+      var completeBody = {
+        files: [{ id: fileId, title: fileName }],
+      };
+      if (channel) completeBody.channel_id = channel;
+      if (threadTs) completeBody.thread_ts = threadTs;
+      if (comment) completeBody.initial_comment = comment;
+      return await self._post('files.completeUploadExternal', completeBody);
+    } catch (v2Err) {
+      // Fallback to legacy upload if V2 fails
+      var url = BASE + 'files.upload';
+      var fields = { channels: channel };
+      if (fileData.name) fields.filename = fileData.name;
+      if (threadTs) fields.thread_ts = threadTs;
+      if (comment) fields.initial_comment = comment;
+      var res = await uploadFile(url, self.token, fields, fileData);
       var data = JSON.parse(res.body);
       if (!data.ok) throw new Error(data.error || 'Upload failed');
       return data;
-    });
+    }
   }
 
   // Emoji

@@ -9,7 +9,7 @@ import com.facebook.react.shell.MainReactPackage;
 import com.facebook.soloader.SoLoader;
 import com.zmxv.RNSound.RNSoundPackage;
 import com.rnfs.RNFSPackage;
-import com.horcrux.svg.SvgPackage;
+import com.oblador.vectoricons.VectorIconsPackage;
 
 import java.security.Security;
 import java.util.Arrays;
@@ -31,7 +31,7 @@ public class MainApplication extends Application implements ReactApplication {
                 new MainReactPackage(),
                 new RNSoundPackage(),
                 new RNFSPackage(),
-                new SvgPackage(),
+                new VectorIconsPackage(),
                 new HttpPackage()
             );
         }

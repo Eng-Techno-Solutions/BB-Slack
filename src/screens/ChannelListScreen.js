@@ -16,6 +16,7 @@ import Icon from '../components/Icon';
 import SlackText from '../components/SlackText';
 import { getChannelDisplayName } from '../utils/format';
 import { getColors, getMode } from '../theme';
+import { addKeyEventListener, removeKeyEventListener } from '../utils/keyEvents';
 
 var TABS = [
   { key: 'channels', label: 'Channels', icon: 'hash' },
@@ -28,7 +29,47 @@ export default class ChannelListScreen extends Component {
     this.state = {
       tab: 'channels',
       filter: '',
+      focusIndex: -1,
     };
+    this._keySub = null;
+    this._data = [];
+  }
+
+  componentDidMount() {
+    var self = this;
+    this._keySub = addKeyEventListener(function (e) {
+      self.handleKeyEvent(e);
+    });
+  }
+
+  componentWillUnmount() {
+    removeKeyEventListener(this._keySub);
+  }
+
+  handleKeyEvent(e) {
+    var action = e.action;
+    var data = this._data;
+    var idx = this.state.focusIndex;
+
+    if (action === 'down') {
+      var next = idx + 1;
+      while (next < data.length && data[next]._sectionHeader) next++;
+      if (next < data.length) {
+        this.setState({ focusIndex: next });
+        if (this._list) this._list.scrollToIndex({ index: next, viewOffset: 80, animated: true });
+      }
+    } else if (action === 'up') {
+      var prev = idx - 1;
+      while (prev >= 0 && data[prev]._sectionHeader) prev--;
+      if (prev >= 0) {
+        this.setState({ focusIndex: prev });
+        if (this._list) this._list.scrollToIndex({ index: prev, viewOffset: 80, animated: true });
+      }
+    } else if (action === 'select') {
+      if (idx >= 0 && idx < data.length && !data[idx]._sectionHeader) {
+        this.props.onSelect(data[idx]);
+      }
+    }
   }
 
   isBot(ch) {
@@ -109,7 +150,7 @@ export default class ChannelListScreen extends Component {
     return url;
   }
 
-  renderItem(item) {
+  renderItem(item, isFocused) {
     var { usersMap, currentUserId, onSelect } = this.props;
     var c = getColors();
     var name = getChannelDisplayName(item, usersMap, currentUserId);
@@ -123,7 +164,7 @@ export default class ChannelListScreen extends Component {
 
     return (
       <TouchableHighlight
-        style={styles.item}
+        style={[styles.item, isFocused && { backgroundColor: c.listUnderlay }]}
         underlayColor={c.listUnderlay}
         onPress={function () { onSelect(item); }}
         data-type="list-item"
@@ -171,6 +212,7 @@ export default class ChannelListScreen extends Component {
     var { loading, onSearch, onLogout, onToggleTheme, teamName, teamIcon } = this.props;
     var self = this;
     var data = this.getFilteredChannels();
+    this._data = data;
     var c = getColors();
     var isDark = getMode() === 'dark';
 
@@ -229,6 +271,7 @@ export default class ChannelListScreen extends Component {
           </View>
         ) : (
           <FlatList
+            ref={function (r) { self._list = r; }}
             data={data}
             keyExtractor={function (item) { return item._sectionHeader || item.id; }}
             renderItem={function (obj) {
@@ -239,7 +282,7 @@ export default class ChannelListScreen extends Component {
                   </View>
                 );
               }
-              return self.renderItem(obj.item);
+              return self.renderItem(obj.item, obj.index === self.state.focusIndex);
             }}
             ListEmptyComponent={
               <View style={styles.center}>

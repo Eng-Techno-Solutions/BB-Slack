@@ -1,4 +1,4 @@
-import { NativeModules } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 
 var HttpModule = NativeModules.HttpModule;
 
@@ -57,6 +57,30 @@ export function uploadFile(url, token, fields, fileData) {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + token },
     body: formData,
+  }).then(function (res) {
+    return res.text().then(function (text) {
+      return { status: res.status, body: text };
+    });
+  });
+}
+
+export function uploadBinary(url, fileBase64, contentType) {
+  if (HttpModule && HttpModule.uploadBinary) {
+    return HttpModule.uploadBinary(url, fileBase64, contentType).then(function (res) {
+      return JSON.parse(res);
+    });
+  }
+
+  // Web fallback: decode base64 and POST as blob
+  var binary = atob(fileBase64);
+  var bytes = new Uint8Array(binary.length);
+  for (var i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  var blob = new Blob([bytes], { type: contentType });
+  return fetch(url, {
+    method: 'POST',
+    body: blob,
   }).then(function (res) {
     return res.text().then(function (text) {
       return { status: res.status, body: text };
