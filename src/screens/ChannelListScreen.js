@@ -30,6 +30,7 @@ export default class ChannelListScreen extends Component {
       tab: 'channels',
       filter: '',
       focusIndex: -1,
+      teamIconError: false,
     };
     this._keySub = null;
     this._data = [];
@@ -44,6 +45,12 @@ export default class ChannelListScreen extends Component {
 
   componentWillUnmount() {
     removeKeyEventListener(this._keySub);
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.teamIcon !== this.props.teamIcon) {
+      this.setState({ teamIconError: false });
+    }
   }
 
   handleKeyEvent(e) {
@@ -220,8 +227,12 @@ export default class ChannelListScreen extends Component {
       <View style={[styles.container, { backgroundColor: c.bg }]}>
         <View style={[styles.header, { backgroundColor: c.bgHeader, borderBottomColor: c.headerBorder }]}>
           <View style={styles.headerLeft}>
-            {teamIcon ? (
-              <Image source={{ uri: teamIcon }} style={styles.teamIcon} />
+            {teamIcon && !this.state.teamIconError ? (
+              <Image
+                source={{ uri: teamIcon }}
+                style={styles.teamIcon}
+                onError={function () { self.setState({ teamIconError: true }); }}
+              />
             ) : (
               <View style={[styles.teamIconPlaceholder, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
                 <Text style={styles.teamIconText}>{(teamName || 'B').charAt(0)}</Text>

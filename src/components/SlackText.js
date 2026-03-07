@@ -7,7 +7,8 @@ import { getColors } from '../theme';
 var IS_ANDROID = Platform.OS === 'android';
 
 function replaceEmojisWithImages(text) {
-  if (!text || !IS_ANDROID) return replaceEmojisWithImages(text);
+  if (!text) return text;
+  if (!IS_ANDROID) return replaceEmojisInText(text);
   var parts = [];
   var regex = /:([a-zA-Z0-9_+-]+):/g;
   var lastIndex = 0;

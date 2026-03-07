@@ -46,12 +46,20 @@ export default class ChatScreen extends Component {
       recordingTime: 0,
       focusIndex: -1,
     };
+    var self = this;
+    this._onLongPress = function (m) { self.onMessageLongPress(m); };
+    this._onReactionPress = function (m, name, reacted) { self.toggleReaction(m, name, reacted); };
+    this._onImagePress = function (img) { self.setState({ viewerImage: img }); };
+    this._onAudioPress = function (audio) { self.setState({ viewerAudio: audio }); };
+    this._renderItem = function (obj) { return self._renderMessageItem(obj); };
+    this._keyExtractor = function (item) { return item.ts; };
+    this._onScroll = function (e) { self._handleScroll(e); };
+    this._listRef = function (r) { self._list = r; };
   }
 
   componentDidMount() {
     this._mounted = true;
     this._userScrolledUp = false;
-    this._prevMessageCount = 0;
     this.loadMessages();
     this.startPolling();
     var self = this;
@@ -78,11 +86,11 @@ export default class ChatScreen extends Component {
     var idx = this.state.focusIndex;
 
     if (action === 'down') {
-      var next = Math.min(idx + 1, msgs.length - 1);
+      var next = Math.max(idx - 1, 0);
       this.setState({ focusIndex: next });
       if (this._list) this._list.scrollToIndex({ index: next, viewOffset: 80, animated: true });
     } else if (action === 'up') {
-      var prev = Math.max(idx - 1, 0);
+      var prev = Math.min(idx + 1, msgs.length - 1);
       this.setState({ focusIndex: prev });
       if (this._list) this._list.scrollToIndex({ index: prev, viewOffset: 80, animated: true });
     } else if (action === 'select' && idx >= 0 && idx < msgs.length) {
@@ -111,19 +119,13 @@ export default class ChatScreen extends Component {
     var { slack, channel } = this.props;
     try {
       var res = await slack.conversationsHistory(channel.id, null, 30);
-      var msgs = (res.messages || []).slice().reverse();
+      var msgs = (res.messages || []).slice();
       var cursor = res.response_metadata && res.response_metadata.next_cursor;
       this.setState({
         messages: msgs,
         loading: false,
         cursor: cursor,
         hasMore: !!cursor,
-      }, function () {
-        setTimeout(function () {
-          if (self._list) {
-            self._list.scrollToEnd({ animated: false });
-          }
-        }, 300);
       });
       this.markRead(msgs);
     } catch (err) {
@@ -138,9 +140,9 @@ export default class ChatScreen extends Component {
     if (loading || this._polling) return;
     this._polling = true;
     try {
-      var limit = Math.max(messages.length, 30);
+      var limit = Math.min(Math.max(messages.length, 30), 100);
       var res = await slack.conversationsHistory(channel.id, null, limit);
-      var fetched = (res.messages || []).slice().reverse();
+      var fetched = (res.messages || []).slice();
       if (fetched.length === 0) return;
 
       var existingMap = {};
@@ -162,6 +164,11 @@ export default class ChatScreen extends Component {
       }
 
       var merged = [];
+      for (var n = 0; n < fetched.length; n++) {
+        if (!existingMap[fetched[n].ts]) {
+          merged.push(fetched[n]);
+        }
+      }
       for (var m = 0; m < messages.length; m++) {
         if (fetchedMap[messages[m].ts]) {
           merged.push(fetchedMap[messages[m].ts]);
@@ -169,23 +176,10 @@ export default class ChatScreen extends Component {
           merged.push(messages[m]);
         }
       }
-      for (var n = 0; n < fetched.length; n++) {
-        if (!existingMap[fetched[n].ts]) {
-          merged.push(fetched[n]);
-        }
-      }
 
       var self = this;
       var currentUserId = this.props.currentUserId;
-      this.setState({ messages: merged }, function () {
-        if (hasNew && !self._userScrolledUp) {
-          setTimeout(function () {
-            if (self._list) {
-              self._list.scrollToEnd({ animated: true });
-            }
-          }, 50);
-        }
-      });
+      this.setState({ messages: merged });
       if (hasNew) {
         var newMsgs = fetched.filter(function (f) { return !existingMap[f.ts]; });
         var fromOthers = newMsgs.filter(function (msg) { return msg.user !== currentUserId; });
@@ -196,7 +190,7 @@ export default class ChatScreen extends Component {
           this.markRead(newMsgs);
         } else {
           self._unseenCount = (self._unseenCount || 0) + newMsgs.length;
-          self.forceUpdate();
+          self.setState({ _unseenTick: Date.now() });
         }
       }
     } catch (err) {
@@ -213,11 +207,11 @@ export default class ChatScreen extends Component {
     this.setState({ loadingMore: true });
     try {
       var res = await slack.conversationsHistory(channel.id, cursor, 30);
-      var older = (res.messages || []).slice().reverse();
+      var older = (res.messages || []).slice();
       var nextCursor = res.response_metadata && res.response_metadata.next_cursor;
       this.setState(function (prev) {
         return {
-          messages: older.concat(prev.messages),
+          messages: prev.messages.concat(older),
           loadingMore: false,
           cursor: nextCursor,
           hasMore: !!nextCursor,
@@ -231,7 +225,7 @@ export default class ChatScreen extends Component {
   markRead(msgs) {
     var { slack, channel } = this.props;
     if (msgs.length > 0) {
-      var lastTs = msgs[msgs.length - 1].ts;
+      var lastTs = msgs[0].ts;
       slack.conversationsMark(channel.id, lastTs).catch(function () {});
     }
   }
@@ -371,6 +365,36 @@ export default class ChatScreen extends Component {
     }
   }
 
+  _renderMessageItem(obj) {
+    return (
+      <MessageItem
+        message={obj.item}
+        usersMap={this.props.usersMap}
+        currentUserId={this.props.currentUserId}
+        token={this.props.slack.token}
+        focused={obj.index === this.state.focusIndex}
+        onLongPress={this._onLongPress}
+        onReactionPress={this._onReactionPress}
+        onThreadPress={this.props.onThread}
+        onImagePress={this._onImagePress}
+        onAudioPress={this._onAudioPress}
+      />
+    );
+  }
+
+  _handleScroll(e) {
+    var offset = e.nativeEvent.contentOffset.y;
+    var nearBottom = offset < 150;
+    this._userScrolledUp = !nearBottom;
+    if (nearBottom && this._unseenCount > 0) {
+      this._unseenCount = 0;
+      this.markRead(this.state.messages);
+    }
+    if (this.state.showScrollBtn !== !nearBottom) {
+      this.setState({ showScrollBtn: !nearBottom });
+    }
+  }
+
   onMessageLongPress(message) {
     this.setState({ actionMessage: message, reactionTarget: message });
   }
@@ -461,42 +485,14 @@ export default class ChatScreen extends Component {
         ) : (
           <View style={styles.listWrapper}>
             <FlatList
-              ref={function (r) { self._list = r; }}
+              ref={this._listRef}
               data={messages}
-              keyExtractor={function (item) { return item.ts; }}
-              renderItem={function (obj) {
-                return (
-                  <MessageItem
-                    message={obj.item}
-                    usersMap={usersMap}
-                    currentUserId={currentUserId}
-                    token={slack.token}
-                    focused={obj.index === self.state.focusIndex}
-                    onLongPress={function (m) { self.onMessageLongPress(m); }}
-                    onReactionPress={function (m, name, reacted) { self.toggleReaction(m, name, reacted); }}
-                    onThreadPress={onThread}
-                    onImagePress={function (img) { self.setState({ viewerImage: img }); }}
-                    onAudioPress={function (audio) { self.setState({ viewerAudio: audio }); }}
-                  />
-                );
-              }}
-              onScroll={function (e) {
-                var offset = e.nativeEvent.contentOffset.y;
-                var contentHeight = e.nativeEvent.contentSize.height;
-                var layoutHeight = e.nativeEvent.layoutMeasurement.height;
-                var distanceFromBottom = contentHeight - offset - layoutHeight;
-                var nearBottom = distanceFromBottom < 150;
-                self._userScrolledUp = !nearBottom;
-                if (nearBottom && self._unseenCount > 0) {
-                  self._unseenCount = 0;
-                  self.markRead(self.state.messages);
-                }
-                if (self.state.showScrollBtn !== !nearBottom) {
-                  self.setState({ showScrollBtn: !nearBottom });
-                }
-              }}
-              scrollEventThrottle={16}
-              ListHeaderComponent={
+              inverted
+              keyExtractor={this._keyExtractor}
+              renderItem={this._renderItem}
+              onScroll={this._onScroll}
+              scrollEventThrottle={100}
+              ListFooterComponent={
                 loadingMore ? (
                   <View style={styles.loadMore}>
                     <ActivityIndicator size="small" color={c.accent} />
@@ -523,7 +519,7 @@ export default class ChatScreen extends Component {
                   self.setState({ showScrollBtn: false });
                   self.markRead(self.state.messages);
                   if (self._list) {
-                    self._list.scrollToEnd({ animated: true });
+                    self._list.scrollToOffset({ offset: 0, animated: true });
                   }
                 }}
               >

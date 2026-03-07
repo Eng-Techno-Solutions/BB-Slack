@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
-import { View, Text, Image, TouchableOpacity, TouchableHighlight, Linking, StyleSheet, Platform } from 'react-native';
+import { View, Text, Image, TouchableOpacity, TouchableHighlight, Linking, StyleSheet, Platform, Dimensions } from 'react-native';
 var IS_ANDROID = Platform.OS === 'android';
+var SCREEN_W = Dimensions.get('window').width;
+var CONTENT_MAX_W = SCREEN_W - 16 - 36 - 10 - 12 - 2;
 import { getTwemojiUrlByName } from '../utils/emoji';
 import { formatTime, getUserName } from '../utils/format';
 import { emojiFromName, replaceEmojisInText } from '../utils/emoji';
@@ -81,6 +83,27 @@ export default class MessageItem extends Component {
     this.state = { showReactionUsers: null };
   }
 
+  shouldComponentUpdate(nextProps, nextState) {
+    if (this.state.showReactionUsers !== nextState.showReactionUsers) return true;
+    if (this.props.focused !== nextProps.focused) return true;
+    var prev = this.props.message;
+    var next = nextProps.message;
+    if (prev.ts !== next.ts) return true;
+    if (prev.text !== next.text) return true;
+    if ((prev.edited ? 'y' : 'n') !== (next.edited ? 'y' : 'n')) return true;
+    if (prev.reply_count !== next.reply_count) return true;
+    var prevR = prev.reactions || [];
+    var nextR = next.reactions || [];
+    if (prevR.length !== nextR.length) return true;
+    for (var i = 0; i < prevR.length; i++) {
+      if (prevR[i].name !== nextR[i].name || prevR[i].count !== nextR[i].count) return true;
+    }
+    var prevF = prev.files || [];
+    var nextF = next.files || [];
+    if (prevF.length !== nextF.length) return true;
+    return false;
+  }
+
   renderImageFile(f, i, token) {
     var onImagePress = this.props.onImagePress;
     var c = getColors();
@@ -91,7 +114,7 @@ export default class MessageItem extends Component {
 
     var w = f.original_w || f.thumb_480_w || f.thumb_360_w || 300;
     var h = f.original_h || f.thumb_480_h || f.thumb_360_h || 200;
-    var maxW = 340;
+    var maxW = Math.min(CONTENT_MAX_W, 340);
     var maxH = 280;
     if (w > maxW) { h = Math.round(h * (maxW / w)); w = maxW; }
     if (h > maxH) { w = Math.round(w * (maxH / h)); h = maxH; }
@@ -351,7 +374,7 @@ var styles = StyleSheet.create({
     marginBottom: 6,
     alignSelf: 'flex-start',
     minWidth: 240,
-    maxWidth: 340,
+    maxWidth: CONTENT_MAX_W,
   },
   audioPlayBtn: {
     width: 36, height: 36, borderRadius: 18,
@@ -368,7 +391,7 @@ var styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     padding: 10, marginBottom: 6,
-    alignSelf: 'flex-start', minWidth: 200, maxWidth: 340,
+    alignSelf: 'flex-start', minWidth: 200, maxWidth: CONTENT_MAX_W,
   },
   fileIcon: {
     width: 40, height: 40, borderRadius: 6,
