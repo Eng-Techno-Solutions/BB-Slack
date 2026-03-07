@@ -14,6 +14,7 @@ import Icon from '../components/Icon';
 import SlackText from '../components/SlackText';
 import { formatDateFull, getUserName } from '../utils/format';
 import { getColors } from '../theme';
+import { addKeyEventListener, removeKeyEventListener } from '../utils/keyEvents';
 
 export default class SearchScreen extends Component {
   constructor(props) {
@@ -23,7 +24,39 @@ export default class SearchScreen extends Component {
       results: [],
       loading: false,
       searched: false,
+      focusIndex: -1,
     };
+  }
+
+  componentDidMount() {
+    var self = this;
+    this._keySub = addKeyEventListener(function (e) {
+      self.handleKeyEvent(e);
+    });
+  }
+
+  componentWillUnmount() {
+    removeKeyEventListener(this._keySub);
+  }
+
+  handleKeyEvent(e) {
+    var action = e.action;
+    var results = this.state.results;
+    var idx = this.state.focusIndex;
+
+    if (action === 'down') {
+      var next = Math.min(idx + 1, results.length - 1);
+      this.setState({ focusIndex: next });
+      if (this._list) this._list.scrollToIndex({ index: next, viewOffset: 80, animated: true });
+    } else if (action === 'up') {
+      var prev = Math.max(idx - 1, 0);
+      this.setState({ focusIndex: prev });
+      if (this._list) this._list.scrollToIndex({ index: prev, viewOffset: 80, animated: true });
+    } else if (action === 'select' && idx >= 0 && idx < results.length) {
+      this.props.onSelectMessage && this.props.onSelectMessage(results[idx]);
+    } else if (action === 'back') {
+      this.props.onBack && this.props.onBack();
+    }
   }
 
   async doSearch() {
@@ -41,7 +74,7 @@ export default class SearchScreen extends Component {
     }
   }
 
-  renderItem(item) {
+  renderItem(item, focused) {
     var { usersMap, onSelectMessage } = this.props;
     var c = getColors();
     var userName = getUserName(item.user || item.username, usersMap);
@@ -49,7 +82,7 @@ export default class SearchScreen extends Component {
 
     return (
       <TouchableHighlight
-        style={[styles.item, { borderBottomColor: c.border }]}
+        style={[styles.item, { borderBottomColor: c.border }, focused && { backgroundColor: c.listUnderlay }]}
         underlayColor={c.listUnderlay}
         onPress={function () { onSelectMessage && onSelectMessage(item); }}
         data-type="list-item"
@@ -102,9 +135,10 @@ export default class SearchScreen extends Component {
           </View>
         ) : (
           <FlatList
+            ref={function (r) { self._list = r; }}
             data={results}
             keyExtractor={function (item, i) { return item.ts + '_' + i; }}
-            renderItem={function (obj) { return self.renderItem(obj.item); }}
+            renderItem={function (obj) { return self.renderItem(obj.item, obj.index === self.state.focusIndex); }}
             ListEmptyComponent={
               searched ? (
                 <View style={styles.center}>

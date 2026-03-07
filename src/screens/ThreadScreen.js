@@ -18,6 +18,7 @@ import { playNotification } from '../utils/notificationSound';
 import { pickFile } from '../utils/filePicker';
 import { startRecording, stopRecording, cancelRecording } from '../utils/audioRecorder';
 import { getColors } from '../theme';
+import { addKeyEventListener, removeKeyEventListener } from '../utils/keyEvents';
 
 export default class ThreadScreen extends Component {
   constructor(props) {
@@ -33,6 +34,7 @@ export default class ThreadScreen extends Component {
       uploading: false,
       recording: false,
       recordingTime: 0,
+      focusIndex: -1,
     };
   }
 
@@ -40,16 +42,41 @@ export default class ThreadScreen extends Component {
     this._mounted = true;
     this.loadReplies();
     this.startPolling();
+    var self = this;
+    this._keySub = addKeyEventListener(function (e) {
+      self.handleKeyEvent(e);
+    });
   }
 
   componentWillUnmount() {
     this._mounted = false;
     this.stopPolling();
+    removeKeyEventListener(this._keySub);
     if (this._recordTimer) {
       clearInterval(this._recordTimer);
     }
     if (this.state.recording) {
       cancelRecording();
+    }
+  }
+
+  handleKeyEvent(e) {
+    var action = e.action;
+    var replies = this.state.replies;
+    var idx = this.state.focusIndex;
+
+    if (action === 'down') {
+      var next = Math.min(idx + 1, replies.length - 1);
+      this.setState({ focusIndex: next });
+      if (this._list) this._list.scrollToIndex({ index: next, viewOffset: 80, animated: true });
+    } else if (action === 'up') {
+      var prev = Math.max(idx - 1, 0);
+      this.setState({ focusIndex: prev });
+      if (this._list) this._list.scrollToIndex({ index: prev, viewOffset: 80, animated: true });
+    } else if (action === 'select' && idx >= 0 && idx < replies.length) {
+      this.setState({ reactionTarget: replies[idx], emojiPickerMode: 'reaction' });
+    } else if (action === 'back') {
+      this.props.onBack && this.props.onBack();
     }
   }
 
@@ -71,7 +98,7 @@ export default class ThreadScreen extends Component {
     var { slack, channel, parentMessage } = this.props;
     try {
       var res = await slack.conversationsReplies(channel.id, parentMessage.ts);
-      this.setState({ replies: res.messages || [], loading: false });
+      this.setState({ replies: (res.messages || []).slice().reverse(), loading: false });
     } catch (err) {
       this.setState({ loading: false });
       Alert.alert('Error', err.message);
@@ -84,9 +111,9 @@ export default class ThreadScreen extends Component {
     if (loading) return;
     try {
       var res = await slack.conversationsReplies(channel.id, parentMessage.ts);
-      var newReplies = res.messages || [];
+      var newReplies = (res.messages || []).slice().reverse();
       if (newReplies.length > replies.length) {
-        var newOnes = newReplies.slice(replies.length);
+        var newOnes = newReplies.slice(0, newReplies.length - replies.length);
         var fromOthers = newOnes.filter(function (m) { return m.user !== currentUserId; });
         if (fromOthers.length > 0) {
           playNotification();
@@ -239,6 +266,7 @@ export default class ThreadScreen extends Component {
           <FlatList
             ref={function (r) { self._list = r; }}
             data={replies}
+            inverted
             keyExtractor={function (item) { return item.ts; }}
             renderItem={function (obj) {
               return (
@@ -247,17 +275,13 @@ export default class ThreadScreen extends Component {
                   usersMap={usersMap}
                   currentUserId={currentUserId}
                   token={slack.token}
+                  focused={obj.index === self.state.focusIndex}
                   onLongPress={function (m) {
                     self.setState({ reactionTarget: m, emojiPickerMode: 'reaction' });
                   }}
                   onReactionPress={function (m, name, reacted) { self.toggleReaction(m, name, reacted); }}
                 />
               );
-            }}
-            onContentSizeChange={function () {
-              if (self._list && replies.length > 0) {
-                self._list.scrollToEnd({ animated: false });
-              }
             }}
           />
         )}

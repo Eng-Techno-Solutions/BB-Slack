@@ -86,6 +86,24 @@ export default class ChannelListScreen extends Component {
     return u && (u.is_bot || u.id === 'USLACKBOT');
   }
 
+  getUnreadCounts() {
+    var { channels } = this.props;
+    var channelsUnread = 0;
+    var dmsUnread = 0;
+    for (var i = 0; i < channels.length; i++) {
+      var ch = channels[i];
+      var count = ch.unread_count_display || 0;
+      if (count > 0) {
+        if (ch.is_im || ch.is_mpim) {
+          dmsUnread += count;
+        } else {
+          channelsUnread += count;
+        }
+      }
+    }
+    return { channelsUnread: channelsUnread, dmsUnread: dmsUnread, total: channelsUnread + dmsUnread };
+  }
+
   getFilteredChannels() {
     var { channels, usersMap, currentUserId } = this.props;
     var { tab, filter } = this.state;
@@ -222,6 +240,7 @@ export default class ChannelListScreen extends Component {
     this._data = data;
     var c = getColors();
     var isDark = getMode() === 'dark';
+    var unreadCounts = this.getUnreadCounts();
 
     return (
       <View style={[styles.container, { backgroundColor: c.bg }]}>
@@ -240,6 +259,11 @@ export default class ChannelListScreen extends Component {
             )}
             <Text style={[styles.headerTitle, { color: c.headerText }]} numberOfLines={1}>{teamName || 'BB Slack'}</Text>
           </View>
+          {unreadCounts.total > 0 ? (
+            <View style={[styles.headerBadge, { backgroundColor: c.badgeBg }]}>
+              <Text style={styles.badgeText}>{unreadCounts.total > 99 ? '99+' : unreadCounts.total}</Text>
+            </View>
+          ) : null}
           <TouchableOpacity style={styles.themeBtn} onPress={onToggleTheme} data-type="icon-btn">
             <Icon name={isDark ? 'sun' : 'moon'} size={18} color={c.headerIcon} />
           </TouchableOpacity>
@@ -258,9 +282,16 @@ export default class ChannelListScreen extends Component {
                 data-type="tab-btn"
               >
                 <View style={styles.tabContent}>
-                <Icon name={t.icon} size={15} color={active ? c.tabTextActive : c.tabText} />
-                <Text style={[styles.tabText, { color: c.tabText }, active && { color: c.tabTextActive, fontWeight: 'bold' }]}>{t.label}</Text>
-              </View>
+                  <Icon name={t.icon} size={15} color={active ? c.tabTextActive : c.tabText} />
+                  <Text style={[styles.tabText, { color: c.tabText }, active && { color: c.tabTextActive, fontWeight: 'bold' }]}>{t.label}</Text>
+                  {(t.key === 'channels' ? unreadCounts.channelsUnread : unreadCounts.dmsUnread) > 0 ? (
+                    <View style={[styles.tabBadge, { backgroundColor: c.badgeBg }]}>
+                      <Text style={styles.tabBadgeText}>
+                        {(t.key === 'channels' ? unreadCounts.channelsUnread : unreadCounts.dmsUnread) > 99 ? '99+' : (t.key === 'channels' ? unreadCounts.channelsUnread : unreadCounts.dmsUnread)}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
               </TouchableOpacity>
             );
           })}
@@ -353,6 +384,14 @@ var styles = StyleSheet.create({
   searchBtn: {
     padding: 8,
   },
+  headerBadge: {
+    borderRadius: 10,
+    minWidth: 20,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    alignItems: 'center',
+    marginRight: 4,
+  },
   tabs: {
     flexDirection: 'row',
     borderBottomWidth: 1,
@@ -372,6 +411,19 @@ var styles = StyleSheet.create({
   tabText: {
     fontSize: 14,
     marginLeft: 6,
+  },
+  tabBadge: {
+    borderRadius: 9,
+    minWidth: 18,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    alignItems: 'center',
+    marginLeft: 6,
+  },
+  tabBadgeText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   logoutBtn: {
     paddingVertical: 10,

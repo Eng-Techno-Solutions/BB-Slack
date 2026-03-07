@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import Header from '../components/Header';
 import { getColors } from '../theme';
+import { addKeyEventListener, removeKeyEventListener } from '../utils/keyEvents';
 
 export default class ProfileScreen extends Component {
   constructor(props) {
@@ -21,6 +22,25 @@ export default class ProfileScreen extends Component {
 
   componentDidMount() {
     this.loadUser();
+    var self = this;
+    this._keySub = addKeyEventListener(function (e) {
+      self.handleKeyEvent(e);
+    });
+  }
+
+  componentWillUnmount() {
+    removeKeyEventListener(this._keySub);
+  }
+
+  handleKeyEvent(e) {
+    var action = e.action;
+    if (action === 'back') {
+      this.props.onBack && this.props.onBack();
+    } else if (action === 'select') {
+      if (this.props.userId !== this.props.currentUserId && this.state.user) {
+        this.openDM();
+      }
+    }
   }
 
   async loadUser() {

@@ -16,6 +16,7 @@ import Icon from '../components/Icon';
 import SlackText from '../components/SlackText';
 import { getUserName, getChannelDisplayName } from '../utils/format';
 import { getColors } from '../theme';
+import { addKeyEventListener, removeKeyEventListener } from '../utils/keyEvents';
 
 export default class ChannelInfoScreen extends Component {
   constructor(props) {
@@ -26,12 +27,46 @@ export default class ChannelInfoScreen extends Component {
       pins: [],
       pinsLoading: true,
       showPins: false,
+      focusIndex: -1,
     };
   }
 
   componentDidMount() {
     this.loadMembers();
     this.loadPins();
+    var self = this;
+    this._keySub = addKeyEventListener(function (e) {
+      self.handleKeyEvent(e);
+    });
+  }
+
+  componentWillUnmount() {
+    removeKeyEventListener(this._keySub);
+  }
+
+  handleKeyEvent(e) {
+    var action = e.action;
+    var { showPins, members, pins, focusIndex } = this.state;
+    var data = showPins ? pins : members;
+    var idx = focusIndex;
+
+    if (action === 'down') {
+      var next = Math.min(idx + 1, data.length - 1);
+      this.setState({ focusIndex: next });
+      if (this._list) this._list.scrollToIndex({ index: next, viewOffset: 80, animated: true });
+    } else if (action === 'up') {
+      var prev = Math.max(idx - 1, 0);
+      this.setState({ focusIndex: prev });
+      if (this._list) this._list.scrollToIndex({ index: prev, viewOffset: 80, animated: true });
+    } else if (action === 'select' && idx >= 0 && idx < data.length) {
+      if (!showPins) {
+        this.props.onProfile && this.props.onProfile(data[idx]);
+      }
+    } else if (action === 'right') {
+      this.setState({ showPins: !showPins, focusIndex: -1 });
+    } else if (action === 'back') {
+      this.props.onBack && this.props.onBack();
+    }
   }
 
   async loadMembers() {
@@ -70,7 +105,7 @@ export default class ChannelInfoScreen extends Component {
     return null;
   }
 
-  renderMember(userId) {
+  renderMember(userId, focused) {
     var { usersMap, onProfile, slack } = this.props;
     var c = getColors();
     var name = getUserName(userId, usersMap);
@@ -81,7 +116,7 @@ export default class ChannelInfoScreen extends Component {
 
     return (
       <TouchableHighlight
-        style={[styles.memberItem, { borderBottomColor: c.border }]}
+        style={[styles.memberItem, { borderBottomColor: c.border }, focused && { backgroundColor: c.listUnderlay }]}
         underlayColor={c.listUnderlay}
         onPress={function () { onProfile && onProfile(userId); }}
         data-type="list-item"
@@ -143,14 +178,14 @@ export default class ChannelInfoScreen extends Component {
         <View style={[styles.tabRow, { borderBottomColor: c.border }]}>
           <TouchableOpacity
             style={[styles.tabBtn, !showPins && [styles.tabBtnActive, { borderBottomColor: c.accent }]]}
-            onPress={function () { self.setState({ showPins: false }); }}
+            onPress={function () { self.setState({ showPins: false, focusIndex: -1 }); }}
             data-type="tab-btn"
           >
             <Text style={[styles.tabBtnText, { color: c.textTertiary }, !showPins && { color: c.textPrimary, fontWeight: 'bold' }]}>Members</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tabBtn, showPins && [styles.tabBtnActive, { borderBottomColor: c.accent }]]}
-            onPress={function () { self.setState({ showPins: true }); }}
+            onPress={function () { self.setState({ showPins: true, focusIndex: -1 }); }}
             data-type="tab-btn"
           >
             <Text style={[styles.tabBtnText, { color: c.textTertiary }, showPins && { color: c.textPrimary, fontWeight: 'bold' }]}>
@@ -166,9 +201,10 @@ export default class ChannelInfoScreen extends Component {
             </View>
           ) : (
             <FlatList
+              ref={function (r) { self._list = r; }}
               data={members}
               keyExtractor={function (item) { return item; }}
-              renderItem={function (obj) { return self.renderMember(obj.item); }}
+              renderItem={function (obj) { return self.renderMember(obj.item, obj.index === self.state.focusIndex); }}
             />
           )
         ) : (
@@ -178,6 +214,7 @@ export default class ChannelInfoScreen extends Component {
             </View>
           ) : (
             <FlatList
+              ref={function (r) { self._list = r; }}
               data={pins}
               keyExtractor={function (item, i) { return '' + i; }}
               renderItem={function (obj) { return self.renderPin(obj.item); }}
