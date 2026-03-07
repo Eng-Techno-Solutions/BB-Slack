@@ -54,4 +54,4 @@ payload-types.ts
 **/*.fls
 **/*.toc
 
-android/.gradle
+android/.gradle/
