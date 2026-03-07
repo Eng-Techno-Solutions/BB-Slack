@@ -187,10 +187,10 @@ export default class ChannelListScreen extends Component {
             )}
             <Text style={[styles.headerTitle, { color: c.headerText }]} numberOfLines={1}>{teamName || 'BB Slack'}</Text>
           </View>
-          <TouchableOpacity style={styles.themeBtn} onPress={onToggleTheme}>
+          <TouchableOpacity style={styles.themeBtn} onPress={onToggleTheme} data-type="icon-btn">
             <Icon name={isDark ? 'sun' : 'moon'} size={18} color={c.headerIcon} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.searchBtn} onPress={onSearch}>
+          <TouchableOpacity style={styles.searchBtn} onPress={onSearch} data-type="icon-btn">
             <Icon name="search" size={18} color={c.headerIcon} />
           </TouchableOpacity>
         </View>
@@ -202,6 +202,7 @@ export default class ChannelListScreen extends Component {
                 key={t.key}
                 style={[styles.tab, active && [styles.tabActive, { borderBottomColor: c.tabTextActive }]]}
                 onPress={function () { self.setState({ tab: t.key }); }}
+                data-type="tab-btn"
               >
                 <View style={styles.tabContent}>
                 <Icon name={t.icon} size={15} color={active ? c.tabTextActive : c.tabText} />
@@ -210,7 +211,7 @@ export default class ChannelListScreen extends Component {
               </TouchableOpacity>
             );
           })}
-          <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
+          <TouchableOpacity style={styles.logoutBtn} onPress={onLogout} data-type="icon-btn">
             <Icon name="log-out" size={16} color="rgba(255,255,255,0.6)" />
           </TouchableOpacity>
         </View>

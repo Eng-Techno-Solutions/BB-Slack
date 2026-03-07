@@ -195,6 +195,7 @@ export default class ThreadScreen extends Component {
           <TouchableOpacity
             style={styles.emojiBtn}
             onPress={function () { self.setState({ emojiPickerMode: 'input' }); }}
+            data-type="icon-btn"
           >
             <Icon name="smile" size={22} color={c.textTertiary} />
           </TouchableOpacity>
@@ -212,6 +213,7 @@ export default class ThreadScreen extends Component {
             style={[styles.sendBtn, { backgroundColor: c.green }, (!inputText.trim() || sending) && styles.sendDisabled]}
             onPress={function () { self.sendReply(); }}
             disabled={!inputText.trim() || sending}
+            data-type="btn"
           >
             {sending ? (
               <ActivityIndicator size="small" color="#ffffff" />

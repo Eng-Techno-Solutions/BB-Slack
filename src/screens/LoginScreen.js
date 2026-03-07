@@ -63,6 +63,7 @@ export default class LoginScreen extends Component {
             style={[styles.button, { backgroundColor: c.purple }, !token.trim() && styles.buttonDisabled]}
             onPress={function () { self.handleLogin(); }}
             disabled={loading || !token.trim()}
+            data-type="btn"
           >
             {loading ? (
               <ActivityIndicator size="small" color="#ffffff" />

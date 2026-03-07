@@ -92,6 +92,7 @@ export default class MessageItem extends Component {
         key={i}
         style={[styles.imageWrapper, { borderColor: c.border }]}
         activeOpacity={0.8}
+        data-type="file-card"
         onPress={function () {
           onImagePress && onImagePress({ uri: proxiedFull, name: f.name || f.title || 'Image' });
         }}
@@ -118,6 +119,7 @@ export default class MessageItem extends Component {
         key={i}
         style={[styles.audioCard, { backgroundColor: c.bgTertiary, borderColor: c.border }]}
         activeOpacity={0.7}
+        data-type="file-card"
         onPress={function () {
           onAudioPress && onAudioPress({ uri: proxiedUrl, name: f.name || f.title || 'Audio', duration: f.duration_ms });
         }}
@@ -151,6 +153,7 @@ export default class MessageItem extends Component {
         key={i}
         style={[styles.fileCard, { backgroundColor: c.bgTertiary, borderColor: c.border }]}
         activeOpacity={0.7}
+        data-type="file-card"
         onPress={function () {
           if (permalink) {
             if (Platform.OS === 'web') { window.open(permalink, '_blank'); }
@@ -245,6 +248,7 @@ export default class MessageItem extends Component {
                     <TouchableOpacity
                       style={[styles.reactionBadge, { backgroundColor: c.bgTertiary, borderColor: c.border }, reacted && { backgroundColor: c.reactionActiveBg, borderColor: c.accent }]}
                       activeOpacity={0.7}
+                      data-type="reaction"
                       onPress={function () {
                         if (self.props.onReactionPress) {
                           self.props.onReactionPress(message, r.name, reacted);
@@ -278,7 +282,7 @@ export default class MessageItem extends Component {
             <TouchableOpacity
               style={styles.threadLink}
               onPress={function () { onThreadPress && onThreadPress(message); }}
-
+              data-type="thread-link"
             >
               <View style={[styles.threadBar, { backgroundColor: c.accent }]} />
               <Text style={[styles.threadText, { color: c.accentLight }]}>

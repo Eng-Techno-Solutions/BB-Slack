@@ -114,6 +114,7 @@ export default class ImageViewer extends Component {
           <TouchableOpacity
             style={[styles.resetZoomBtn, { borderColor: c.border }]}
             onPress={function () { self.setState({ scale: 1, translateX: 0, translateY: 0 }); }}
+            data-type="btn"
           >
             <Text style={[styles.resetZoomText, { color: c.textSecondary }]}>Reset Zoom</Text>
           </TouchableOpacity>
@@ -178,7 +179,7 @@ export default class ImageViewer extends Component {
                 {fileName || 'Image'}
               </Text>
             </View>
-            <TouchableOpacity style={[styles.closeBtn, { backgroundColor: c.fileIconBg }]} onPress={onClose}>
+            <TouchableOpacity style={[styles.closeBtn, { backgroundColor: c.fileIconBg }]} onPress={onClose} data-type="icon-btn">
               <Icon name="close" size={18} color={c.textSecondary} />
             </TouchableOpacity>
           </View>
@@ -187,7 +188,7 @@ export default class ImageViewer extends Component {
             {error ? (
               <View style={[styles.errorBox, { backgroundColor: c.bgTertiary }]}>
                 <Text style={[styles.errorText, { color: c.textTertiary }]}>Failed to load image</Text>
-                <TouchableOpacity style={[styles.retryBtn, { backgroundColor: c.accent }]} onPress={function () { self.setState({ loading: true, error: false, scale: 1, translateX: 0, translateY: 0 }); }}>
+                <TouchableOpacity style={[styles.retryBtn, { backgroundColor: c.accent }]} onPress={function () { self.setState({ loading: true, error: false, scale: 1, translateX: 0, translateY: 0 }); }} data-type="btn">
                   <Text style={styles.retryText}>Retry</Text>
                 </TouchableOpacity>
               </View>

@@ -12,7 +12,7 @@ export default class Header extends Component {
       <View style={[styles.header, { backgroundColor: c.bgHeader, borderBottomColor: c.headerBorder }]}>
         <View style={styles.left}>
           {onBack ? (
-            <TouchableOpacity onPress={onBack} style={styles.backBtn}>
+            <TouchableOpacity onPress={onBack} style={styles.backBtn} data-type="header-btn">
               <Icon name="chevron-left" size={22} color={c.headerIcon} />
             </TouchableOpacity>
           ) : null}
@@ -23,7 +23,7 @@ export default class Header extends Component {
         </View>
         <View style={styles.right}>
           {onRight ? (
-            <TouchableOpacity onPress={onRight} style={styles.rightBtn}>
+            <TouchableOpacity onPress={onRight} style={styles.rightBtn} data-type="header-btn">
               {rightIcon ? (
                 <Icon name={rightIcon} size={20} color={c.headerIcon} />
               ) : rightLabel ? (

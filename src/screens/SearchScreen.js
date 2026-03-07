@@ -90,6 +90,7 @@ export default class SearchScreen extends Component {
           <TouchableOpacity
             style={[styles.searchBtn, { backgroundColor: c.green }]}
             onPress={function () { self.doSearch(); }}
+            data-type="btn"
           >
             <Icon name="search" size={18} color="#ffffff" />
           </TouchableOpacity>

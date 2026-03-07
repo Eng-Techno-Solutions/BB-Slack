@@ -53,3 +53,5 @@ payload-types.ts
 **/*.fdb_latexmk
 **/*.fls
 **/*.toc
+
+android/.gradle

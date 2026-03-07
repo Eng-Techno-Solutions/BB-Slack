@@ -402,7 +402,7 @@ export default class ChatScreen extends Component {
                     <ActivityIndicator size="small" color={c.accent} />
                   </View>
                 ) : self.state.hasMore ? (
-                  <TouchableOpacity style={styles.loadMore} onPress={function () { self.loadMore(); }}>
+                  <TouchableOpacity style={styles.loadMore} onPress={function () { self.loadMore(); }} data-type="btn">
                     <Text style={[styles.loadMoreText, { color: c.accentLight }]}>Load older messages</Text>
                   </TouchableOpacity>
                 ) : null
@@ -416,6 +416,7 @@ export default class ChatScreen extends Component {
             {self.state.showScrollBtn ? (
               <TouchableOpacity
                 style={[styles.scrollBtn, { backgroundColor: c.scrollBtnBg || c.accent }]}
+                data-type="icon-btn"
                 onPress={function () {
                   self._userScrolledUp = false;
                   self._unseenCount = 0;
@@ -441,7 +442,7 @@ export default class ChatScreen extends Component {
           {editingMessage ? (
             <View style={[styles.editBanner, { backgroundColor: c.bgTertiary }]}>
               <Text style={[styles.editBannerText, { color: c.accentLight }]}>Editing message</Text>
-              <TouchableOpacity onPress={function () { self.setState({ editingMessage: null, inputText: '' }); }}>
+              <TouchableOpacity onPress={function () { self.setState({ editingMessage: null, inputText: '' }); }} data-type="text-btn">
                 <Text style={styles.editCancel}>Cancel</Text>
               </TouchableOpacity>
             </View>
@@ -450,6 +451,7 @@ export default class ChatScreen extends Component {
             <TouchableOpacity
               style={styles.emojiBtn}
               onPress={function () { self.setState({ emojiPickerMode: 'input' }); }}
+              data-type="icon-btn"
             >
               <Icon name="smile" size={22} color={c.textTertiary} />
             </TouchableOpacity>
@@ -469,6 +471,7 @@ export default class ChatScreen extends Component {
               style={[styles.sendBtn, { backgroundColor: c.green }, (!inputText.trim() || sending) && styles.sendDisabled]}
               onPress={function () { self.sendMessage(); }}
               disabled={!inputText.trim() || sending}
+              data-type="btn"
             >
               {sending ? (
                 <ActivityIndicator size="small" color="#ffffff" />

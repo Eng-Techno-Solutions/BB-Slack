@@ -144,12 +144,14 @@ export default class ChannelInfoScreen extends Component {
           <TouchableOpacity
             style={[styles.tabBtn, !showPins && [styles.tabBtnActive, { borderBottomColor: c.accent }]]}
             onPress={function () { self.setState({ showPins: false }); }}
+            data-type="tab-btn"
           >
             <Text style={[styles.tabBtnText, { color: c.textTertiary }, !showPins && { color: c.textPrimary, fontWeight: 'bold' }]}>Members</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tabBtn, showPins && [styles.tabBtnActive, { borderBottomColor: c.accent }]]}
             onPress={function () { self.setState({ showPins: true }); }}
+            data-type="tab-btn"
           >
             <Text style={[styles.tabBtnText, { color: c.textTertiary }, showPins && { color: c.textPrimary, fontWeight: 'bold' }]}>
               Pins ({pins.length})

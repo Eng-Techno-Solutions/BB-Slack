@@ -25,6 +25,7 @@ export default class ActionSheet extends Component {
           style={[styles.overlay, { backgroundColor: c.overlayLight }]}
           activeOpacity={1}
           onPress={onClose}
+          data-type="overlay"
         >
           <View style={[styles.sheet, { backgroundColor: c.bgTertiary }]}>
             {actions.map(function (action, i) {
@@ -42,7 +43,7 @@ export default class ActionSheet extends Component {
                 </TouchableHighlight>
               );
             })}
-            <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={onClose} data-type="text-btn">
               <Text style={[styles.cancelText, { color: c.textTertiary }]}>Cancel</Text>
             </TouchableOpacity>
           </View>

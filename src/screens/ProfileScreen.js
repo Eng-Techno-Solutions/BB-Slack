@@ -139,6 +139,7 @@ export default class ProfileScreen extends Component {
           <TouchableOpacity
             style={[styles.dmButton, { backgroundColor: c.green }]}
             onPress={function () { self.openDM(); }}
+            data-type="btn"
           >
             <Text style={styles.dmButtonText}>Message</Text>
           </TouchableOpacity>

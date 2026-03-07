@@ -173,6 +173,7 @@ export default class AudioPlayer extends Component {
           <TouchableOpacity
             style={[styles.retryBtn, { backgroundColor: c.accent }]}
             onPress={function () { self.loadSound(self.props.source); }}
+            data-type="btn"
           >
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
@@ -188,6 +189,7 @@ export default class AudioPlayer extends Component {
           <TouchableOpacity
             style={[styles.playBtn, { backgroundColor: c.green }]}
             onPress={function () { self.togglePlay(); }}
+            data-type="icon-btn"
           >
             <Icon name={s.playing ? 'pause' : 'play'} size={18} color="#FFFFFF" />
           </TouchableOpacity>
@@ -224,14 +226,16 @@ export default class AudioPlayer extends Component {
           style={[styles.overlay, { backgroundColor: c.overlayMedium }]}
           activeOpacity={1}
           onPress={function () { self.handleClose(); }}
+          data-type="overlay"
         >
           <View style={[styles.card, { backgroundColor: c.bgTertiary }]}>
-            <TouchableOpacity activeOpacity={1} onPress={function () {}}>
+            <TouchableOpacity activeOpacity={1} onPress={function () {}} data-type="overlay">
               <View style={[styles.header, { borderBottomColor: c.border }]}>
                 <Text style={[styles.title, { color: c.textPrimary }]} numberOfLines={1}>{fileName || 'Audio'}</Text>
                 <TouchableOpacity
                   style={[styles.closeBtn, { backgroundColor: c.fileIconBg }]}
                   onPress={function () { self.handleClose(); }}
+                  data-type="icon-btn"
                 >
                   <Icon name="close" size={16} color={c.textSecondary} />
                 </TouchableOpacity>

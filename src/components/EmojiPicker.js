@@ -52,11 +52,12 @@ export default class EmojiPicker extends Component {
             style={styles.backdrop}
             activeOpacity={1}
             onPress={onClose}
+            data-type="overlay"
           />
           <View style={[styles.container, { backgroundColor: c.bgTertiary }]}>
             <View style={styles.header}>
               <Text style={[styles.title, { color: c.textSecondary }]}>Emoji</Text>
-              <TouchableOpacity onPress={onClose}>
+              <TouchableOpacity onPress={onClose} data-type="text-btn">
                 <Text style={[styles.closeBtn, { color: c.textTertiary }]}>Close</Text>
               </TouchableOpacity>
             </View>
@@ -75,6 +76,7 @@ export default class EmojiPicker extends Component {
                     <TouchableOpacity
                       key={e.name}
                       style={styles.emojiBtn}
+                      data-type="emoji-item"
                       onPress={function () {
                         self.setState({ search: '' });
                         onSelect(e.name, e.emoji);
