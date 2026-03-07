@@ -8,6 +8,7 @@ import {
   Platform,
 } from 'react-native';
 import Icon from './Icon';
+import audioDownload from '../utils/audioDownload';
 import { getColors } from '../theme';
 
 function formatSecs(s) {
@@ -67,28 +68,13 @@ export default class AudioPlayer extends Component {
 
   downloadAndPlay(url, token, SoundClass) {
     var self = this;
-    var RNFS;
-    try { RNFS = require('react-native-fs'); } catch (e) { RNFS = null; }
-
-    if (!RNFS) {
-      self.playSoundFromUrl(url, SoundClass);
-      return;
-    }
-
-    var destPath = RNFS.CachesDirectoryPath + '/bb_audio_' + Date.now() + '.mp4';
-    RNFS.downloadFile({
-      fromUrl: url,
-      toFile: destPath,
-      headers: { Authorization: 'Bearer ' + token },
-    }).promise.then(function (res) {
-      if (res.statusCode === 200) {
-        self._tempFile = destPath;
-        self.playSoundFromUrl(destPath, SoundClass);
-      } else {
-        self.setState({ error: 'Failed to download audio' });
+    audioDownload.downloadAudio(url, token, function (err, localPath) {
+      if (err) {
+        self.setState({ error: err });
+        return;
       }
-    }).catch(function () {
-      self.setState({ error: 'Failed to download audio' });
+      self._tempFile = localPath;
+      self.playSoundFromUrl(localPath, SoundClass);
     });
   }
 
@@ -173,10 +159,7 @@ export default class AudioPlayer extends Component {
       this.sound = null;
     }
     if (this._tempFile) {
-      try {
-        var RNFS = require('react-native-fs');
-        RNFS.unlink(this._tempFile).catch(function () {});
-      } catch (e) {}
+      audioDownload.cleanupFile(this._tempFile);
       this._tempFile = null;
     }
     this.setState({ playing: false, duration: 0, position: 0, error: null });
