@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   X,
@@ -20,9 +21,12 @@ import {
   Play,
   Pause,
   Smile,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 var ICON_MAP = {
+  'chevron-down': ChevronDown,
   'chevron-left': ChevronLeft,
   'chevron-right': ChevronRight,
   'close': X,
@@ -43,6 +47,8 @@ var ICON_MAP = {
   'play': Play,
   'pause': Pause,
   'smile': Smile,
+  'sun': Sun,
+  'moon': Moon,
 };
 
 function Icon({ name, size, color }) {

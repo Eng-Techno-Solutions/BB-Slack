@@ -6,10 +6,8 @@
   <link rel="icon" href="%PUBLIC_URL%/favicon.png" />
   <title>BB Slack</title>
   <style>
-    html, body, #root { height: 100%; margin: 0; }
-    [data-type="list-item"]:hover { background-color: rgba(18, 100, 163, 0.15) !important; }
-    [data-type="action-item"]:hover { background-color: rgba(255, 255, 255, 0.08) !important; }
-    [data-type="message"]:hover { background-color: rgba(255, 255, 255, 0.03) !important; }
+    html, body, #root { height: 100%; margin: 0; overflow: hidden; }
+    #root > div { height: 100%; display: flex; flex-direction: column; }
     [data-type="list-item"], [data-type="action-item"], [data-type="message"] { cursor: pointer; }
   </style>
 </head>

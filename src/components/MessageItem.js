@@ -4,6 +4,7 @@ import { formatTime, getUserName } from '../utils/format';
 import { emojiFromName, replaceEmojisInText } from '../utils/emoji';
 import Icon from './Icon';
 import SlackText from './SlackText';
+import { getColors } from '../theme';
 
 var AVATAR_COLORS = [
   '#E8912D', '#2BAC76', '#CD2553', '#1264A3',
@@ -73,6 +74,7 @@ export default class MessageItem extends Component {
 
   renderImageFile(f, i, token) {
     var onImagePress = this.props.onImagePress;
+    var c = getColors();
     var fullUrl = f.url_private || f.url_private_download || f.thumb_480 || f.thumb_360;
     var thumbUrl = f.thumb_480 || f.thumb_360 || f.thumb_160 || fullUrl;
     var proxiedThumb = proxyUrl(thumbUrl, token);
@@ -88,7 +90,7 @@ export default class MessageItem extends Component {
     return (
       <TouchableOpacity
         key={i}
-        style={styles.imageWrapper}
+        style={[styles.imageWrapper, { borderColor: c.border }]}
         activeOpacity={0.8}
         onPress={function () {
           onImagePress && onImagePress({ uri: proxiedFull, name: f.name || f.title || 'Image' });
@@ -96,7 +98,7 @@ export default class MessageItem extends Component {
       >
         <Image
           source={{ uri: proxiedThumb }}
-          style={{ width: w, height: h, backgroundColor: '#222529' }}
+          style={{ width: w, height: h, backgroundColor: c.bgTertiary }}
           resizeMode="cover"
         />
       </TouchableOpacity>
@@ -105,6 +107,7 @@ export default class MessageItem extends Component {
 
   renderAudioFile(f, i, token) {
     var onAudioPress = this.props.onAudioPress;
+    var c = getColors();
     var audioUrl = f.aac || f.url_private || f.url_private_download || '';
     var proxiedUrl = proxyUrl(audioUrl, token);
     var duration = f.duration_ms ? formatDuration(f.duration_ms) : '';
@@ -113,13 +116,13 @@ export default class MessageItem extends Component {
     return (
       <TouchableOpacity
         key={i}
-        style={styles.audioCard}
+        style={[styles.audioCard, { backgroundColor: c.bgTertiary, borderColor: c.border }]}
         activeOpacity={0.7}
         onPress={function () {
           onAudioPress && onAudioPress({ uri: proxiedUrl, name: f.name || f.title || 'Audio', duration: f.duration_ms });
         }}
       >
-        <View style={styles.audioPlayBtn}>
+        <View style={[styles.audioPlayBtn, { backgroundColor: c.green }]}>
           <Icon name="play" size={16} color="#FFFFFF" />
         </View>
         <View style={styles.audioContent}>
@@ -127,17 +130,18 @@ export default class MessageItem extends Component {
             {samples.filter(function (_, idx) { return idx % 2 === 0; }).slice(0, 40).map(function (val, idx) {
               var barH = Math.max(2, Math.round((val / 100) * 24));
               return (
-                <View key={idx} style={[styles.waveBar, { height: barH }]} />
+                <View key={idx} style={[styles.waveBar, { height: barH, backgroundColor: c.accent }]} />
               );
             })}
           </View>
-          {duration ? <Text style={styles.audioDuration}>{duration}</Text> : null}
+          {duration ? <Text style={[styles.audioDuration, { color: c.textTertiary }]}>{duration}</Text> : null}
         </View>
       </TouchableOpacity>
     );
   }
 
   renderFileCard(f, i) {
+    var c = getColors();
     var permalink = f.permalink || f.permalink_public || '';
     var ext = (f.filetype || '').toUpperCase();
     var sizeKB = f.size ? (f.size > 1048576 ? (f.size / 1048576).toFixed(1) + ' MB' : Math.round(f.size / 1024) + ' KB') : '';
@@ -145,7 +149,7 @@ export default class MessageItem extends Component {
     return (
       <TouchableOpacity
         key={i}
-        style={styles.fileCard}
+        style={[styles.fileCard, { backgroundColor: c.bgTertiary, borderColor: c.border }]}
         activeOpacity={0.7}
         onPress={function () {
           if (permalink) {
@@ -154,12 +158,12 @@ export default class MessageItem extends Component {
           }
         }}
       >
-        <View style={styles.fileIcon}>
-          <Text style={styles.fileIconText}>{ext ? ext.substring(0, 4) : 'FILE'}</Text>
+        <View style={[styles.fileIcon, { backgroundColor: c.fileIconBg }]}>
+          <Text style={[styles.fileIconText, { color: c.textSecondary }]}>{ext ? ext.substring(0, 4) : 'FILE'}</Text>
         </View>
         <View style={styles.fileInfo}>
-          <Text style={styles.fileName} numberOfLines={1}>{f.name || f.title || 'attachment'}</Text>
-          <Text style={styles.fileMeta}>
+          <Text style={[styles.fileName, { color: c.accentLight }]} numberOfLines={1}>{f.name || f.title || 'attachment'}</Text>
+          <Text style={[styles.fileMeta, { color: c.textTertiary }]}>
             {ext}{sizeKB ? (ext ? ' · ' : '') + sizeKB : ''}
           </Text>
         </View>
@@ -169,14 +173,15 @@ export default class MessageItem extends Component {
 
   render() {
     var { message, usersMap, currentUserId, onLongPress, onThreadPress, token } = this.props;
+    var c = getColors();
 
     if (message.subtype === 'channel_join' || message.subtype === 'channel_leave' ||
         message.subtype === 'group_join' || message.subtype === 'group_leave') {
       return (
         <View style={styles.systemMsg}>
-          <View style={styles.systemLine} />
-          <SlackText text={message.text} usersMap={usersMap} style={styles.systemText} />
-          <View style={styles.systemLine} />
+          <View style={[styles.systemLine, { backgroundColor: c.systemLine }]} />
+          <SlackText text={message.text} usersMap={usersMap} style={[styles.systemText, { color: c.textTertiary }]} />
+          <View style={[styles.systemLine, { backgroundColor: c.systemLine }]} />
         </View>
       );
     }
@@ -195,7 +200,7 @@ export default class MessageItem extends Component {
     return (
       <TouchableHighlight
         style={styles.container}
-        underlayColor="rgba(255, 255, 255, 0.05)"
+        underlayColor={c.messageUnderlay}
         onLongPress={function () { onLongPress && onLongPress(message); }}
         data-type="message"
       >
@@ -211,12 +216,12 @@ export default class MessageItem extends Component {
         </View>
         <View style={styles.contentCol}>
           <View style={styles.headerRow}>
-            <Text style={styles.userName}>{userName}</Text>
-            <Text style={styles.time}>{time}{edited}</Text>
+            <Text style={[styles.userName, { color: c.textSecondary }]}>{userName}</Text>
+            <Text style={[styles.time, { color: c.textTertiary }]}>{time}{edited}</Text>
           </View>
 
           {message.text ? (
-            <SlackText text={message.text} usersMap={usersMap} style={styles.text} />
+            <SlackText text={message.text} usersMap={usersMap} style={[styles.text, { color: c.textSecondary }]} />
           ) : null}
 
           {files.length > 0 ? (
@@ -238,7 +243,7 @@ export default class MessageItem extends Component {
                 return (
                   <View key={i} style={{ position: 'relative' }}>
                     <TouchableOpacity
-                      style={[styles.reactionBadge, reacted && styles.reactionBadgeActive]}
+                      style={[styles.reactionBadge, { backgroundColor: c.bgTertiary, borderColor: c.border }, reacted && { backgroundColor: c.reactionActiveBg, borderColor: c.accent }]}
                       activeOpacity={0.7}
                       onPress={function () {
                         if (self.props.onReactionPress) {
@@ -252,13 +257,13 @@ export default class MessageItem extends Component {
                       {emoji ? (
                         <Text style={styles.reactionEmoji}>{emoji}</Text>
                       ) : (
-                        <Text style={styles.reactionShortcode}>:{r.name}:</Text>
+                        <Text style={[styles.reactionShortcode, { color: c.textSecondary }]}>:{r.name}:</Text>
                       )}
-                      <Text style={[styles.reactionCount, reacted && styles.reactionCountActive]}>{r.count}</Text>
+                      <Text style={[styles.reactionCount, { color: c.textTertiary }, reacted && { color: c.accentLight }]}>{r.count}</Text>
                     </TouchableOpacity>
                     {isExpanded && r.users ? (
-                      <View style={styles.reactionTooltip}>
-                        <Text style={styles.reactionTooltipText}>
+                      <View style={[styles.reactionTooltip, { backgroundColor: c.tooltipBg, borderColor: c.borderInput }]}>
+                        <Text style={[styles.reactionTooltipText, { color: c.textSecondary }]}>
                           {r.users.map(function (uid) { return getUserName(uid, usersMap); }).join(', ')}
                         </Text>
                       </View>
@@ -275,11 +280,11 @@ export default class MessageItem extends Component {
               onPress={function () { onThreadPress && onThreadPress(message); }}
 
             >
-              <View style={styles.threadBar} />
-              <Text style={styles.threadText}>
+              <View style={[styles.threadBar, { backgroundColor: c.accent }]} />
+              <Text style={[styles.threadText, { color: c.accentLight }]}>
                 {threadCount} {threadCount === 1 ? 'reply' : 'replies'}
               </Text>
-              <Text style={styles.threadArrow}>  View thread</Text>
+              <Text style={[styles.threadArrow, { color: c.textTertiary }]}>  View thread</Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -304,13 +309,13 @@ var styles = StyleSheet.create({
   avatarInitial: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
   contentCol: { flex: 1 },
   headerRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 2 },
-  userName: { color: '#D1D2D3', fontSize: 15, fontWeight: 'bold', marginRight: 8 },
-  time: { color: '#ABABAD', fontSize: 12 },
-  text: { color: '#D1D2D3', fontSize: 15, lineHeight: 22 },
+  userName: { fontSize: 15, fontWeight: 'bold', marginRight: 8 },
+  time: { fontSize: 12 },
+  text: { fontSize: 15, lineHeight: 22 },
 
   systemMsg: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8 },
-  systemLine: { flex: 1, height: 1, backgroundColor: '#383838' },
-  systemText: { color: '#ABABAD', fontSize: 13, paddingHorizontal: 12 },
+  systemLine: { flex: 1, height: 1 },
+  systemText: { fontSize: 13, paddingHorizontal: 12 },
 
   filesContainer: { marginTop: 6 },
 
@@ -320,41 +325,13 @@ var styles = StyleSheet.create({
     overflow: 'hidden',
     alignSelf: 'flex-start',
     borderWidth: 1,
-    borderColor: '#383838',
   },
-  imageOverlay: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  viewImageBtn: {
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 4,
-  },
-  viewImageText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  imagePlaceholder: {
-    backgroundColor: '#222529',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  imagePlaceholderIcon: { color: '#ABABAD', fontSize: 18, fontWeight: 'bold' },
-  imagePlaceholderName: { color: '#696969', fontSize: 12, marginTop: 4 },
 
   audioCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#222529',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#383838',
     padding: 10,
     marginBottom: 6,
     alignSelf: 'flex-start',
@@ -363,57 +340,47 @@ var styles = StyleSheet.create({
   },
   audioPlayBtn: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#007A5A',
     justifyContent: 'center', alignItems: 'center',
     marginRight: 10,
   },
-  audioPlayIcon: { marginLeft: 1 },
   audioContent: { flex: 1 },
   waveformRow: { flexDirection: 'row', alignItems: 'center', height: 28 },
-  waveBar: { width: 3, backgroundColor: '#1264A3', borderRadius: 1, marginRight: 1 },
-  audioDuration: { color: '#ABABAD', fontSize: 11, marginTop: 4 },
+  waveBar: { width: 3, borderRadius: 1, marginRight: 1 },
+  audioDuration: { fontSize: 11, marginTop: 4 },
 
   fileCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#222529', borderRadius: 8,
-    borderWidth: 1, borderColor: '#383838',
+    borderRadius: 8,
+    borderWidth: 1,
     padding: 10, marginBottom: 6,
     alignSelf: 'flex-start', minWidth: 200, maxWidth: 340,
   },
   fileIcon: {
     width: 40, height: 40, borderRadius: 6,
-    backgroundColor: '#383838',
     justifyContent: 'center', alignItems: 'center', marginRight: 10,
   },
-  fileIconText: { color: '#D1D2D3', fontSize: 10, fontWeight: 'bold' },
+  fileIconText: { fontSize: 10, fontWeight: 'bold' },
   fileInfo: { flex: 1 },
-  fileName: { color: '#1D9BD1', fontSize: 14, fontWeight: '600' },
-  fileMeta: { color: '#ABABAD', fontSize: 12, marginTop: 2 },
+  fileName: { fontSize: 14, fontWeight: '600' },
+  fileMeta: { fontSize: 12, marginTop: 2 },
 
   reactionsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 6 },
   reactionBadge: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#222529', borderRadius: 16,
+    borderRadius: 16,
     paddingHorizontal: 8, paddingVertical: 4,
     marginRight: 4, marginBottom: 4,
-    borderWidth: 1, borderColor: '#383838',
+    borderWidth: 1,
   },
   reactionEmoji: { fontSize: 16, marginRight: 4 },
-  reactionShortcode: { color: '#D1D2D3', fontSize: 12, marginRight: 4 },
-  reactionBadgeActive: {
-    backgroundColor: 'rgba(18, 100, 163, 0.2)',
-    borderColor: '#1264A3',
-  },
-  reactionCount: { color: '#ABABAD', fontSize: 12, fontWeight: '600' },
-  reactionCountActive: { color: '#1D9BD1' },
+  reactionShortcode: { fontSize: 12, marginRight: 4 },
+  reactionCount: { fontSize: 12, fontWeight: '600' },
   reactionTooltip: {
     position: 'absolute',
     bottom: '100%',
     left: 0,
-    backgroundColor: '#1A1D21',
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#565856',
     paddingHorizontal: 8,
     paddingVertical: 4,
     marginBottom: 4,
@@ -421,12 +388,11 @@ var styles = StyleSheet.create({
     zIndex: 10,
   },
   reactionTooltipText: {
-    color: '#D1D2D3',
     fontSize: 12,
   },
 
   threadLink: { flexDirection: 'row', alignItems: 'center', marginTop: 6, paddingVertical: 4 },
-  threadBar: { width: 2, height: 16, backgroundColor: '#1264A3', borderRadius: 1, marginRight: 8 },
-  threadText: { color: '#1D9BD1', fontSize: 13, fontWeight: '600' },
-  threadArrow: { color: '#ABABAD', fontSize: 12 },
+  threadBar: { width: 2, height: 16, borderRadius: 1, marginRight: 8 },
+  threadText: { fontSize: 13, fontWeight: '600' },
+  threadArrow: { fontSize: 12 },
 });

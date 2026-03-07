@@ -15,6 +15,7 @@ import Header from '../components/Header';
 import Icon from '../components/Icon';
 import SlackText from '../components/SlackText';
 import { getUserName, getChannelDisplayName } from '../utils/format';
+import { getColors } from '../theme';
 
 export default class ChannelInfoScreen extends Component {
   constructor(props) {
@@ -71,6 +72,7 @@ export default class ChannelInfoScreen extends Component {
 
   renderMember(userId) {
     var { usersMap, onProfile, slack } = this.props;
+    var c = getColors();
     var name = getUserName(userId, usersMap);
     var imageUrl = this.getProfileImage(userId);
     if (Platform.OS === 'web' && imageUrl && slack && slack.token) {
@@ -79,8 +81,8 @@ export default class ChannelInfoScreen extends Component {
 
     return (
       <TouchableHighlight
-        style={styles.memberItem}
-        underlayColor="rgba(18, 100, 163, 0.25)"
+        style={[styles.memberItem, { borderBottomColor: c.border }]}
+        underlayColor={c.listUnderlay}
         onPress={function () { onProfile && onProfile(userId); }}
         data-type="list-item"
       >
@@ -88,12 +90,12 @@ export default class ChannelInfoScreen extends Component {
           {imageUrl ? (
             <Image source={{ uri: imageUrl }} style={styles.memberAvatar} />
           ) : (
-            <View style={[styles.memberAvatar, styles.memberAvatarPlaceholder]}>
+            <View style={[styles.memberAvatar, styles.memberAvatarPlaceholder, { backgroundColor: c.avatarPlaceholderBg }]}>
               <Text style={styles.memberAvatarText}>{(name[0] || '?').toUpperCase()}</Text>
             </View>
           )}
-          <Text style={styles.memberName}>{name}</Text>
-          <Icon name="chevron-right" size={16} color="#696969" />
+          <Text style={[styles.memberName, { color: c.textSecondary }]}>{name}</Text>
+          <Icon name="chevron-right" size={16} color={c.textPlaceholder} />
         </View>
       </TouchableHighlight>
     );
@@ -101,14 +103,15 @@ export default class ChannelInfoScreen extends Component {
 
   renderPin(item) {
     var { usersMap } = this.props;
+    var c = getColors();
     var msg = item.message;
     if (!msg) return null;
     var userName = getUserName(msg.user, usersMap);
 
     return (
-      <View style={styles.pinItem}>
-        <Text style={styles.pinUser}>{userName}</Text>
-        <Text style={styles.pinText} numberOfLines={3}>{msg.text}</Text>
+      <View style={[styles.pinItem, { borderBottomColor: c.border }]}>
+        <Text style={[styles.pinUser, { color: c.textSecondary }]}>{userName}</Text>
+        <Text style={[styles.pinText, { color: c.textTertiary }]} numberOfLines={3}>{msg.text}</Text>
       </View>
     );
   }
@@ -118,36 +121,37 @@ export default class ChannelInfoScreen extends Component {
     var { members, loading, pins, pinsLoading, showPins } = this.state;
     var self = this;
     var channelName = getChannelDisplayName(channel, usersMap, currentUserId);
+    var c = getColors();
 
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: c.bg }]}>
         <Header title="Info" onBack={onBack} />
 
-        <View style={styles.infoSection}>
-          <Text style={styles.channelName}>
+        <View style={[styles.infoSection, { borderBottomColor: c.border }]}>
+          <Text style={[styles.channelName, { color: c.textPrimary }]}>
             {!channel.is_im ? '# ' : ''}{channelName}
           </Text>
           {channel.purpose && channel.purpose.value ? (
-            <SlackText text={channel.purpose.value} style={styles.purpose} />
+            <SlackText text={channel.purpose.value} style={[styles.purpose, { color: c.textSecondary }]} />
           ) : null}
           {channel.topic && channel.topic.value ? (
-            <SlackText text={'Topic: ' + channel.topic.value} style={styles.topic} />
+            <SlackText text={'Topic: ' + channel.topic.value} style={[styles.topic, { color: c.textTertiary }]} />
           ) : null}
-          <Text style={styles.memberCount}>{members.length} members</Text>
+          <Text style={[styles.memberCount, { color: c.textPlaceholder }]}>{members.length} members</Text>
         </View>
 
-        <View style={styles.tabRow}>
+        <View style={[styles.tabRow, { borderBottomColor: c.border }]}>
           <TouchableOpacity
-            style={[styles.tabBtn, !showPins && styles.tabBtnActive]}
+            style={[styles.tabBtn, !showPins && [styles.tabBtnActive, { borderBottomColor: c.accent }]]}
             onPress={function () { self.setState({ showPins: false }); }}
           >
-            <Text style={[styles.tabBtnText, !showPins && styles.tabBtnTextActive]}>Members</Text>
+            <Text style={[styles.tabBtnText, { color: c.textTertiary }, !showPins && { color: c.textPrimary, fontWeight: 'bold' }]}>Members</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tabBtn, showPins && styles.tabBtnActive]}
+            style={[styles.tabBtn, showPins && [styles.tabBtnActive, { borderBottomColor: c.accent }]]}
             onPress={function () { self.setState({ showPins: true }); }}
           >
-            <Text style={[styles.tabBtnText, showPins && styles.tabBtnTextActive]}>
+            <Text style={[styles.tabBtnText, { color: c.textTertiary }, showPins && { color: c.textPrimary, fontWeight: 'bold' }]}>
               Pins ({pins.length})
             </Text>
           </TouchableOpacity>
@@ -156,7 +160,7 @@ export default class ChannelInfoScreen extends Component {
         {!showPins ? (
           loading ? (
             <View style={styles.center}>
-              <ActivityIndicator size="large" color="#1264A3" />
+              <ActivityIndicator size="large" color={c.accent} />
             </View>
           ) : (
             <FlatList
@@ -168,7 +172,7 @@ export default class ChannelInfoScreen extends Component {
         ) : (
           pinsLoading ? (
             <View style={styles.center}>
-              <ActivityIndicator size="large" color="#1264A3" />
+              <ActivityIndicator size="large" color={c.accent} />
             </View>
           ) : (
             <FlatList
@@ -177,7 +181,7 @@ export default class ChannelInfoScreen extends Component {
               renderItem={function (obj) { return self.renderPin(obj.item); }}
               ListEmptyComponent={
                 <View style={styles.center}>
-                  <Text style={styles.emptyText}>No pinned messages</Text>
+                  <Text style={[styles.emptyText, { color: c.textTertiary }]}>No pinned messages</Text>
                 </View>
               }
             />
@@ -191,38 +195,31 @@ export default class ChannelInfoScreen extends Component {
 var styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1A1D21',
   },
   infoSection: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#383838',
   },
   channelName: {
-    color: '#FFFFFF',
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 4,
   },
   purpose: {
-    color: '#D1D2D3',
     fontSize: 14,
     marginBottom: 4,
   },
   topic: {
-    color: '#ABABAD',
     fontSize: 13,
     marginBottom: 4,
   },
   memberCount: {
-    color: '#696969',
     fontSize: 13,
     marginTop: 4,
   },
   tabRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#383838',
   },
   tabBtn: {
     flex: 1,
@@ -231,15 +228,9 @@ var styles = StyleSheet.create({
   },
   tabBtnActive: {
     borderBottomWidth: 2,
-    borderBottomColor: '#1264A3',
   },
   tabBtnText: {
-    color: '#ABABAD',
     fontSize: 14,
-  },
-  tabBtnTextActive: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
   },
   center: {
     flex: 1,
@@ -248,14 +239,12 @@ var styles = StyleSheet.create({
     padding: 40,
   },
   emptyText: {
-    color: '#ABABAD',
     fontSize: 14,
   },
   memberItem: {
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#383838',
   },
   memberInner: {
     flexDirection: 'row',
@@ -268,7 +257,6 @@ var styles = StyleSheet.create({
     marginRight: 10,
   },
   memberAvatarPlaceholder: {
-    backgroundColor: '#1264A3',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -279,23 +267,19 @@ var styles = StyleSheet.create({
   },
   memberName: {
     flex: 1,
-    color: '#D1D2D3',
     fontSize: 15,
   },
   pinItem: {
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#383838',
   },
   pinUser: {
-    color: '#D1D2D3',
     fontSize: 14,
     fontWeight: 'bold',
     marginBottom: 2,
   },
   pinText: {
-    color: '#ABABAD',
     fontSize: 14,
   },
 });

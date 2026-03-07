@@ -15,6 +15,7 @@ import Header from '../components/Header';
 import Icon from '../components/Icon';
 import SlackText from '../components/SlackText';
 import { getChannelDisplayName } from '../utils/format';
+import { getColors, getMode } from '../theme';
 
 var TABS = [
   { key: 'channels', label: 'Channels', icon: 'hash' },
@@ -110,6 +111,7 @@ export default class ChannelListScreen extends Component {
 
   renderItem(item) {
     var { usersMap, currentUserId, onSelect } = this.props;
+    var c = getColors();
     var name = getChannelDisplayName(item, usersMap, currentUserId);
     var unread = item.unread_count_display || 0;
     var prefix = '';
@@ -122,7 +124,7 @@ export default class ChannelListScreen extends Component {
     return (
       <TouchableHighlight
         style={styles.item}
-        underlayColor="rgba(18, 100, 163, 0.25)"
+        underlayColor={c.listUnderlay}
         onPress={function () { onSelect(item); }}
         data-type="list-item"
       >
@@ -131,31 +133,31 @@ export default class ChannelListScreen extends Component {
             imageUrl ? (
               <Image source={{ uri: imageUrl }} style={styles.itemAvatar} />
             ) : (
-              <View style={[styles.itemAvatar, styles.itemAvatarPlaceholder]}>
+              <View style={[styles.itemAvatar, styles.itemAvatarPlaceholder, { backgroundColor: c.avatarPlaceholderBg }]}>
                 <Text style={styles.itemAvatarText}>{(name[0] || '?').toUpperCase()}</Text>
               </View>
             )
           ) : (
-            <View style={[styles.itemAvatar, styles.channelAvatarBg]}>
+            <View style={[styles.itemAvatar, { backgroundColor: c.channelAvatarBg }]}>
               {prefix === 'lock' ? (
-                <Icon name="lock" size={14} color="#ABABAD" />
+                <Icon name="lock" size={14} color={c.textTertiary} />
               ) : (
-                <Text style={styles.channelAvatarHash}>#</Text>
+                <Text style={[styles.channelAvatarHash, { color: c.textTertiary }]}>#</Text>
               )}
             </View>
           )}
           <View style={styles.itemLeft}>
             <View style={styles.itemNameRow}>
-              <Text style={[styles.itemName, unread > 0 && styles.itemNameUnread]} numberOfLines={1}>
+              <Text style={[styles.itemName, { color: c.textTertiary }, unread > 0 && { color: c.textPrimary, fontWeight: 'bold' }]} numberOfLines={1}>
                 {name}
               </Text>
             </View>
             {item.topic && item.topic.value ? (
-              <SlackText text={item.topic.value} style={styles.itemTopic} numberOfLines={1} />
+              <SlackText text={item.topic.value} style={[styles.itemTopic, { color: c.textPlaceholder }]} numberOfLines={1} />
             ) : null}
           </View>
           {unread > 0 ? (
-            <View style={styles.badge}>
+            <View style={[styles.badge, { backgroundColor: c.badgeBg }]}>
               <Text style={styles.badgeText}>{unread > 99 ? '99+' : unread}</Text>
             </View>
           ) : null}
@@ -166,58 +168,63 @@ export default class ChannelListScreen extends Component {
 
   render() {
     var { tab, filter } = this.state;
-    var { loading, onSearch, onLogout, teamName, teamIcon } = this.props;
+    var { loading, onSearch, onLogout, onToggleTheme, teamName, teamIcon } = this.props;
     var self = this;
     var data = this.getFilteredChannels();
+    var c = getColors();
+    var isDark = getMode() === 'dark';
 
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <View style={[styles.container, { backgroundColor: c.bg }]}>
+        <View style={[styles.header, { backgroundColor: c.bgHeader, borderBottomColor: c.headerBorder }]}>
           <View style={styles.headerLeft}>
             {teamIcon ? (
               <Image source={{ uri: teamIcon }} style={styles.teamIcon} />
             ) : (
-              <View style={styles.teamIconPlaceholder}>
+              <View style={[styles.teamIconPlaceholder, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
                 <Text style={styles.teamIconText}>{(teamName || 'B').charAt(0)}</Text>
               </View>
             )}
-            <Text style={styles.headerTitle} numberOfLines={1}>{teamName || 'BB Slack'}</Text>
+            <Text style={[styles.headerTitle, { color: c.headerText }]} numberOfLines={1}>{teamName || 'BB Slack'}</Text>
           </View>
+          <TouchableOpacity style={styles.themeBtn} onPress={onToggleTheme}>
+            <Icon name={isDark ? 'sun' : 'moon'} size={18} color={c.headerIcon} />
+          </TouchableOpacity>
           <TouchableOpacity style={styles.searchBtn} onPress={onSearch}>
-            <Icon name="search" size={18} color="#D1D2D3" />
+            <Icon name="search" size={18} color={c.headerIcon} />
           </TouchableOpacity>
         </View>
-        <View style={styles.tabs}>
+        <View style={[styles.tabs, { backgroundColor: c.bgHeader, borderBottomColor: c.headerBorder }]}>
           {TABS.map(function (t) {
             var active = tab === t.key;
             return (
               <TouchableOpacity
                 key={t.key}
-                style={[styles.tab, active && styles.tabActive]}
+                style={[styles.tab, active && [styles.tabActive, { borderBottomColor: c.tabTextActive }]]}
                 onPress={function () { self.setState({ tab: t.key }); }}
               >
                 <View style={styles.tabContent}>
-                <Icon name={t.icon} size={15} color={active ? '#FFFFFF' : '#ABABAD'} />
-                <Text style={[styles.tabText, active && styles.tabTextActive]}>{t.label}</Text>
+                <Icon name={t.icon} size={15} color={active ? c.tabTextActive : c.tabText} />
+                <Text style={[styles.tabText, { color: c.tabText }, active && { color: c.tabTextActive, fontWeight: 'bold' }]}>{t.label}</Text>
               </View>
               </TouchableOpacity>
             );
           })}
           <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
-            <Icon name="log-out" size={16} color="#E01E5A" />
+            <Icon name="log-out" size={16} color="rgba(255,255,255,0.6)" />
           </TouchableOpacity>
         </View>
         <TextInput
-          style={styles.filter}
+          style={[styles.filter, { backgroundColor: c.bgTertiary, color: c.textSecondary, borderColor: c.borderInput }]}
           placeholder="Filter..."
-          placeholderTextColor="#696969"
+          placeholderTextColor={c.textPlaceholder}
           value={filter}
           onChangeText={function (t) { self.setState({ filter: t }); }}
           autoCorrect={false}
         />
         {loading ? (
           <View style={styles.center}>
-            <ActivityIndicator size="large" color="#1264A3" />
+            <ActivityIndicator size="large" color={c.accent} />
           </View>
         ) : (
           <FlatList
@@ -226,8 +233,8 @@ export default class ChannelListScreen extends Component {
             renderItem={function (obj) {
               if (obj.item._sectionHeader) {
                 return (
-                  <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionHeaderText}>{obj.item._sectionHeader}</Text>
+                  <View style={[styles.sectionHeader, { borderBottomColor: c.border }]}>
+                    <Text style={[styles.sectionHeaderText, { color: c.textPlaceholder }]}>{obj.item._sectionHeader}</Text>
                   </View>
                 );
               }
@@ -235,7 +242,7 @@ export default class ChannelListScreen extends Component {
             }}
             ListEmptyComponent={
               <View style={styles.center}>
-                <Text style={styles.emptyText}>No channels found</Text>
+                <Text style={[styles.emptyText, { color: c.textTertiary }]}>No channels found</Text>
               </View>
             }
           />
@@ -248,16 +255,13 @@ export default class ChannelListScreen extends Component {
 var styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#19171D',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#19171D',
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#383838',
   },
   headerLeft: {
     flex: 1,
@@ -274,7 +278,6 @@ var styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 6,
-    backgroundColor: '#4A154B',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
@@ -285,10 +288,12 @@ var styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   headerTitle: {
-    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
     flex: 1,
+  },
+  themeBtn: {
+    padding: 8,
   },
   searchBtn: {
     padding: 8,
@@ -296,7 +301,6 @@ var styles = StyleSheet.create({
   tabs: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#383838',
   },
   tab: {
     flex: 1,
@@ -305,35 +309,26 @@ var styles = StyleSheet.create({
   },
   tabActive: {
     borderBottomWidth: 2,
-    borderBottomColor: '#1264A3',
   },
   tabContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   tabText: {
-    color: '#ABABAD',
     fontSize: 14,
     marginLeft: 6,
-  },
-  tabTextActive: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
   },
   logoutBtn: {
     paddingVertical: 10,
     paddingHorizontal: 12,
   },
   filter: {
-    backgroundColor: '#222529',
-    color: '#D1D2D3',
     fontSize: 14,
     paddingHorizontal: 12,
     paddingVertical: 8,
     margin: 8,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#565856',
   },
   item: {
     paddingHorizontal: 16,
@@ -351,19 +346,13 @@ var styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  itemAvatarPlaceholder: {
-    backgroundColor: '#1264A3',
-  },
+  itemAvatarPlaceholder: {},
   itemAvatarText: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: 'bold',
   },
-  channelAvatarBg: {
-    backgroundColor: '#383838',
-  },
   channelAvatarHash: {
-    color: '#ABABAD',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -375,20 +364,13 @@ var styles = StyleSheet.create({
     alignItems: 'center',
   },
   itemName: {
-    color: '#ABABAD',
     fontSize: 15,
   },
-  itemNameUnread: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-  },
   itemTopic: {
-    color: '#696969',
     fontSize: 12,
     marginTop: 2,
   },
   badge: {
-    backgroundColor: '#E01E5A',
     borderRadius: 10,
     minWidth: 20,
     paddingHorizontal: 6,
@@ -412,16 +394,13 @@ var styles = StyleSheet.create({
     paddingVertical: 8,
     paddingTop: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#383838',
   },
   sectionHeaderText: {
-    color: '#696969',
     fontSize: 13,
     fontWeight: 'bold',
     textTransform: 'uppercase',
   },
   emptyText: {
-    color: '#ABABAD',
     fontSize: 14,
   },
 });

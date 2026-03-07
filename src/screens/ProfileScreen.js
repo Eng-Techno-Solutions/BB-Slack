@@ -8,6 +8,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import Header from '../components/Header';
+import { getColors } from '../theme';
 
 export default class ProfileScreen extends Component {
   constructor(props) {
@@ -55,13 +56,14 @@ export default class ProfileScreen extends Component {
     var { onBack, currentUserId, userId } = this.props;
     var { user, loading } = this.state;
     var self = this;
+    var c = getColors();
 
     if (loading) {
       return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: c.bg }]}>
           <Header title="Profile" onBack={onBack} />
           <View style={styles.center}>
-            <ActivityIndicator size="large" color="#1264A3" />
+            <ActivityIndicator size="large" color={c.accent} />
           </View>
         </View>
       );
@@ -69,7 +71,7 @@ export default class ProfileScreen extends Component {
 
     if (!user) {
       return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: c.bg }]}>
           <Header title="Profile" onBack={onBack} />
           <View style={styles.center}>
             <Text style={styles.errorText}>User not found</Text>
@@ -91,51 +93,51 @@ export default class ProfileScreen extends Component {
     var isOwn = userId === currentUserId;
 
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: c.bg }]}>
         <Header title="Profile" onBack={onBack} />
-        <View style={styles.profileSection}>
-          <View style={styles.avatar}>
+        <View style={[styles.profileSection, { borderBottomColor: c.border }]}>
+          <View style={[styles.avatar, { backgroundColor: c.purple }]}>
             <Text style={styles.avatarText}>
               {(displayName || '?').charAt(0).toUpperCase()}
             </Text>
           </View>
-          <Text style={styles.displayName}>{displayName}</Text>
+          <Text style={[styles.displayName, { color: c.textPrimary }]}>{displayName}</Text>
           {realName && realName !== displayName ? (
-            <Text style={styles.realName}>{realName}</Text>
+            <Text style={[styles.realName, { color: c.textSecondary }]}>{realName}</Text>
           ) : null}
-          {title ? <Text style={styles.title}>{title}</Text> : null}
-          {status ? <Text style={styles.status}>{status}</Text> : null}
-          {isBot ? <Text style={styles.botBadge}>BOT</Text> : null}
+          {title ? <Text style={[styles.title, { color: c.textTertiary }]}>{title}</Text> : null}
+          {status ? <Text style={[styles.status, { color: c.textSecondary }]}>{status}</Text> : null}
+          {isBot ? <Text style={[styles.botBadge, { color: c.textSecondary, backgroundColor: c.bgTertiary }]}>BOT</Text> : null}
         </View>
 
         <View style={styles.detailsSection}>
           {email ? (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Email</Text>
-              <Text style={styles.detailValue}>{email}</Text>
+            <View style={[styles.detailRow, { borderBottomColor: c.border }]}>
+              <Text style={[styles.detailLabel, { color: c.textTertiary }]}>Email</Text>
+              <Text style={[styles.detailValue, { color: c.textSecondary }]}>{email}</Text>
             </View>
           ) : null}
           {phone ? (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Phone</Text>
-              <Text style={styles.detailValue}>{phone}</Text>
+            <View style={[styles.detailRow, { borderBottomColor: c.border }]}>
+              <Text style={[styles.detailLabel, { color: c.textTertiary }]}>Phone</Text>
+              <Text style={[styles.detailValue, { color: c.textSecondary }]}>{phone}</Text>
             </View>
           ) : null}
           {tz ? (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Timezone</Text>
-              <Text style={styles.detailValue}>{tz}</Text>
+            <View style={[styles.detailRow, { borderBottomColor: c.border }]}>
+              <Text style={[styles.detailLabel, { color: c.textTertiary }]}>Timezone</Text>
+              <Text style={[styles.detailValue, { color: c.textSecondary }]}>{tz}</Text>
             </View>
           ) : null}
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Username</Text>
-            <Text style={styles.detailValue}>@{user.name}</Text>
+          <View style={[styles.detailRow, { borderBottomColor: c.border }]}>
+            <Text style={[styles.detailLabel, { color: c.textTertiary }]}>Username</Text>
+            <Text style={[styles.detailValue, { color: c.textSecondary }]}>@{user.name}</Text>
           </View>
         </View>
 
         {!isOwn ? (
           <TouchableOpacity
-            style={styles.dmButton}
+            style={[styles.dmButton, { backgroundColor: c.green }]}
             onPress={function () { self.openDM(); }}
           >
             <Text style={styles.dmButtonText}>Message</Text>
@@ -149,7 +151,6 @@ export default class ProfileScreen extends Component {
 var styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1A1D21',
   },
   center: {
     flex: 1,
@@ -164,13 +165,11 @@ var styles = StyleSheet.create({
     alignItems: 'center',
     padding: 24,
     borderBottomWidth: 1,
-    borderBottomColor: '#383838',
   },
   avatar: {
     width: 72,
     height: 72,
     borderRadius: 8,
-    backgroundColor: '#4A154B',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
@@ -181,31 +180,25 @@ var styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   displayName: {
-    color: '#FFFFFF',
     fontSize: 22,
     fontWeight: 'bold',
   },
   realName: {
-    color: '#D1D2D3',
     fontSize: 15,
     marginTop: 2,
   },
   title: {
-    color: '#ABABAD',
     fontSize: 14,
     marginTop: 4,
   },
   status: {
-    color: '#D1D2D3',
     fontSize: 14,
     marginTop: 4,
   },
   botBadge: {
-    color: '#D1D2D3',
     fontSize: 11,
     fontWeight: 'bold',
     marginTop: 6,
-    backgroundColor: '#222529',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
@@ -219,19 +212,15 @@ var styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#383838',
   },
   detailLabel: {
-    color: '#ABABAD',
     fontSize: 14,
   },
   detailValue: {
-    color: '#D1D2D3',
     fontSize: 14,
   },
   dmButton: {
     margin: 16,
-    backgroundColor: '#007A5A',
     paddingVertical: 14,
     borderRadius: 4,
     alignItems: 'center',

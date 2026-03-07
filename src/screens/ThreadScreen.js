@@ -14,6 +14,8 @@ import Icon from '../components/Icon';
 import MessageItem from '../components/MessageItem';
 import EmojiPicker from '../components/EmojiPicker';
 import { getUserName } from '../utils/format';
+import { playNotification } from '../utils/notificationSound';
+import { getColors } from '../theme';
 
 export default class ThreadScreen extends Component {
   constructor(props) {
@@ -23,7 +25,6 @@ export default class ThreadScreen extends Component {
       loading: true,
       inputText: '',
       sending: false,
-      pollTimer: null,
       emojiPickerMode: null,
       actionMessage: null,
       reactionTarget: null,
@@ -31,25 +32,27 @@ export default class ThreadScreen extends Component {
   }
 
   componentDidMount() {
+    this._mounted = true;
     this.loadReplies();
     this.startPolling();
   }
 
   componentWillUnmount() {
+    this._mounted = false;
     this.stopPolling();
   }
 
   startPolling() {
     var self = this;
-    var timer = setInterval(function () {
-      self.pollReplies();
+    this._pollTimer = setInterval(function () {
+      if (self._mounted) self.pollReplies();
     }, 5000);
-    this.setState({ pollTimer: timer });
   }
 
   stopPolling() {
-    if (this.state.pollTimer) {
-      clearInterval(this.state.pollTimer);
+    if (this._pollTimer) {
+      clearInterval(this._pollTimer);
+      this._pollTimer = null;
     }
   }
 
@@ -65,12 +68,20 @@ export default class ThreadScreen extends Component {
   }
 
   async pollReplies() {
-    var { slack, channel, parentMessage } = this.props;
-    var { loading } = this.state;
+    var { slack, channel, parentMessage, currentUserId } = this.props;
+    var { loading, replies } = this.state;
     if (loading) return;
     try {
       var res = await slack.conversationsReplies(channel.id, parentMessage.ts);
-      this.setState({ replies: res.messages || [] });
+      var newReplies = res.messages || [];
+      if (newReplies.length > replies.length) {
+        var newOnes = newReplies.slice(replies.length);
+        var fromOthers = newOnes.filter(function (m) { return m.user !== currentUserId; });
+        if (fromOthers.length > 0) {
+          playNotification();
+        }
+      }
+      this.setState({ replies: newReplies });
     } catch (err) {
       // Silent
     }
@@ -139,9 +150,10 @@ export default class ThreadScreen extends Component {
     var { replies, loading, inputText, sending } = this.state;
     var self = this;
     var parentUser = getUserName(parentMessage.user, usersMap);
+    var c = getColors();
 
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: c.bg }]}>
         <Header
           title="Thread"
           subtitle={'Started by ' + parentUser}
@@ -150,7 +162,7 @@ export default class ThreadScreen extends Component {
 
         {loading ? (
           <View style={styles.center}>
-            <ActivityIndicator size="large" color="#1264A3" />
+            <ActivityIndicator size="large" color={c.accent} />
           </View>
         ) : (
           <FlatList
@@ -179,17 +191,17 @@ export default class ThreadScreen extends Component {
           />
         )}
 
-        <View style={styles.inputRow}>
+        <View style={[styles.inputRow, { borderTopColor: c.border, backgroundColor: c.bg }]}>
           <TouchableOpacity
             style={styles.emojiBtn}
             onPress={function () { self.setState({ emojiPickerMode: 'input' }); }}
           >
-            <Icon name="smile" size={22} color="#ABABAD" />
+            <Icon name="smile" size={22} color={c.textTertiary} />
           </TouchableOpacity>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: c.bgTertiary, color: c.textSecondary, borderColor: c.borderInput }]}
             placeholder="Reply..."
-            placeholderTextColor="#696969"
+            placeholderTextColor={c.textPlaceholder}
             value={inputText}
             onChangeText={function (t) { self.setState({ inputText: t }); }}
             onSubmitEditing={function () { self.sendReply(); }}
@@ -197,7 +209,7 @@ export default class ThreadScreen extends Component {
             autoFocus={true}
           />
           <TouchableOpacity
-            style={[styles.sendBtn, (!inputText.trim() || sending) && styles.sendDisabled]}
+            style={[styles.sendBtn, { backgroundColor: c.green }, (!inputText.trim() || sending) && styles.sendDisabled]}
             onPress={function () { self.sendReply(); }}
             disabled={!inputText.trim() || sending}
           >
@@ -222,7 +234,6 @@ export default class ThreadScreen extends Component {
 var styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1A1D21',
   },
   center: {
     flex: 1,
@@ -234,23 +245,17 @@ var styles = StyleSheet.create({
     alignItems: 'center',
     padding: 8,
     borderTopWidth: 1,
-    borderTopColor: '#383838',
-    backgroundColor: '#1A1D21',
   },
   input: {
     flex: 1,
-    backgroundColor: '#222529',
-    color: '#D1D2D3',
     fontSize: 15,
     paddingHorizontal: 12,
     paddingVertical: 9,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#565856',
     marginRight: 8,
   },
   sendBtn: {
-    backgroundColor: '#007A5A',
     paddingHorizontal: 16,
     paddingVertical: 9,
     borderRadius: 4,
@@ -262,10 +267,5 @@ var styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 9,
     marginRight: 4,
-  },
-  sendText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: 'bold',
   },
 });

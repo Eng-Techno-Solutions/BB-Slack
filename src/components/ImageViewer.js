@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import Icon from './Icon';
+import { getColors } from '../theme';
 
 export default class ImageViewer extends Component {
   constructor(props) {
@@ -70,14 +71,12 @@ export default class ImageViewer extends Component {
   renderWebImage(win, source) {
     var self = this;
     var s = this.state;
+    var c = getColors();
 
     return (
-      <View
-        style={styles.imageContainer}
-        onStartShouldSetResponder={function () { return true; }}
-      >
+      <View style={styles.imageContainer}>
         {s.loading ? (
-          <ActivityIndicator size="large" color="#1264A3" style={styles.loader} />
+          <ActivityIndicator size="large" color={c.accent} style={styles.loader} />
         ) : null}
         <View
           ref={this.imgRef}
@@ -113,10 +112,10 @@ export default class ImageViewer extends Component {
         </View>
         {s.scale > 1 ? (
           <TouchableOpacity
-            style={styles.resetZoomBtn}
+            style={[styles.resetZoomBtn, { borderColor: c.border }]}
             onPress={function () { self.setState({ scale: 1, translateX: 0, translateY: 0 }); }}
           >
-            <Text style={styles.resetZoomText}>Reset Zoom</Text>
+            <Text style={[styles.resetZoomText, { color: c.textSecondary }]}>Reset Zoom</Text>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -126,11 +125,12 @@ export default class ImageViewer extends Component {
   renderNativeImage(win, source) {
     var self = this;
     var s = this.state;
+    var c = getColors();
 
     return (
       <View style={styles.imageContainer}>
         {s.loading ? (
-          <ActivityIndicator size="large" color="#1264A3" style={styles.loader} />
+          <ActivityIndicator size="large" color={c.accent} style={styles.loader} />
         ) : null}
         <ScrollView
           style={{ width: win.width - 32, height: win.height - 160 }}
@@ -162,6 +162,7 @@ export default class ImageViewer extends Component {
     var { error } = this.state;
     var self = this;
     var win = Dimensions.get('window');
+    var c = getColors();
 
     return (
       <Modal
@@ -170,23 +171,23 @@ export default class ImageViewer extends Component {
         animationType="fade"
         onRequestClose={onClose}
       >
-        <View style={styles.overlay}>
-          <View style={styles.topBar}>
+        <View style={[styles.overlay, { backgroundColor: c.overlayHeavy }]}>
+          <View style={[styles.topBar, { borderBottomColor: c.border }]}>
             <View style={styles.titleArea}>
-              <Text style={styles.fileName} numberOfLines={1}>
+              <Text style={[styles.fileName, { color: c.textPrimary }]} numberOfLines={1}>
                 {fileName || 'Image'}
               </Text>
             </View>
-            <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-              <Icon name="close" size={18} color="#D1D2D3" />
+            <TouchableOpacity style={[styles.closeBtn, { backgroundColor: c.fileIconBg }]} onPress={onClose}>
+              <Icon name="close" size={18} color={c.textSecondary} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.imageArea}>
             {error ? (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>Failed to load image</Text>
-                <TouchableOpacity style={styles.retryBtn} onPress={function () { self.setState({ loading: true, error: false, scale: 1, translateX: 0, translateY: 0 }); }}>
+              <View style={[styles.errorBox, { backgroundColor: c.bgTertiary }]}>
+                <Text style={[styles.errorText, { color: c.textTertiary }]}>Failed to load image</Text>
+                <TouchableOpacity style={[styles.retryBtn, { backgroundColor: c.accent }]} onPress={function () { self.setState({ loading: true, error: false, scale: 1, translateX: 0, translateY: 0 }); }}>
                   <Text style={styles.retryText}>Retry</Text>
                 </TouchableOpacity>
               </View>
@@ -205,7 +206,6 @@ export default class ImageViewer extends Component {
 var styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.92)',
   },
   topBar: {
     flexDirection: 'row',
@@ -213,13 +213,11 @@ var styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#383838',
   },
   titleArea: {
     flex: 1,
   },
   fileName: {
-    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -227,7 +225,6 @@ var styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 4,
-    backgroundColor: '#383838',
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 12,
@@ -248,17 +245,14 @@ var styles = StyleSheet.create({
   },
   errorBox: {
     padding: 24,
-    backgroundColor: '#222529',
     borderRadius: 8,
     alignItems: 'center',
   },
   errorText: {
-    color: '#ABABAD',
     fontSize: 15,
     marginBottom: 12,
   },
   retryBtn: {
-    backgroundColor: '#1264A3',
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 4,
@@ -276,10 +270,8 @@ var styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#383838',
   },
   resetZoomText: {
-    color: '#D1D2D3',
     fontSize: 13,
     fontWeight: '600',
   },

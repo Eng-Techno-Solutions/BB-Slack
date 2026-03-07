@@ -2,30 +2,32 @@ import React, { Component } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from './Icon';
 import SlackText from './SlackText';
+import { getColors } from '../theme';
 
 export default class Header extends Component {
   render() {
     var { title, subtitle, onBack, rightLabel, rightIcon, onRight } = this.props;
+    var c = getColors();
     return (
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: c.bgHeader, borderBottomColor: c.headerBorder }]}>
         <View style={styles.left}>
           {onBack ? (
             <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-              <Icon name="chevron-left" size={22} color="#D1D2D3" />
+              <Icon name="chevron-left" size={22} color={c.headerIcon} />
             </TouchableOpacity>
           ) : null}
         </View>
         <View style={styles.center}>
-          <Text style={styles.title} numberOfLines={1}>{title}</Text>
-          {subtitle ? <SlackText text={subtitle} style={styles.subtitle} numberOfLines={1} /> : null}
+          <Text style={[styles.title, { color: c.headerText }]} numberOfLines={1}>{title}</Text>
+          {subtitle ? <SlackText text={subtitle} style={[styles.subtitle, { color: c.tabText }]} numberOfLines={1} /> : null}
         </View>
         <View style={styles.right}>
           {onRight ? (
             <TouchableOpacity onPress={onRight} style={styles.rightBtn}>
               {rightIcon ? (
-                <Icon name={rightIcon} size={20} color="#D1D2D3" />
+                <Icon name={rightIcon} size={20} color={c.headerIcon} />
               ) : rightLabel ? (
-                <Text style={styles.rightText}>{rightLabel}</Text>
+                <Text style={[styles.rightText, { color: c.headerIcon }]}>{rightLabel}</Text>
               ) : null}
             </TouchableOpacity>
           ) : null}
@@ -39,11 +41,9 @@ var styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#19171D',
     paddingHorizontal: 8,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#383838',
   },
   left: {
     width: 50,
@@ -60,12 +60,10 @@ var styles = StyleSheet.create({
     padding: 4,
   },
   title: {
-    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
   },
   subtitle: {
-    color: '#ABABAD',
     fontSize: 11,
     marginTop: 1,
   },
@@ -73,7 +71,6 @@ var styles = StyleSheet.create({
     padding: 4,
   },
   rightText: {
-    color: '#D1D2D3',
     fontSize: 13,
   },
 });

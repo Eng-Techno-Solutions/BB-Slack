@@ -6,7 +6,8 @@ import {
   StatusBar,
 } from 'react-native';
 import SlackAPI from './api/slack';
-import { saveToken, getToken, clearToken } from './utils/storage';
+import { saveToken, getToken, clearToken, saveTheme, getTheme } from './utils/storage';
+import { getColors, getMode, setMode } from './theme';
 import LoginScreen from './screens/LoginScreen';
 import ChannelListScreen from './screens/ChannelListScreen';
 import ChatScreen from './screens/ChatScreen';
@@ -14,6 +15,7 @@ import ThreadScreen from './screens/ThreadScreen';
 import SearchScreen from './screens/SearchScreen';
 import ChannelInfoScreen from './screens/ChannelInfoScreen';
 import ProfileScreen from './screens/ProfileScreen';
+import { playNotification } from './utils/notificationSound';
 
 export default class App extends Component {
   constructor(props) {
@@ -28,11 +30,34 @@ export default class App extends Component {
       channels: [],
       channelsLoading: false,
       stack: [{ screen: 'login', params: {} }],
+      themeMode: 'dark',
     };
   }
 
   componentDidMount() {
+    this.loadTheme();
     this.tryAutoLogin();
+  }
+
+  componentWillUnmount() {
+    this.stopChannelPolling();
+  }
+
+  async loadTheme() {
+    try {
+      var mode = await getTheme();
+      setMode(mode);
+      this.setState({ themeMode: mode });
+    } catch (err) {
+      // Default dark
+    }
+  }
+
+  toggleTheme() {
+    var newMode = getMode() === 'dark' ? 'light' : 'dark';
+    setMode(newMode);
+    this.setState({ themeMode: newMode });
+    saveTheme(newMode);
   }
 
   async tryAutoLogin() {
@@ -64,6 +89,22 @@ export default class App extends Component {
     this.loadTeamInfo(slack);
     this.loadUsers(slack);
     this.loadChannels(slack);
+    this.startChannelPolling(slack);
+  }
+
+  startChannelPolling(slack) {
+    this.stopChannelPolling();
+    var self = this;
+    this._channelPollTimer = setInterval(function () {
+      self.loadChannels(slack);
+    }, 60000);
+  }
+
+  stopChannelPolling() {
+    if (this._channelPollTimer) {
+      clearInterval(this._channelPollTimer);
+      this._channelPollTimer = null;
+    }
   }
 
   async loadTeamInfo(slack) {
@@ -98,7 +139,11 @@ export default class App extends Component {
   }
 
   async loadChannels(slack) {
-    this.setState({ channelsLoading: true });
+    if (this._loadingChannels) return;
+    this._loadingChannels = true;
+    var isFirstLoad = this.state.channels.length === 0;
+    var oldChannels = this.state.channels;
+    if (isFirstLoad) this.setState({ channelsLoading: true });
     try {
       var allChannels = [];
       var cursor = '';
@@ -114,14 +159,50 @@ export default class App extends Component {
           : '';
       } while (cursor);
 
+      // Detect new unreads and play sound if not viewing that channel
+      if (!isFirstLoad && oldChannels.length > 0) {
+        var oldUnreadMap = {};
+        for (var i = 0; i < oldChannels.length; i++) {
+          oldUnreadMap[oldChannels[i].id] = oldChannels[i].unread_count_display || 0;
+        }
+
+        var stack = this.state.stack;
+        var currentScreen = stack[stack.length - 1];
+        var activeChannelId = (currentScreen.screen === 'chat' && currentScreen.params.channel)
+          ? currentScreen.params.channel.id
+          : null;
+
+        var hasNewUnread = false;
+        for (var j = 0; j < allChannels.length; j++) {
+          var ch = allChannels[j];
+          var oldCount = oldUnreadMap[ch.id] || 0;
+          var newCount = ch.unread_count_display || 0;
+          if (newCount > oldCount && ch.id !== activeChannelId) {
+            hasNewUnread = true;
+            break;
+          }
+        }
+
+        if (hasNewUnread) {
+          playNotification();
+        }
+      }
+
       this.setState({ channels: allChannels, channelsLoading: false });
     } catch (err) {
-      console.warn('loadChannels error: ' + err.message);
+      if (err.message === 'ratelimited') {
+        // Back off - skip this cycle, next interval will retry
+        console.warn('loadChannels rate limited, backing off');
+      } else {
+        console.warn('loadChannels error: ' + err.message);
+      }
       this.setState({ channelsLoading: false });
     }
+    this._loadingChannels = false;
   }
 
   async handleLogout() {
+    this.stopChannelPolling();
     await clearToken();
     this.setState({
       slack: null,
@@ -190,6 +271,9 @@ export default class App extends Component {
             }}
             onLogout={function () {
               self.handleLogout();
+            }}
+            onToggleTheme={function () {
+              self.toggleTheme();
             }}
           />
         );
@@ -277,17 +361,19 @@ export default class App extends Component {
   }
 
   render() {
+    var colors = getColors();
+
     if (this.state.initializing) {
       return (
-        <View style={styles.splash}>
-          <ActivityIndicator size="large" color="#4A90D9" />
+        <View style={[styles.splash, { backgroundColor: colors.bgSplash }]}>
+          <ActivityIndicator size="large" color={colors.splash} />
         </View>
       );
     }
 
     return (
-      <View style={styles.app}>
-        <StatusBar backgroundColor="#0e1726" barStyle="light-content" />
+      <View style={[styles.app, { backgroundColor: colors.bgSplash }]}>
+        <StatusBar backgroundColor={colors.statusBar} barStyle={colors.statusBarStyle} />
         {this.renderScreen()}
       </View>
     );
@@ -297,11 +383,9 @@ export default class App extends Component {
 var styles = StyleSheet.create({
   app: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
   },
   splash: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
     justifyContent: 'center',
     alignItems: 'center',
   },

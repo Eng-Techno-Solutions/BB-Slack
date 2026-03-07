@@ -9,6 +9,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { EMOJI_MAP } from '../utils/emoji';
+import { getColors } from '../theme';
 
 var ALL_EMOJIS = Object.keys(EMOJI_MAP).reduce(function (acc, name) {
   var emoji = EMOJI_MAP[name];
@@ -37,6 +38,7 @@ export default class EmojiPicker extends Component {
     var { search } = this.state;
     var self = this;
     var filtered = this.getFiltered();
+    var c = getColors();
 
     return (
       <Modal
@@ -45,23 +47,23 @@ export default class EmojiPicker extends Component {
         animationType="slide"
         onRequestClose={onClose}
       >
-        <View style={styles.overlay}>
+        <View style={[styles.overlay, { backgroundColor: c.overlayLight }]}>
           <TouchableOpacity
             style={styles.backdrop}
             activeOpacity={1}
             onPress={onClose}
           />
-          <View style={styles.container}>
+          <View style={[styles.container, { backgroundColor: c.bgTertiary }]}>
             <View style={styles.header}>
-              <Text style={styles.title}>Emoji</Text>
+              <Text style={[styles.title, { color: c.textSecondary }]}>Emoji</Text>
               <TouchableOpacity onPress={onClose}>
-                <Text style={styles.closeBtn}>Close</Text>
+                <Text style={[styles.closeBtn, { color: c.textTertiary }]}>Close</Text>
               </TouchableOpacity>
             </View>
             <TextInput
-              style={styles.search}
+              style={[styles.search, { backgroundColor: c.bg, color: c.textSecondary, borderColor: c.border }]}
               placeholder="Search emoji..."
-              placeholderTextColor="#696969"
+              placeholderTextColor={c.textPlaceholder}
               value={search}
               onChangeText={function (t) { self.setState({ search: t }); }}
               autoCorrect={false}
@@ -94,14 +96,12 @@ export default class EmojiPicker extends Component {
 var styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'flex-end',
   },
   backdrop: {
     flex: 1,
   },
   container: {
-    backgroundColor: '#222529',
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
     maxHeight: '50%',
@@ -116,17 +116,13 @@ var styles = StyleSheet.create({
     paddingBottom: 8,
   },
   title: {
-    color: '#D1D2D3',
     fontSize: 16,
     fontWeight: 'bold',
   },
   closeBtn: {
-    color: '#ABABAD',
     fontSize: 14,
   },
   search: {
-    backgroundColor: '#1A1D21',
-    color: '#D1D2D3',
     fontSize: 14,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -134,7 +130,6 @@ var styles = StyleSheet.create({
     marginBottom: 8,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#383838',
   },
   scroll: {
     flex: 1,

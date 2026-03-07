@@ -17,6 +17,8 @@ import ImageViewer from '../components/ImageViewer';
 import AudioPlayer from '../components/AudioPlayer';
 import EmojiPicker from '../components/EmojiPicker';
 import { getChannelDisplayName } from '../utils/format';
+import { playNotification } from '../utils/notificationSound';
+import { getColors } from '../theme';
 
 export default class ChatScreen extends Component {
   constructor(props) {
@@ -31,38 +33,43 @@ export default class ChatScreen extends Component {
       hasMore: true,
       actionMessage: null,
       editingMessage: null,
-      pollTimer: null,
       viewerImage: null,
       viewerAudio: null,
       emojiPickerMode: null,
       reactionTarget: null,
+      showScrollBtn: false,
     };
   }
 
   componentDidMount() {
+    this._mounted = true;
+    this._userScrolledUp = false;
+    this._prevMessageCount = 0;
     this.loadMessages();
     this.startPolling();
   }
 
   componentWillUnmount() {
+    this._mounted = false;
     this.stopPolling();
   }
 
   startPolling() {
     var self = this;
-    var timer = setInterval(function () {
-      self.pollNewMessages();
+    this._pollTimer = setInterval(function () {
+      if (self._mounted) self.pollNewMessages();
     }, 5000);
-    this.setState({ pollTimer: timer });
   }
 
   stopPolling() {
-    if (this.state.pollTimer) {
-      clearInterval(this.state.pollTimer);
+    if (this._pollTimer) {
+      clearInterval(this._pollTimer);
+      this._pollTimer = null;
     }
   }
 
   async loadMessages() {
+    var self = this;
     var { slack, channel } = this.props;
     try {
       var res = await slack.conversationsHistory(channel.id, null, 30);
@@ -73,6 +80,12 @@ export default class ChatScreen extends Component {
         loading: false,
         cursor: cursor,
         hasMore: !!cursor,
+      }, function () {
+        setTimeout(function () {
+          if (self._list) {
+            self._list.scrollToEnd({ animated: false });
+          }
+        }, 300);
       });
       this.markRead(msgs);
     } catch (err) {
@@ -84,26 +97,74 @@ export default class ChatScreen extends Component {
   async pollNewMessages() {
     var { slack, channel } = this.props;
     var { messages, loading } = this.state;
-    if (loading) return;
+    if (loading || this._polling) return;
+    this._polling = true;
     try {
-      var res = await slack.conversationsHistory(channel.id, null, 10);
-      var newMsgs = res.messages || [];
-      if (newMsgs.length === 0) return;
+      var limit = Math.max(messages.length, 30);
+      var res = await slack.conversationsHistory(channel.id, null, limit);
+      var fetched = (res.messages || []).slice().reverse();
+      if (fetched.length === 0) return;
 
-      var lastTs = messages.length > 0 ? messages[messages.length - 1].ts : '0';
-      var fresh = newMsgs.filter(function (m) {
-        return parseFloat(m.ts) > parseFloat(lastTs);
-      }).reverse();
+      var existingMap = {};
+      for (var i = 0; i < messages.length; i++) {
+        existingMap[messages[i].ts] = true;
+      }
 
-      if (fresh.length > 0) {
-        this.setState(function (prev) {
-          return { messages: prev.messages.concat(fresh) };
-        });
-        this.markRead(fresh);
+      var hasNew = false;
+      for (var j = 0; j < fetched.length; j++) {
+        if (!existingMap[fetched[j].ts]) {
+          hasNew = true;
+          break;
+        }
+      }
+
+      var fetchedMap = {};
+      for (var k = 0; k < fetched.length; k++) {
+        fetchedMap[fetched[k].ts] = fetched[k];
+      }
+
+      var merged = [];
+      for (var m = 0; m < messages.length; m++) {
+        if (fetchedMap[messages[m].ts]) {
+          merged.push(fetchedMap[messages[m].ts]);
+        } else {
+          merged.push(messages[m]);
+        }
+      }
+      for (var n = 0; n < fetched.length; n++) {
+        if (!existingMap[fetched[n].ts]) {
+          merged.push(fetched[n]);
+        }
+      }
+
+      var self = this;
+      var currentUserId = this.props.currentUserId;
+      this.setState({ messages: merged }, function () {
+        if (hasNew && !self._userScrolledUp) {
+          setTimeout(function () {
+            if (self._list) {
+              self._list.scrollToEnd({ animated: true });
+            }
+          }, 50);
+        }
+      });
+      if (hasNew) {
+        var newMsgs = fetched.filter(function (f) { return !existingMap[f.ts]; });
+        var fromOthers = newMsgs.filter(function (msg) { return msg.user !== currentUserId; });
+        if (fromOthers.length > 0) {
+          playNotification();
+        }
+        if (!self._userScrolledUp) {
+          this.markRead(newMsgs);
+        } else {
+          self._unseenCount = (self._unseenCount || 0) + newMsgs.length;
+          self.forceUpdate();
+        }
       }
     } catch (err) {
       // Silent fail on poll
     }
+    this._polling = false;
   }
 
   async loadMore() {
@@ -157,8 +218,9 @@ export default class ChatScreen extends Component {
           return { messages: updated, inputText: '', sending: false, editingMessage: null };
         });
       } else {
-        var res = await slack.chatPostMessage(channel.id, text);
+        await slack.chatPostMessage(channel.id, text);
         this.setState({ inputText: '', sending: false });
+        this.pollNewMessages();
       }
     } catch (err) {
       this.setState({ sending: false });
@@ -186,6 +248,7 @@ export default class ChatScreen extends Component {
     try {
       await slack.reactionsAdd(channel.id, name, message.ts);
       this.setState({ actionMessage: null });
+      this.pollNewMessages();
     } catch (err) {
       Alert.alert('Error', err.message);
     }
@@ -195,6 +258,7 @@ export default class ChatScreen extends Component {
     var { slack, channel } = this.props;
     try {
       await slack.reactionsRemove(channel.id, name, message.ts);
+      this.pollNewMessages();
     } catch (err) {
       Alert.alert('Error', err.message);
     }
@@ -279,9 +343,10 @@ export default class ChatScreen extends Component {
     var { messages, loading, loadingMore, inputText, sending, editingMessage, actionMessage, viewerImage, viewerAudio, emojiPickerMode } = this.state;
     var self = this;
     var channelName = getChannelDisplayName(channel, usersMap, currentUserId);
+    var c = getColors();
 
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: c.bg }]}>
         <Header
           title={(!channel.is_im ? '# ' : '') + channelName}
           subtitle={channel.topic && channel.topic.value ? channel.topic.value : null}
@@ -292,57 +357,90 @@ export default class ChatScreen extends Component {
 
         {loading ? (
           <View style={styles.center}>
-            <ActivityIndicator size="large" color="#1264A3" />
+            <ActivityIndicator size="large" color={c.accent} />
           </View>
         ) : (
-          <FlatList
-            ref={function (r) { self._list = r; }}
-            data={messages}
-            keyExtractor={function (item) { return item.ts; }}
-            renderItem={function (obj) {
-              return (
-                <MessageItem
-                  message={obj.item}
-                  usersMap={usersMap}
-                  currentUserId={currentUserId}
-                  token={slack.token}
-                  onLongPress={function (m) { self.onMessageLongPress(m); }}
-                  onReactionPress={function (m, name, reacted) { self.toggleReaction(m, name, reacted); }}
-                  onThreadPress={onThread}
-                  onImagePress={function (img) { self.setState({ viewerImage: img }); }}
-                  onAudioPress={function (audio) { self.setState({ viewerAudio: audio }); }}
-                />
-              );
-            }}
-            onEndReached={function () { /* no-op, load more at top */ }}
-            ListHeaderComponent={
-              loadingMore ? (
-                <View style={styles.loadMore}>
-                  <ActivityIndicator size="small" color="#1264A3" />
-                </View>
-              ) : self.state.hasMore ? (
-                <TouchableOpacity style={styles.loadMore} onPress={function () { self.loadMore(); }}>
-                  <Text style={styles.loadMoreText}>Load older messages</Text>
-                </TouchableOpacity>
-              ) : null
-            }
-            ListEmptyComponent={
-              <View style={styles.center}>
-                <Text style={styles.emptyText}>No messages yet</Text>
-              </View>
-            }
-            onContentSizeChange={function () {
-              if (self._list && messages.length > 0 && !loadingMore) {
-                self._list.scrollToEnd({ animated: false });
+          <View style={styles.listWrapper}>
+            <FlatList
+              ref={function (r) { self._list = r; }}
+              data={messages}
+              keyExtractor={function (item) { return item.ts; }}
+              renderItem={function (obj) {
+                return (
+                  <MessageItem
+                    message={obj.item}
+                    usersMap={usersMap}
+                    currentUserId={currentUserId}
+                    token={slack.token}
+                    onLongPress={function (m) { self.onMessageLongPress(m); }}
+                    onReactionPress={function (m, name, reacted) { self.toggleReaction(m, name, reacted); }}
+                    onThreadPress={onThread}
+                    onImagePress={function (img) { self.setState({ viewerImage: img }); }}
+                    onAudioPress={function (audio) { self.setState({ viewerAudio: audio }); }}
+                  />
+                );
+              }}
+              onScroll={function (e) {
+                var offset = e.nativeEvent.contentOffset.y;
+                var contentHeight = e.nativeEvent.contentSize.height;
+                var layoutHeight = e.nativeEvent.layoutMeasurement.height;
+                var distanceFromBottom = contentHeight - offset - layoutHeight;
+                var nearBottom = distanceFromBottom < 150;
+                self._userScrolledUp = !nearBottom;
+                if (nearBottom && self._unseenCount > 0) {
+                  self._unseenCount = 0;
+                  self.markRead(self.state.messages);
+                }
+                if (self.state.showScrollBtn !== !nearBottom) {
+                  self.setState({ showScrollBtn: !nearBottom });
+                }
+              }}
+              scrollEventThrottle={16}
+              ListHeaderComponent={
+                loadingMore ? (
+                  <View style={styles.loadMore}>
+                    <ActivityIndicator size="small" color={c.accent} />
+                  </View>
+                ) : self.state.hasMore ? (
+                  <TouchableOpacity style={styles.loadMore} onPress={function () { self.loadMore(); }}>
+                    <Text style={[styles.loadMoreText, { color: c.accentLight }]}>Load older messages</Text>
+                  </TouchableOpacity>
+                ) : null
               }
-            }}
-          />
+              ListEmptyComponent={
+                <View style={styles.center}>
+                  <Text style={[styles.emptyText, { color: c.textTertiary }]}>No messages yet</Text>
+                </View>
+              }
+            />
+            {self.state.showScrollBtn ? (
+              <TouchableOpacity
+                style={[styles.scrollBtn, { backgroundColor: c.scrollBtnBg || c.accent }]}
+                onPress={function () {
+                  self._userScrolledUp = false;
+                  self._unseenCount = 0;
+                  self.setState({ showScrollBtn: false });
+                  self.markRead(self.state.messages);
+                  if (self._list) {
+                    self._list.scrollToEnd({ animated: true });
+                  }
+                }}
+              >
+                {self._unseenCount > 0 ? (
+                  <View style={[styles.unseenBadge, { backgroundColor: c.badgeBg || '#E01E5A' }]}>
+                    <Text style={styles.unseenBadgeText}>{self._unseenCount > 99 ? '99+' : self._unseenCount}</Text>
+                  </View>
+                ) : null}
+                <Icon name="chevron-down" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
         )}
 
-        <View style={styles.inputBar}>
+        <View style={[styles.inputBar, { borderTopColor: c.border, backgroundColor: c.bg }]}>
           {editingMessage ? (
-            <View style={styles.editBanner}>
-              <Text style={styles.editBannerText}>Editing message</Text>
+            <View style={[styles.editBanner, { backgroundColor: c.bgTertiary }]}>
+              <Text style={[styles.editBannerText, { color: c.accentLight }]}>Editing message</Text>
               <TouchableOpacity onPress={function () { self.setState({ editingMessage: null, inputText: '' }); }}>
                 <Text style={styles.editCancel}>Cancel</Text>
               </TouchableOpacity>
@@ -353,13 +451,13 @@ export default class ChatScreen extends Component {
               style={styles.emojiBtn}
               onPress={function () { self.setState({ emojiPickerMode: 'input' }); }}
             >
-              <Icon name="smile" size={22} color="#ABABAD" />
+              <Icon name="smile" size={22} color={c.textTertiary} />
             </TouchableOpacity>
             <TextInput
               ref={function (r) { self._inputRef = r; }}
-              style={styles.input}
+              style={[styles.input, { backgroundColor: c.bgTertiary, color: c.textSecondary, borderColor: c.borderInput }]}
               placeholder="Message..."
-              placeholderTextColor="#696969"
+              placeholderTextColor={c.textPlaceholder}
               value={inputText}
               onChangeText={function (t) { self.setState({ inputText: t }); }}
               onSubmitEditing={function () { self.sendMessage(); }}
@@ -368,7 +466,7 @@ export default class ChatScreen extends Component {
               autoFocus={true}
             />
             <TouchableOpacity
-              style={[styles.sendBtn, (!inputText.trim() || sending) && styles.sendDisabled]}
+              style={[styles.sendBtn, { backgroundColor: c.green }, (!inputText.trim() || sending) && styles.sendDisabled]}
               onPress={function () { self.sendMessage(); }}
               disabled={!inputText.trim() || sending}
             >
@@ -415,7 +513,9 @@ export default class ChatScreen extends Component {
 var styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1A1D21',
+  },
+  listWrapper: {
+    flex: 1,
   },
   center: {
     flex: 1,
@@ -424,21 +524,14 @@ var styles = StyleSheet.create({
     padding: 40,
   },
   emptyText: {
-    color: '#ABABAD',
     fontSize: 14,
   },
   loadMore: {
     padding: 12,
     alignItems: 'center',
   },
-  loadMoreText: {
-    color: '#1D9BD1',
-    fontSize: 13,
-  },
   inputBar: {
     borderTopWidth: 1,
-    borderTopColor: '#383838',
-    backgroundColor: '#1A1D21',
   },
   editBanner: {
     flexDirection: 'row',
@@ -446,10 +539,8 @@ var styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: '#222529',
   },
   editBannerText: {
-    color: '#1D9BD1',
     fontSize: 13,
   },
   editCancel: {
@@ -463,18 +554,14 @@ var styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    backgroundColor: '#222529',
-    color: '#D1D2D3',
     fontSize: 15,
     paddingHorizontal: 12,
     paddingVertical: 9,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#565856',
     marginRight: 8,
   },
   sendBtn: {
-    backgroundColor: '#007A5A',
     paddingHorizontal: 16,
     paddingVertical: 9,
     borderRadius: 4,
@@ -487,9 +574,32 @@ var styles = StyleSheet.create({
     paddingVertical: 9,
     marginRight: 4,
   },
-  sendText: {
-    color: '#ffffff',
-    fontSize: 14,
+  scrollBtn: {
+    position: 'absolute',
+    right: 16,
+    bottom: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+    elevation: 5,
+  },
+  unseenBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -4,
+    borderRadius: 10,
+    minWidth: 20,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    alignItems: 'center',
+    zIndex: 11,
+  },
+  unseenBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
     fontWeight: 'bold',
   },
 });

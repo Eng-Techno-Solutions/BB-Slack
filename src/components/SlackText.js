@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Linking, Platform, StyleSheet } from 'react-native';
 import { replaceEmojisInText } from '../utils/emoji';
 import { getUserName } from '../utils/format';
+import { getColors } from '../theme';
 
 function openUrl(url) {
   if (Platform.OS === 'web') {
@@ -144,6 +145,7 @@ function renderInlineText(text, key) {
 function SlackText({ text, usersMap, style, numberOfLines }) {
   if (!text) return null;
 
+  var c = getColors();
   var linkParts = parseSlackLinks(text, usersMap);
   if (linkParts.length === 0) return null;
 
@@ -171,19 +173,19 @@ function SlackText({ text, usersMap, style, numberOfLines }) {
         {allParts.map(function (part, i) {
           if (part.type === 'link') {
             return (
-              <Text key={i} style={styles.link} onPress={function () { openUrl(part.url); }}>
+              <Text key={i} style={[styles.link, { color: c.accentLight }]} onPress={function () { openUrl(part.url); }}>
                 {replaceEmojisInText(part.label)}
               </Text>
             );
           }
           if (part.type === 'mention') {
-            return <Text key={i} style={styles.mention}>{part.value}</Text>;
+            return <Text key={i} style={[styles.mention, { color: c.accentLight, backgroundColor: c.mentionBg }]}>{part.value}</Text>;
           }
           if (part.type === 'channel') {
-            return <Text key={i} style={styles.channel}>{part.value}</Text>;
+            return <Text key={i} style={[styles.channel, { color: c.accentLight }]}>{part.value}</Text>;
           }
           if (part.type === 'code') {
-            return <Text key={i} style={styles.inlineCode}>{part.value}</Text>;
+            return <Text key={i} style={[styles.inlineCode, { color: c.codeInlineColor, backgroundColor: c.codeInlineBg, borderColor: c.codeBorder }]}>{part.value}</Text>;
           }
           return <Text key={i}>{renderInlineText(part.value, i)}</Text>;
         })}
@@ -196,26 +198,26 @@ function SlackText({ text, usersMap, style, numberOfLines }) {
       {allParts.map(function (part, i) {
         if (part.type === 'codeblock') {
           return (
-            <View key={i} style={styles.codeBlock}>
-              <Text style={styles.codeBlockText}>{part.value}</Text>
+            <View key={i} style={[styles.codeBlock, { backgroundColor: c.codeBlockBg, borderColor: c.codeBorder }]}>
+              <Text style={[styles.codeBlockText, { color: c.textSecondary }]}>{part.value}</Text>
             </View>
           );
         }
         if (part.type === 'link') {
           return (
-            <Text key={i} style={[style, styles.link]} onPress={function () { openUrl(part.url); }}>
+            <Text key={i} style={[style, styles.link, { color: c.accentLight }]} onPress={function () { openUrl(part.url); }}>
               {replaceEmojisInText(part.label)}
             </Text>
           );
         }
         if (part.type === 'mention') {
-          return <Text key={i} style={[style, styles.mention]}>{part.value}</Text>;
+          return <Text key={i} style={[style, styles.mention, { color: c.accentLight, backgroundColor: c.mentionBg }]}>{part.value}</Text>;
         }
         if (part.type === 'channel') {
-          return <Text key={i} style={[style, styles.channel]}>{part.value}</Text>;
+          return <Text key={i} style={[style, styles.channel, { color: c.accentLight }]}>{part.value}</Text>;
         }
         if (part.type === 'code') {
-          return <Text key={i} style={[style, styles.inlineCode]}>{part.value}</Text>;
+          return <Text key={i} style={[style, styles.inlineCode, { color: c.codeInlineColor, backgroundColor: c.codeInlineBg, borderColor: c.codeBorder }]}>{part.value}</Text>;
         }
         var trimmed = part.value;
         if (!trimmed || !trimmed.trim()) return null;
@@ -227,34 +229,25 @@ function SlackText({ text, usersMap, style, numberOfLines }) {
 
 var styles = StyleSheet.create({
   link: {
-    color: '#1D9BD1',
     textDecorationLine: 'underline',
   },
   mention: {
-    color: '#1D9BD1',
-    backgroundColor: 'rgba(29,155,209,0.1)',
     fontWeight: '600',
   },
   channel: {
-    color: '#1D9BD1',
     fontWeight: '600',
   },
   inlineCode: {
     fontFamily: 'monospace',
     fontSize: 13,
-    color: '#E8912D',
-    backgroundColor: '#2D2D2D',
     paddingHorizontal: 4,
     paddingVertical: 1,
     borderRadius: 3,
     borderWidth: 1,
-    borderColor: '#383838',
   },
   codeBlock: {
-    backgroundColor: '#1E1E1E',
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#383838',
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginVertical: 4,
@@ -262,7 +255,6 @@ var styles = StyleSheet.create({
   codeBlockText: {
     fontFamily: 'monospace',
     fontSize: 13,
-    color: '#D1D2D3',
     lineHeight: 20,
   },
   bold: {

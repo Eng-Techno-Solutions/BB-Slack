@@ -8,6 +8,7 @@ import {
   Platform,
 } from 'react-native';
 import Icon from './Icon';
+import { getColors } from '../theme';
 
 function formatSecs(s) {
   var m = Math.floor(s / 60);
@@ -163,13 +164,14 @@ export default class AudioPlayer extends Component {
   renderNativePlayer() {
     var self = this;
     var s = this.state;
+    var c = getColors();
 
     if (s.error) {
       return (
         <View style={styles.playerArea}>
-          <Text style={styles.errorText}>{s.error}</Text>
+          <Text style={[styles.errorText, { color: c.textTertiary }]}>{s.error}</Text>
           <TouchableOpacity
-            style={styles.retryBtn}
+            style={[styles.retryBtn, { backgroundColor: c.accent }]}
             onPress={function () { self.loadSound(self.props.source); }}
           >
             <Text style={styles.retryText}>Retry</Text>
@@ -184,19 +186,19 @@ export default class AudioPlayer extends Component {
       <View style={styles.playerArea}>
         <View style={styles.controlsRow}>
           <TouchableOpacity
-            style={styles.playBtn}
+            style={[styles.playBtn, { backgroundColor: c.green }]}
             onPress={function () { self.togglePlay(); }}
           >
             <Icon name={s.playing ? 'pause' : 'play'} size={18} color="#FFFFFF" />
           </TouchableOpacity>
           <View style={styles.sliderArea}>
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { flex: progress }]} />
+            <View style={[styles.progressTrack, { backgroundColor: c.border }]}>
+              <View style={[styles.progressFill, { flex: progress, backgroundColor: c.accent }]} />
               <View style={{ flex: 1 - progress }} />
             </View>
             <View style={styles.timeRow}>
-              <Text style={styles.timeText}>{formatSecs(s.position)}</Text>
-              <Text style={styles.timeText}>{formatSecs(s.duration)}</Text>
+              <Text style={[styles.timeText, { color: c.textTertiary }]}>{formatSecs(s.position)}</Text>
+              <Text style={[styles.timeText, { color: c.textTertiary }]}>{formatSecs(s.duration)}</Text>
             </View>
           </View>
         </View>
@@ -207,6 +209,7 @@ export default class AudioPlayer extends Component {
   render() {
     var { visible, fileName } = this.props;
     var self = this;
+    var c = getColors();
 
     if (!visible) return null;
 
@@ -218,19 +221,19 @@ export default class AudioPlayer extends Component {
         onRequestClose={function () { self.handleClose(); }}
       >
         <TouchableOpacity
-          style={styles.overlay}
+          style={[styles.overlay, { backgroundColor: c.overlayMedium }]}
           activeOpacity={1}
           onPress={function () { self.handleClose(); }}
         >
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: c.bgTertiary }]}>
             <TouchableOpacity activeOpacity={1} onPress={function () {}}>
-              <View style={styles.header}>
-                <Text style={styles.title} numberOfLines={1}>{fileName || 'Audio'}</Text>
+              <View style={[styles.header, { borderBottomColor: c.border }]}>
+                <Text style={[styles.title, { color: c.textPrimary }]} numberOfLines={1}>{fileName || 'Audio'}</Text>
                 <TouchableOpacity
-                  style={styles.closeBtn}
+                  style={[styles.closeBtn, { backgroundColor: c.fileIconBg }]}
                   onPress={function () { self.handleClose(); }}
                 >
-                  <Icon name="close" size={16} color="#D1D2D3" />
+                  <Icon name="close" size={16} color={c.textSecondary} />
                 </TouchableOpacity>
               </View>
               {Platform.OS === 'web'
@@ -248,13 +251,11 @@ export default class AudioPlayer extends Component {
 var styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
   card: {
-    backgroundColor: '#222529',
     borderRadius: 12,
     width: '100%',
     maxWidth: 400,
@@ -266,11 +267,9 @@ var styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#383838',
   },
   title: {
     flex: 1,
-    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -278,7 +277,6 @@ var styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 4,
-    backgroundColor: '#383838',
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 12,
@@ -294,42 +292,34 @@ var styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#007A5A',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
-  playIcon: {},
   sliderArea: {
     flex: 1,
   },
   progressTrack: {
     height: 4,
-    backgroundColor: '#383838',
     borderRadius: 2,
     flexDirection: 'row',
     overflow: 'hidden',
   },
-  progressFill: {
-    backgroundColor: '#1264A3',
-  },
+  progressFill: {},
   timeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 6,
   },
   timeText: {
-    color: '#ABABAD',
     fontSize: 11,
   },
   errorText: {
-    color: '#ABABAD',
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 12,
   },
   retryBtn: {
-    backgroundColor: '#1264A3',
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 4,
