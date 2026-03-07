@@ -40,6 +40,13 @@ function proxyUrl(url, token) {
   return url;
 }
 
+function imageSource(url, token) {
+  if (Platform.OS !== 'web' && url && token) {
+    return { uri: url, headers: { Authorization: 'Bearer ' + token } };
+  }
+  return { uri: url };
+}
+
 function isImageFile(file) {
   if (file.mimetype && file.mimetype.indexOf('image/') === 0) return true;
   var name = (file.name || file.title || '').toLowerCase();
@@ -94,11 +101,11 @@ export default class MessageItem extends Component {
         activeOpacity={0.8}
         data-type="file-card"
         onPress={function () {
-          onImagePress && onImagePress({ uri: proxiedFull, name: f.name || f.title || 'Image' });
+          onImagePress && onImagePress({ uri: proxiedFull, name: f.name || f.title || 'Image', token: token });
         }}
       >
         <Image
-          source={{ uri: proxiedThumb }}
+          source={imageSource(proxiedThumb, token)}
           style={{ width: w, height: h, backgroundColor: c.bgTertiary }}
           resizeMode="cover"
         />
@@ -121,7 +128,7 @@ export default class MessageItem extends Component {
         activeOpacity={0.7}
         data-type="file-card"
         onPress={function () {
-          onAudioPress && onAudioPress({ uri: proxiedUrl, name: f.name || f.title || 'Audio', duration: f.duration_ms });
+          onAudioPress && onAudioPress({ uri: proxiedUrl, name: f.name || f.title || 'Audio', duration: f.duration_ms, token: token });
         }}
       >
         <View style={[styles.audioPlayBtn, { backgroundColor: c.green }]}>

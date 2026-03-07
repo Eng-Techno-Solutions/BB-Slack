@@ -44,6 +44,7 @@ dependencies {
     implementation "com.android.support:appcompat-v7:${rootProject.ext.supportLibVersion}"
     implementation "com.facebook.react:react-native:+"
     implementation project(':react-native-sound')
+    implementation project(':react-native-fs')
     implementation "com.google.android.gms:play-services-base:11.8.0"
     implementation "org.conscrypt:conscrypt-android:2.5.2"
 }

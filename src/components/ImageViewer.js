@@ -14,6 +14,13 @@ import {
 import Icon from './Icon';
 import { getColors } from '../theme';
 
+function imageSource(url, token) {
+  if (Platform.OS !== 'web' && url && token) {
+    return { uri: url, headers: { Authorization: 'Bearer ' + token } };
+  }
+  return { uri: url };
+}
+
 export default class ImageViewer extends Component {
   constructor(props) {
     super(props);
@@ -68,7 +75,7 @@ export default class ImageViewer extends Component {
     this.setState({ dragging: false });
   }
 
-  renderWebImage(win, source) {
+  renderWebImage(win, source, token) {
     var self = this;
     var s = this.state;
     var c = getColors();
@@ -95,7 +102,7 @@ export default class ImageViewer extends Component {
           onMouseLeave={function () { self.handleMouseUp(); }}
         >
           <Image
-            source={{ uri: source }}
+            source={imageSource(source, token)}
             style={{
               width: win.width - 32,
               height: win.height - 160,
@@ -123,7 +130,7 @@ export default class ImageViewer extends Component {
     );
   }
 
-  renderNativeImage(win, source) {
+  renderNativeImage(win, source, token) {
     var self = this;
     var s = this.state;
     var c = getColors();
@@ -144,7 +151,7 @@ export default class ImageViewer extends Component {
           centerContent={true}
         >
           <Image
-            source={{ uri: source }}
+            source={imageSource(source, token)}
             style={{
               width: win.width - 32,
               height: win.height - 160,
@@ -159,7 +166,7 @@ export default class ImageViewer extends Component {
   }
 
   render() {
-    var { visible, source, fileName, onClose } = this.props;
+    var { visible, source, fileName, token, onClose } = this.props;
     var { error } = this.state;
     var self = this;
     var win = Dimensions.get('window');
@@ -194,8 +201,8 @@ export default class ImageViewer extends Component {
               </View>
             ) : (
               Platform.OS === 'web'
-                ? this.renderWebImage(win, source)
-                : this.renderNativeImage(win, source)
+                ? this.renderWebImage(win, source, token)
+                : this.renderNativeImage(win, source, token)
             )}
           </View>
         </View>

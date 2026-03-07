@@ -612,6 +612,7 @@ export default class ChatScreen extends Component {
           visible={!!viewerImage}
           source={viewerImage ? viewerImage.uri : ''}
           fileName={viewerImage ? viewerImage.name : ''}
+          token={viewerImage ? viewerImage.token : ''}
           onClose={function () { self.setState({ viewerImage: null }); }}
         />
 
@@ -620,6 +621,7 @@ export default class ChatScreen extends Component {
           source={viewerAudio ? viewerAudio.uri : ''}
           fileName={viewerAudio ? viewerAudio.name : ''}
           duration={viewerAudio ? viewerAudio.duration : 0}
+          token={viewerAudio ? viewerAudio.token : ''}
           onClose={function () { self.setState({ viewerAudio: null }); }}
         />
 

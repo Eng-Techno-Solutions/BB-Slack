@@ -8,6 +8,7 @@ import com.facebook.react.ReactPackage;
 import com.facebook.react.shell.MainReactPackage;
 import com.facebook.soloader.SoLoader;
 import com.zmxv.RNSound.RNSoundPackage;
+import com.rnfs.RNFSPackage;
 
 import java.security.Security;
 import java.util.Arrays;
@@ -28,6 +29,7 @@ public class MainApplication extends Application implements ReactApplication {
             return Arrays.<ReactPackage>asList(
                 new MainReactPackage(),
                 new RNSoundPackage(),
+                new RNFSPackage(),
                 new HttpPackage()
             );
         }

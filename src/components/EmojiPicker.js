@@ -4,7 +4,7 @@ import {
   Text,
   TouchableOpacity,
   Modal,
-  ScrollView,
+  FlatList,
   TextInput,
   StyleSheet,
 } from 'react-native';
@@ -69,25 +69,30 @@ export default class EmojiPicker extends Component {
               onChangeText={function (t) { self.setState({ search: t }); }}
               autoCorrect={false}
             />
-            <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">
-              <View style={styles.grid}>
-                {filtered.map(function (e) {
-                  return (
-                    <TouchableOpacity
-                      key={e.name}
-                      style={styles.emojiBtn}
-                      data-type="emoji-item"
-                      onPress={function () {
-                        self.setState({ search: '' });
-                        onSelect(e.name, e.emoji);
-                      }}
-                    >
-                      <Text style={styles.emojiText}>{e.emoji}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </ScrollView>
+            <FlatList
+              data={filtered}
+              keyExtractor={function (item) { return item.name; }}
+              numColumns={8}
+              keyboardShouldPersistTaps="handled"
+              initialNumToRender={40}
+              maxToRenderPerBatch={40}
+              windowSize={5}
+              renderItem={function (info) {
+                var e = info.item;
+                return (
+                  <TouchableOpacity
+                    style={styles.emojiBtn}
+                    data-type="emoji-item"
+                    onPress={function () {
+                      self.setState({ search: '' });
+                      onSelect(e.name, e.emoji);
+                    }}
+                  >
+                    <Text style={styles.emojiText}>{e.emoji}</Text>
+                  </TouchableOpacity>
+                );
+              }}
+            />
           </View>
         </View>
       </Modal>
@@ -133,17 +138,13 @@ var styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 1,
   },
-  scroll: {
+  list: {
     flex: 1,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     paddingHorizontal: 8,
   },
   emojiBtn: {
-    width: '12.5%',
-    aspectRatio: 1,
+    flex: 1,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
   },
