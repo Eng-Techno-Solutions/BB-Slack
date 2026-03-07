@@ -28,3 +28,38 @@ export function request(method, url, headers, body) {
     });
   });
 }
+
+export function uploadFile(url, token, fields, fileData) {
+  // fileData: { name, type, base64 } (Android) or { name, type, file/blob } (Web)
+  if (HttpModule && HttpModule.uploadMultipart) {
+    return HttpModule.uploadMultipart(
+      url,
+      token,
+      JSON.stringify(fields),
+      fileData.name,
+      fileData.type,
+      fileData.base64
+    ).then(function (res) {
+      return JSON.parse(res);
+    });
+  }
+
+  // Web fallback using FormData
+  var formData = new FormData();
+  var keys = Object.keys(fields);
+  for (var i = 0; i < keys.length; i++) {
+    formData.append(keys[i], fields[keys[i]]);
+  }
+  if (fileData.file || fileData.blob) {
+    formData.append('file', fileData.file || fileData.blob, fileData.name);
+  }
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token },
+    body: formData,
+  }).then(function (res) {
+    return res.text().then(function (text) {
+      return { status: res.status, body: text };
+    });
+  });
+}

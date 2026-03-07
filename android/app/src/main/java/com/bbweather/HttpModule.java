@@ -152,4 +152,87 @@ public class HttpModule extends ReactContextBaseJavaModule {
     public void get(final String urlString, final Promise promise) {
         request("GET", urlString, "{}", "", promise);
     }
+
+    @ReactMethod
+    public void uploadMultipart(final String urlString, final String token, final String fieldsJson, final String fileName, final String fileType, final String fileBase64, final Promise promise) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                HttpURLConnection conn = null;
+                try {
+                    String boundary = "----BBUpload" + System.currentTimeMillis();
+                    URL url = new URL(urlString);
+                    conn = (HttpURLConnection) url.openConnection();
+                    if (conn instanceof HttpsURLConnection) {
+                        SSLSocketFactory factory = createTls12SocketFactory();
+                        if (factory != null) {
+                            ((HttpsURLConnection) conn).setSSLSocketFactory(factory);
+                        }
+                    }
+                    conn.setRequestMethod("POST");
+                    conn.setConnectTimeout(60000);
+                    conn.setReadTimeout(60000);
+                    conn.setDoOutput(true);
+                    conn.setRequestProperty("Authorization", "Bearer " + token);
+                    conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
+
+                    OutputStream os = conn.getOutputStream();
+                    String crlf = "\r\n";
+
+                    // Write text fields
+                    if (fieldsJson != null && fieldsJson.length() > 2) {
+                        JSONObject fields = new JSONObject(fieldsJson);
+                        Iterator<String> keys = fields.keys();
+                        while (keys.hasNext()) {
+                            String key = keys.next();
+                            String val = fields.getString(key);
+                            os.write(("--" + boundary + crlf).getBytes("UTF-8"));
+                            os.write(("Content-Disposition: form-data; name=\"" + key + "\"" + crlf).getBytes("UTF-8"));
+                            os.write((crlf).getBytes("UTF-8"));
+                            os.write(val.getBytes("UTF-8"));
+                            os.write(crlf.getBytes("UTF-8"));
+                        }
+                    }
+
+                    // Write file field
+                    byte[] fileBytes = android.util.Base64.decode(fileBase64, android.util.Base64.DEFAULT);
+                    os.write(("--" + boundary + crlf).getBytes("UTF-8"));
+                    os.write(("Content-Disposition: form-data; name=\"file\"; filename=\"" + fileName + "\"" + crlf).getBytes("UTF-8"));
+                    os.write(("Content-Type: " + fileType + crlf).getBytes("UTF-8"));
+                    os.write((crlf).getBytes("UTF-8"));
+                    os.write(fileBytes);
+                    os.write(crlf.getBytes("UTF-8"));
+
+                    // End boundary
+                    os.write(("--" + boundary + "--" + crlf).getBytes("UTF-8"));
+                    os.flush();
+                    os.close();
+
+                    int code = conn.getResponseCode();
+                    BufferedReader reader;
+                    if (code >= 200 && code < 400) {
+                        reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
+                    } else {
+                        reader = new BufferedReader(new InputStreamReader(conn.getErrorStream(), "UTF-8"));
+                    }
+
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        sb.append(line);
+                    }
+                    reader.close();
+
+                    JSONObject result = new JSONObject();
+                    result.put("status", code);
+                    result.put("body", sb.toString());
+                    promise.resolve(result.toString());
+                } catch (Exception e) {
+                    promise.reject("UPLOAD_ERROR", e.getMessage());
+                } finally {
+                    if (conn != null) conn.disconnect();
+                }
+            }
+        }).start();
+    }
 }

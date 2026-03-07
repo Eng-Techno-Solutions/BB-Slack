@@ -1,4 +1,4 @@
-import { request } from './http';
+import { request, uploadFile } from './http';
 import { Platform } from 'react-native';
 
 var BASE = Platform.OS === 'web' ? '/slack-api/' : 'https://slack.com/api/';
@@ -174,6 +174,20 @@ export default class SlackAPI {
 
   starsRemove(channel, timestamp) {
     return this._post('stars.remove', { channel: channel, timestamp: timestamp });
+  }
+
+  // Files
+  filesUpload(channel, fileData, threadTs, comment) {
+    var url = BASE + 'files.upload';
+    var fields = { channels: channel };
+    if (fileData.name) fields.filename = fileData.name;
+    if (threadTs) fields.thread_ts = threadTs;
+    if (comment) fields.initial_comment = comment;
+    return uploadFile(url, this.token, fields, fileData).then(function (res) {
+      var data = JSON.parse(res.body);
+      if (!data.ok) throw new Error(data.error || 'Upload failed');
+      return data;
+    });
   }
 
   // Emoji

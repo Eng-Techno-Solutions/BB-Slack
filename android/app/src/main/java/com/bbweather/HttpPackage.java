@@ -14,6 +14,8 @@ public class HttpPackage implements ReactPackage {
     public List<NativeModule> createNativeModules(ReactApplicationContext reactContext) {
         List<NativeModule> modules = new ArrayList<>();
         modules.add(new HttpModule(reactContext));
+        modules.add(new FilePickerModule(reactContext));
+        modules.add(new AudioRecorderModule(reactContext));
         return modules;
     }
 

@@ -18,6 +18,8 @@ import AudioPlayer from '../components/AudioPlayer';
 import EmojiPicker from '../components/EmojiPicker';
 import { getChannelDisplayName } from '../utils/format';
 import { playNotification } from '../utils/notificationSound';
+import { pickFile } from '../utils/filePicker';
+import { startRecording, stopRecording, cancelRecording } from '../utils/audioRecorder';
 import { getColors } from '../theme';
 
 export default class ChatScreen extends Component {
@@ -38,6 +40,9 @@ export default class ChatScreen extends Component {
       emojiPickerMode: null,
       reactionTarget: null,
       showScrollBtn: false,
+      uploading: false,
+      recording: false,
+      recordingTime: 0,
     };
   }
 
@@ -52,6 +57,12 @@ export default class ChatScreen extends Component {
   componentWillUnmount() {
     this._mounted = false;
     this.stopPolling();
+    if (this._recordTimer) {
+      clearInterval(this._recordTimer);
+    }
+    if (this.state.recording) {
+      cancelRecording();
+    }
   }
 
   startPolling() {
@@ -228,6 +239,67 @@ export default class ChatScreen extends Component {
     }
   }
 
+  async handleAttachment() {
+    var { slack, channel } = this.props;
+    var self = this;
+    try {
+      var file = await pickFile();
+      if (!file) return;
+      this.setState({ uploading: true });
+      var text = this.state.inputText.trim();
+      await slack.filesUpload(channel.id, file, null, text || null);
+      this.setState({ uploading: false, inputText: '' });
+      this.pollNewMessages();
+    } catch (err) {
+      this.setState({ uploading: false });
+      Alert.alert('Error', err.message);
+    }
+  }
+
+  async handleStartRecording() {
+    var self = this;
+    try {
+      await startRecording();
+      this.setState({ recording: true, recordingTime: 0 });
+      this._recordTimer = setInterval(function () {
+        if (self._mounted) {
+          self.setState(function (prev) {
+            return { recordingTime: prev.recordingTime + 1 };
+          });
+        }
+      }, 1000);
+    } catch (err) {
+      Alert.alert('Error', 'Could not start recording: ' + err.message);
+    }
+  }
+
+  async handleStopRecording() {
+    var { slack, channel } = this.props;
+    if (this._recordTimer) {
+      clearInterval(this._recordTimer);
+      this._recordTimer = null;
+    }
+    try {
+      var audio = await stopRecording();
+      this.setState({ recording: false, recordingTime: 0, uploading: true });
+      await slack.filesUpload(channel.id, audio);
+      this.setState({ uploading: false });
+      this.pollNewMessages();
+    } catch (err) {
+      this.setState({ recording: false, recordingTime: 0, uploading: false });
+      Alert.alert('Error', err.message);
+    }
+  }
+
+  async handleCancelRecording() {
+    if (this._recordTimer) {
+      clearInterval(this._recordTimer);
+      this._recordTimer = null;
+    }
+    await cancelRecording();
+    this.setState({ recording: false, recordingTime: 0 });
+  }
+
   async deleteMessage(message) {
     var { slack, channel } = this.props;
     try {
@@ -340,7 +412,7 @@ export default class ChatScreen extends Component {
 
   render() {
     var { slack, channel, usersMap, currentUserId, onBack, onThread, onMembers } = this.props;
-    var { messages, loading, loadingMore, inputText, sending, editingMessage, actionMessage, viewerImage, viewerAudio, emojiPickerMode } = this.state;
+    var { messages, loading, loadingMore, inputText, sending, editingMessage, actionMessage, viewerImage, viewerAudio, emojiPickerMode, uploading, recording, recordingTime } = this.state;
     var self = this;
     var channelName = getChannelDisplayName(channel, usersMap, currentUserId);
     var c = getColors();
@@ -447,39 +519,87 @@ export default class ChatScreen extends Component {
               </TouchableOpacity>
             </View>
           ) : null}
-          <View style={styles.inputRow}>
-            <TouchableOpacity
-              style={styles.emojiBtn}
-              onPress={function () { self.setState({ emojiPickerMode: 'input' }); }}
-              data-type="icon-btn"
-            >
-              <Icon name="smile" size={22} color={c.textTertiary} />
-            </TouchableOpacity>
-            <TextInput
-              ref={function (r) { self._inputRef = r; }}
-              style={[styles.input, { backgroundColor: c.bgTertiary, color: c.textSecondary, borderColor: c.borderInput }]}
-              placeholder="Message..."
-              placeholderTextColor={c.textPlaceholder}
-              value={inputText}
-              onChangeText={function (t) { self.setState({ inputText: t }); }}
-              onSubmitEditing={function () { self.sendMessage(); }}
-              returnKeyType="send"
-              multiline={false}
-              autoFocus={true}
-            />
-            <TouchableOpacity
-              style={[styles.sendBtn, { backgroundColor: c.green }, (!inputText.trim() || sending) && styles.sendDisabled]}
-              onPress={function () { self.sendMessage(); }}
-              disabled={!inputText.trim() || sending}
-              data-type="btn"
-            >
-              {sending ? (
-                <ActivityIndicator size="small" color="#ffffff" />
-              ) : (
+          {recording ? (
+            <View style={styles.inputRow}>
+              <View style={styles.recordingRow}>
+                <View style={[styles.recordingDot, { backgroundColor: '#E01E5A' }]} />
+                <Text style={[styles.recordingText, { color: c.textSecondary }]}>
+                  {Math.floor(recordingTime / 60) + ':' + (recordingTime % 60 < 10 ? '0' : '') + (recordingTime % 60)}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.actionBtn]}
+                onPress={function () { self.handleCancelRecording(); }}
+                data-type="icon-btn"
+              >
+                <Icon name="close" size={20} color="#E01E5A" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.sendBtn, { backgroundColor: c.green }]}
+                onPress={function () { self.handleStopRecording(); }}
+                data-type="btn"
+              >
                 <Icon name="send" size={18} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.inputRow}>
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={function () { self.handleAttachment(); }}
+                disabled={uploading || sending}
+                data-type="icon-btn"
+              >
+                <Icon name="paperclip" size={22} color={c.textTertiary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={function () { self.setState({ emojiPickerMode: 'input' }); }}
+                data-type="icon-btn"
+              >
+                <Icon name="smile" size={22} color={c.textTertiary} />
+              </TouchableOpacity>
+              <TextInput
+                ref={function (r) { self._inputRef = r; }}
+                style={[styles.input, { backgroundColor: c.bgTertiary, color: c.textSecondary, borderColor: c.borderInput }]}
+                placeholder="Message..."
+                placeholderTextColor={c.textPlaceholder}
+                value={inputText}
+                onChangeText={function (t) { self.setState({ inputText: t }); }}
+                onSubmitEditing={function () { self.sendMessage(); }}
+                returnKeyType="send"
+                multiline={false}
+                autoFocus={true}
+              />
+              {inputText.trim() ? (
+                <TouchableOpacity
+                  style={[styles.sendBtn, { backgroundColor: c.green }, (sending || uploading) && styles.sendDisabled]}
+                  onPress={function () { self.sendMessage(); }}
+                  disabled={sending || uploading}
+                  data-type="btn"
+                >
+                  {sending || uploading ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : (
+                    <Icon name="send" size={18} color="#ffffff" />
+                  )}
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.micBtn, { backgroundColor: c.green }, uploading && styles.sendDisabled]}
+                  onPress={function () { self.handleStartRecording(); }}
+                  disabled={uploading}
+                  data-type="btn"
+                >
+                  {uploading ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : (
+                    <Icon name="mic" size={18} color="#ffffff" />
+                  )}
+                </TouchableOpacity>
               )}
-            </TouchableOpacity>
-          </View>
+            </View>
+          )}
         </View>
 
         <ActionSheet
@@ -572,10 +692,30 @@ var styles = StyleSheet.create({
   sendDisabled: {
     opacity: 0.4,
   },
-  emojiBtn: {
+  actionBtn: {
     paddingHorizontal: 6,
     paddingVertical: 9,
     marginRight: 4,
+  },
+  micBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 4,
+  },
+  recordingRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  recordingDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 8,
+  },
+  recordingText: {
+    fontSize: 15,
+    fontWeight: '600',
   },
   scrollBtn: {
     position: 'absolute',
