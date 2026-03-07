@@ -239,7 +239,7 @@ export default class App extends Component {
   }
 
   renderScreen() {
-    var { stack, slack, currentUser, usersMap, channels, channelsLoading, teamName, teamIcon } = this.state;
+    var { stack, slack, currentUser, usersMap, channels, channelsLoading, teamName, teamIcon, themeMode } = this.state;
     var current = stack[stack.length - 1];
     var screen = current.screen;
     var params = current.params || {};
@@ -249,6 +249,7 @@ export default class App extends Component {
       case 'login':
         return (
           <LoginScreen
+            themeMode={themeMode}
             onLogin={function (token) { return self.doLogin(token); }}
           />
         );
@@ -256,6 +257,7 @@ export default class App extends Component {
       case 'channelList':
         return (
           <ChannelListScreen
+            themeMode={themeMode}
             slack={slack}
             channels={channels}
             usersMap={usersMap}
@@ -282,6 +284,7 @@ export default class App extends Component {
         return (
           <ChatScreen
             key={params.channel.id}
+            themeMode={themeMode}
             slack={slack}
             channel={params.channel}
             usersMap={usersMap}
@@ -300,6 +303,7 @@ export default class App extends Component {
         return (
           <ThreadScreen
             key={params.parentMessage.ts}
+            themeMode={themeMode}
             slack={slack}
             channel={params.channel}
             parentMessage={params.parentMessage}
@@ -312,6 +316,7 @@ export default class App extends Component {
       case 'search':
         return (
           <SearchScreen
+            themeMode={themeMode}
             slack={slack}
             usersMap={usersMap}
             onBack={function () { self.goBack(); }}
@@ -330,6 +335,7 @@ export default class App extends Component {
       case 'channelInfo':
         return (
           <ChannelInfoScreen
+            themeMode={themeMode}
             slack={slack}
             channel={params.channel}
             usersMap={usersMap}
@@ -344,6 +350,7 @@ export default class App extends Component {
       case 'profile':
         return (
           <ProfileScreen
+            themeMode={themeMode}
             slack={slack}
             userId={params.userId}
             usersMap={usersMap}

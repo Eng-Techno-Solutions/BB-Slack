@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { View, Text, Image, TouchableOpacity, TouchableHighlight, Linking, StyleSheet, Platform } from 'react-native';
 var IS_ANDROID = Platform.OS === 'android';
+import { getTwemojiUrlByName } from '../utils/emoji';
 import { formatTime, getUserName } from '../utils/format';
 import { emojiFromName, replaceEmojisInText } from '../utils/emoji';
 import Icon from './Icon';
@@ -266,7 +267,9 @@ export default class MessageItem extends Component {
                         self.setState({ showReactionUsers: isExpanded ? null : i });
                       }}
                     >
-                      {emoji && !IS_ANDROID ? (
+                      {IS_ANDROID ? (
+                        <Image source={{ uri: getTwemojiUrlByName(r.name) }} style={styles.reactionImg} />
+                      ) : emoji ? (
                         <Text style={styles.reactionEmoji}>{emoji}</Text>
                       ) : (
                         <Text style={[styles.reactionShortcode, { color: c.textSecondary }]}>:{r.name}:</Text>
@@ -385,6 +388,7 @@ var styles = StyleSheet.create({
     borderWidth: 1,
   },
   reactionEmoji: { fontSize: 16, marginRight: 4 },
+  reactionImg: { width: 18, height: 18, marginRight: 4 },
   reactionShortcode: { fontSize: 12, marginRight: 4 },
   reactionCount: { fontSize: 12, fontWeight: '600' },
   reactionTooltip: {

@@ -1,8 +1,41 @@
 import React from 'react';
-import { View, Text, Linking, Platform, StyleSheet } from 'react-native';
-import { replaceEmojisInText } from '../utils/emoji';
+import { View, Text, Image, Linking, Platform, StyleSheet } from 'react-native';
+import { replaceEmojisInText, EMOJI_MAP, getTwemojiUrl } from '../utils/emoji';
 import { getUserName } from '../utils/format';
 import { getColors } from '../theme';
+
+var IS_ANDROID = Platform.OS === 'android';
+
+function replaceEmojisWithImages(text) {
+  if (!text || !IS_ANDROID) return replaceEmojisWithImages(text);
+  var parts = [];
+  var regex = /:([a-zA-Z0-9_+-]+):/g;
+  var lastIndex = 0;
+  var match;
+  var key = 0;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.substring(lastIndex, match.index));
+    }
+    var emoji = EMOJI_MAP[match[1]];
+    if (emoji) {
+      parts.push(
+        React.createElement(Image, {
+          key: 'e' + key++,
+          source: { uri: getTwemojiUrl(emoji) },
+          style: styles.inlineEmoji,
+        })
+      );
+    } else {
+      parts.push(match[0]);
+    }
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) {
+    parts.push(text.substring(lastIndex));
+  }
+  return parts.length === 1 && typeof parts[0] === 'string' ? parts[0] : parts;
+}
 
 function openUrl(url) {
   if (Platform.OS === 'web') {
@@ -125,20 +158,20 @@ function applyInlineFormatting(text) {
 function renderInlineText(text, key) {
   var inlineParts = applyInlineFormatting(text);
   if (inlineParts.length === 1 && inlineParts[0].type === 'text') {
-    return replaceEmojisInText(inlineParts[0].value);
+    return replaceEmojisWithImages(inlineParts[0].value);
   }
   return inlineParts.map(function (p, j) {
     var k = key + '_' + j;
     if (p.type === 'bold') {
-      return <Text key={k} style={styles.bold}>{replaceEmojisInText(p.value)}</Text>;
+      return <Text key={k} style={styles.bold}>{replaceEmojisWithImages(p.value)}</Text>;
     }
     if (p.type === 'italic') {
-      return <Text key={k} style={styles.italic}>{replaceEmojisInText(p.value)}</Text>;
+      return <Text key={k} style={styles.italic}>{replaceEmojisWithImages(p.value)}</Text>;
     }
     if (p.type === 'strike') {
-      return <Text key={k} style={styles.strike}>{replaceEmojisInText(p.value)}</Text>;
+      return <Text key={k} style={styles.strike}>{replaceEmojisWithImages(p.value)}</Text>;
     }
-    return replaceEmojisInText(p.value);
+    return replaceEmojisWithImages(p.value);
   });
 }
 
@@ -174,7 +207,7 @@ function SlackText({ text, usersMap, style, numberOfLines }) {
           if (part.type === 'link') {
             return (
               <Text key={i} style={[styles.link, { color: c.accentLight }]} onPress={function () { openUrl(part.url); }}>
-                {replaceEmojisInText(part.label)}
+                {replaceEmojisWithImages(part.label)}
               </Text>
             );
           }
@@ -206,7 +239,7 @@ function SlackText({ text, usersMap, style, numberOfLines }) {
         if (part.type === 'link') {
           return (
             <Text key={i} style={[style, styles.link, { color: c.accentLight }]} onPress={function () { openUrl(part.url); }}>
-              {replaceEmojisInText(part.label)}
+              {replaceEmojisWithImages(part.label)}
             </Text>
           );
         }
@@ -265,6 +298,10 @@ var styles = StyleSheet.create({
   },
   strike: {
     textDecorationLine: 'line-through',
+  },
+  inlineEmoji: {
+    width: 18,
+    height: 18,
   },
 });
 

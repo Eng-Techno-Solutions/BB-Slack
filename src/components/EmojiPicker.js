@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import {
   View,
   Text,
+  Image,
   TouchableOpacity,
   TouchableHighlight,
   Modal,
@@ -10,14 +11,14 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
-import { EMOJI_MAP } from '../utils/emoji';
+import { EMOJI_MAP, getTwemojiUrl } from '../utils/emoji';
 import { getColors } from '../theme';
 
 var ALL_EMOJIS = Object.keys(EMOJI_MAP).reduce(function (acc, name) {
   var emoji = EMOJI_MAP[name];
   if (acc.seen[emoji]) return acc;
   acc.seen[emoji] = true;
-  acc.list.push({ name: name, emoji: emoji });
+  acc.list.push({ name: name, emoji: emoji, url: getTwemojiUrl(emoji) });
   return acc;
 }, { list: [], seen: {} }).list;
 
@@ -37,44 +38,8 @@ export default class EmojiPicker extends Component {
     });
   }
 
-  renderAndroidItem(info) {
-    var e = info.item;
-    var self = this;
-    var c = getColors();
-    return (
-      <TouchableHighlight
-        style={styles.androidRow}
-        underlayColor={c.listUnderlay}
-        data-type="emoji-item"
-        onPress={function () {
-          self.setState({ search: '' });
-          self.props.onSelect(e.name, e.emoji);
-        }}
-      >
-        <Text style={[styles.androidRowText, { color: c.textSecondary }]}>:{e.name}:</Text>
-      </TouchableHighlight>
-    );
-  }
-
-  renderWebItem(info) {
-    var e = info.item;
-    var self = this;
-    return (
-      <TouchableOpacity
-        style={styles.emojiBtn}
-        data-type="emoji-item"
-        onPress={function () {
-          self.setState({ search: '' });
-          self.props.onSelect(e.name, e.emoji);
-        }}
-      >
-        <Text style={styles.emojiText}>{e.emoji}</Text>
-      </TouchableOpacity>
-    );
-  }
-
   render() {
-    var { visible, onClose } = this.props;
+    var { visible, onSelect, onClose } = this.props;
     var { search } = this.state;
     var self = this;
     var filtered = this.getFiltered();
@@ -112,15 +77,30 @@ export default class EmojiPicker extends Component {
             <FlatList
               data={filtered}
               keyExtractor={function (item) { return item.name; }}
-              numColumns={IS_ANDROID ? 1 : 8}
+              numColumns={8}
               keyboardShouldPersistTaps="handled"
-              initialNumToRender={IS_ANDROID ? 20 : 40}
-              maxToRenderPerBatch={IS_ANDROID ? 20 : 40}
+              initialNumToRender={40}
+              maxToRenderPerBatch={40}
               windowSize={5}
-              renderItem={IS_ANDROID
-                ? function (info) { return self.renderAndroidItem(info); }
-                : function (info) { return self.renderWebItem(info); }
-              }
+              renderItem={function (info) {
+                var e = info.item;
+                return (
+                  <TouchableOpacity
+                    style={styles.emojiBtn}
+                    data-type="emoji-item"
+                    onPress={function () {
+                      self.setState({ search: '' });
+                      onSelect(e.name, e.emoji);
+                    }}
+                  >
+                    {IS_ANDROID ? (
+                      <Image source={{ uri: e.url }} style={styles.emojiImg} />
+                    ) : (
+                      <Text style={styles.emojiText}>{e.emoji}</Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              }}
             />
           </View>
         </View>
@@ -176,11 +156,8 @@ var styles = StyleSheet.create({
   emojiText: {
     fontSize: 24,
   },
-  androidRow: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  androidRowText: {
-    fontSize: 15,
+  emojiImg: {
+    width: 28,
+    height: 28,
   },
 });
