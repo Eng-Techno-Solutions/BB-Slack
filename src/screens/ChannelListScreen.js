@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import {
   View,
   Text,
+  Image,
   FlatList,
   TouchableOpacity,
   TextInput,
@@ -14,8 +15,8 @@ import SlackText from '../components/SlackText';
 import { getChannelDisplayName } from '../utils/format';
 
 var TABS = [
-  { key: 'channels', label: 'Channels' },
-  { key: 'dms', label: 'DMs' },
+  { key: 'channels', label: 'Channels', icon: 'hash' },
+  { key: 'dms', label: 'DMs', icon: 'message-square' },
 ];
 
 export default class ChannelListScreen extends Component {
@@ -97,17 +98,27 @@ export default class ChannelListScreen extends Component {
 
   render() {
     var { tab, filter } = this.state;
-    var { loading, onSearch, onLogout, teamName } = this.props;
+    var { loading, onSearch, onLogout, teamName, teamIcon } = this.props;
     var self = this;
     var data = this.getFilteredChannels();
 
     return (
       <View style={styles.container}>
-        <Header
-          title={teamName || 'BB Slack'}
-          rightLabel="Search"
-          onRight={onSearch}
-        />
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            {teamIcon ? (
+              <Image source={{ uri: teamIcon }} style={styles.teamIcon} />
+            ) : (
+              <View style={styles.teamIconPlaceholder}>
+                <Text style={styles.teamIconText}>{(teamName || 'B').charAt(0)}</Text>
+              </View>
+            )}
+            <Text style={styles.headerTitle} numberOfLines={1}>{teamName || 'BB Slack'}</Text>
+          </View>
+          <TouchableOpacity style={styles.searchBtn} onPress={onSearch}>
+            <Icon name="search" size={18} color="#D1D2D3" />
+          </TouchableOpacity>
+        </View>
         <View style={styles.tabs}>
           {TABS.map(function (t) {
             var active = tab === t.key;
@@ -117,12 +128,15 @@ export default class ChannelListScreen extends Component {
                 style={[styles.tab, active && styles.tabActive]}
                 onPress={function () { self.setState({ tab: t.key }); }}
               >
+                <View style={styles.tabContent}>
+                <Icon name={t.icon} size={15} color={active ? '#FFFFFF' : '#ABABAD'} />
                 <Text style={[styles.tabText, active && styles.tabTextActive]}>{t.label}</Text>
+              </View>
               </TouchableOpacity>
             );
           })}
           <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
-            <Text style={styles.logoutText}>Logout</Text>
+            <Icon name="log-out" size={16} color="#E01E5A" />
           </TouchableOpacity>
         </View>
         <TextInput
@@ -159,6 +173,49 @@ var styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#19171D',
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#19171D',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#383838',
+  },
+  headerLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  teamIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    marginRight: 10,
+  },
+  teamIconPlaceholder: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: '#4A154B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  teamIconText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  headerTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    flex: 1,
+  },
+  searchBtn: {
+    padding: 8,
+  },
   tabs: {
     flexDirection: 'row',
     borderBottomWidth: 1,
@@ -173,9 +230,14 @@ var styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: '#1264A3',
   },
+  tabContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   tabText: {
     color: '#ABABAD',
     fontSize: 14,
+    marginLeft: 6,
   },
   tabTextActive: {
     color: '#FFFFFF',
@@ -184,10 +246,6 @@ var styles = StyleSheet.create({
   logoutBtn: {
     paddingVertical: 10,
     paddingHorizontal: 12,
-  },
-  logoutText: {
-    color: '#E01E5A',
-    fontSize: 12,
   },
   filter: {
     backgroundColor: '#222529',
