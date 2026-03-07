@@ -114,10 +114,8 @@ export default class MessageItem extends Component {
 
     var w = f.original_w || f.thumb_480_w || f.thumb_360_w || 300;
     var h = f.original_h || f.thumb_480_h || f.thumb_360_h || 200;
-    var maxW = Math.min(CONTENT_MAX_W, 340);
-    var maxH = 280;
+    var maxW = CONTENT_MAX_W;
     if (w > maxW) { h = Math.round(h * (maxW / w)); w = maxW; }
-    if (h > maxH) { w = Math.round(w * (maxH / h)); h = maxH; }
 
     return (
       <TouchableOpacity

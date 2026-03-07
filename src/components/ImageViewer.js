@@ -9,6 +9,7 @@ import {
   Dimensions,
   ActivityIndicator,
   ScrollView,
+  PanResponder,
   Platform,
 } from 'react-native';
 import Icon from './Icon';
@@ -39,6 +40,7 @@ export default class ImageViewer extends Component {
   componentDidUpdate(prevProps) {
     if (this.props.source !== prevProps.source) {
       this.setState({ loading: true, error: false, scale: 1, translateX: 0, translateY: 0 });
+      this._panResponder = null;
     }
   }
 
@@ -130,37 +132,108 @@ export default class ImageViewer extends Component {
     );
   }
 
+  _getDistance(touches) {
+    var dx = touches[0].pageX - touches[1].pageX;
+    var dy = touches[0].pageY - touches[1].pageY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  _setupPanResponder() {
+    if (this._panResponder) return this._panResponder;
+    var self = this;
+    this._baseScale = 1;
+    this._baseTX = 0;
+    this._baseTY = 0;
+    this._pinchStartDist = 0;
+    this._lastMoveX = 0;
+    this._lastMoveY = 0;
+
+    this._panResponder = PanResponder.create({
+      onStartShouldSetPanResponder: function () { return true; },
+      onMoveShouldSetPanResponder: function () { return true; },
+      onPanResponderGrant: function (e) {
+        var touches = e.nativeEvent.touches;
+        self._baseScale = self.state.scale;
+        self._baseTX = self.state.translateX;
+        self._baseTY = self.state.translateY;
+        if (touches && touches.length === 2) {
+          self._pinchStartDist = self._getDistance(touches);
+        } else if (touches && touches.length === 1) {
+          self._lastMoveX = touches[0].pageX;
+          self._lastMoveY = touches[0].pageY;
+        }
+      },
+      onPanResponderMove: function (e) {
+        var touches = e.nativeEvent.touches;
+        if (touches && touches.length === 2) {
+          var dist = self._getDistance(touches);
+          if (self._pinchStartDist > 0) {
+            var newScale = Math.min(5, Math.max(0.5, self._baseScale * (dist / self._pinchStartDist)));
+            self.setState({ scale: newScale });
+          }
+        } else if (touches && touches.length === 1 && self.state.scale > 1) {
+          var dx = touches[0].pageX - self._lastMoveX;
+          var dy = touches[0].pageY - self._lastMoveY;
+          self._lastMoveX = touches[0].pageX;
+          self._lastMoveY = touches[0].pageY;
+          self.setState(function (prev) {
+            return { translateX: prev.translateX + dx, translateY: prev.translateY + dy };
+          });
+        }
+      },
+      onPanResponderRelease: function () {
+        if (self.state.scale < 1) {
+          self.setState({ scale: 1, translateX: 0, translateY: 0 });
+        }
+      },
+    });
+    return this._panResponder;
+  }
+
   renderNativeImage(win, source, token) {
     var self = this;
     var s = this.state;
     var c = getColors();
+    var panHandlers = this._setupPanResponder().panHandlers;
 
     return (
       <View style={styles.imageContainer}>
         {s.loading ? (
           <ActivityIndicator size="large" color={c.accent} style={styles.loader} />
         ) : null}
-        <ScrollView
-          style={{ width: win.width - 32, height: win.height - 160 }}
-          contentContainerStyle={{ justifyContent: 'center', alignItems: 'center', flexGrow: 1 }}
-          maximumZoomScale={5}
-          minimumZoomScale={1}
-          bouncesZoom={true}
-          showsHorizontalScrollIndicator={false}
-          showsVerticalScrollIndicator={false}
-          centerContent={true}
+        <View
+          style={{
+            width: win.width - 32,
+            height: win.height - 160,
+            overflow: 'hidden',
+          }}
+          {...panHandlers}
         >
           <Image
             source={imageSource(source, token)}
             style={{
               width: win.width - 32,
               height: win.height - 160,
+              transform: [
+                { scale: s.scale },
+                { translateX: s.translateX / s.scale },
+                { translateY: s.translateY / s.scale },
+              ],
             }}
             resizeMode="contain"
             onLoad={function () { self.setState({ loading: false }); }}
             onError={function () { self.setState({ loading: false, error: true }); }}
           />
-        </ScrollView>
+        </View>
+        {s.scale > 1 ? (
+          <TouchableOpacity
+            style={[styles.resetZoomBtn, { borderColor: c.border }]}
+            onPress={function () { self.setState({ scale: 1, translateX: 0, translateY: 0 }); }}
+            data-type="btn"
+          >
+            <Text style={[styles.resetZoomText, { color: c.textSecondary }]}>Reset Zoom</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
     );
   }
