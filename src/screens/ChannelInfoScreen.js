@@ -2,11 +2,14 @@ import React, { Component } from 'react';
 import {
   View,
   Text,
+  Image,
   FlatList,
   TouchableOpacity,
+  TouchableHighlight,
   ActivityIndicator,
   Alert,
   StyleSheet,
+  Platform,
 } from 'react-native';
 import Header from '../components/Header';
 import Icon from '../components/Icon';
@@ -31,10 +34,14 @@ export default class ChannelInfoScreen extends Component {
   }
 
   async loadMembers() {
-    var { slack, channel } = this.props;
+    var { slack, channel, usersMap } = this.props;
     try {
       var res = await slack.conversationsMembers(channel.id);
-      this.setState({ members: res.members || [], loading: false });
+      var activeMembers = (res.members || []).filter(function (id) {
+        var u = usersMap[id];
+        return !u || !u.deleted;
+      });
+      this.setState({ members: activeMembers, loading: false });
     } catch (err) {
       this.setState({ loading: false });
     }
@@ -50,18 +57,41 @@ export default class ChannelInfoScreen extends Component {
     }
   }
 
+  getProfileImage(userId) {
+    var u = this.props.usersMap[userId];
+    if (u && u.profile) {
+      return u.profile.image_72 || u.profile.image_48 || null;
+    }
+    return null;
+  }
+
   renderMember(userId) {
-    var { usersMap, onProfile } = this.props;
+    var { usersMap, onProfile, slack } = this.props;
     var name = getUserName(userId, usersMap);
+    var imageUrl = this.getProfileImage(userId);
+    if (Platform.OS === 'web' && imageUrl && slack && slack.token) {
+      imageUrl = '/slack-file?url=' + encodeURIComponent(imageUrl) + '&token=' + encodeURIComponent(slack.token);
+    }
 
     return (
-      <TouchableOpacity
+      <TouchableHighlight
         style={styles.memberItem}
+        underlayColor="rgba(18, 100, 163, 0.25)"
         onPress={function () { onProfile && onProfile(userId); }}
+        data-type="list-item"
       >
-        <Text style={styles.memberName}>{name}</Text>
-        <Icon name="chevron-right" size={16} color="#696969" />
-      </TouchableOpacity>
+        <View style={styles.memberInner}>
+          {imageUrl ? (
+            <Image source={{ uri: imageUrl }} style={styles.memberAvatar} />
+          ) : (
+            <View style={[styles.memberAvatar, styles.memberAvatarPlaceholder]}>
+              <Text style={styles.memberAvatarText}>{(name[0] || '?').toUpperCase()}</Text>
+            </View>
+          )}
+          <Text style={styles.memberName}>{name}</Text>
+          <Icon name="chevron-right" size={16} color="#696969" />
+        </View>
+      </TouchableHighlight>
     );
   }
 
@@ -218,12 +248,30 @@ var styles = StyleSheet.create({
     fontSize: 14,
   },
   memberItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#383838',
+  },
+  memberInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  memberAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 4,
+    marginRight: 10,
+  },
+  memberAvatarPlaceholder: {
+    backgroundColor: '#1264A3',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  memberAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   memberName: {
     flex: 1,

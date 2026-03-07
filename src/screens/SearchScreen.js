@@ -5,6 +5,7 @@ import {
   FlatList,
   TextInput,
   TouchableOpacity,
+  TouchableHighlight,
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
@@ -45,17 +46,21 @@ export default class SearchScreen extends Component {
     var channelName = item.channel && item.channel.name ? '#' + item.channel.name : '';
 
     return (
-      <TouchableOpacity
+      <TouchableHighlight
         style={styles.item}
+        underlayColor="rgba(18, 100, 163, 0.25)"
         onPress={function () { onSelectMessage && onSelectMessage(item); }}
+        data-type="list-item"
       >
-        <View style={styles.itemHeader}>
-          <Text style={styles.itemUser}>{userName}</Text>
-          <Text style={styles.itemChannel}>{channelName}</Text>
+        <View>
+          <View style={styles.itemHeader}>
+            <Text style={styles.itemUser}>{userName}</Text>
+            <Text style={styles.itemChannel}>{channelName}</Text>
+          </View>
+          <SlackText text={item.text} usersMap={usersMap} style={styles.itemText} />
+          <Text style={styles.itemTime}>{formatDateFull(item.ts)}</Text>
         </View>
-        <SlackText text={item.text} usersMap={usersMap} style={styles.itemText} />
-        <Text style={styles.itemTime}>{formatDateFull(item.ts)}</Text>
-      </TouchableOpacity>
+      </TouchableHighlight>
     );
   }
 

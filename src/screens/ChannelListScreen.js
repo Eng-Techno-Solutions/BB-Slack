@@ -5,6 +5,7 @@ import {
   Image,
   FlatList,
   TouchableOpacity,
+  TouchableHighlight,
   TextInput,
   ActivityIndicator,
   StyleSheet,
@@ -70,29 +71,33 @@ export default class ChannelListScreen extends Component {
     }
 
     return (
-      <TouchableOpacity
+      <TouchableHighlight
         style={styles.item}
+        underlayColor="rgba(18, 100, 163, 0.25)"
         onPress={function () { onSelect(item); }}
+        data-type="list-item"
       >
-        <View style={styles.itemLeft}>
-          <View style={styles.itemNameRow}>
-            {prefix === 'lock' ? (
-              <Icon name="lock" size={14} color={unread > 0 ? '#FFFFFF' : '#ABABAD'} />
+        <View style={styles.itemInner}>
+          <View style={styles.itemLeft}>
+            <View style={styles.itemNameRow}>
+              {prefix === 'lock' ? (
+                <Icon name="lock" size={14} color={unread > 0 ? '#FFFFFF' : '#ABABAD'} />
+              ) : null}
+              <Text style={[styles.itemName, unread > 0 && styles.itemNameUnread, prefix === 'lock' && { marginLeft: 4 }]} numberOfLines={1}>
+                {prefix === 'lock' ? '' : prefix}{name}
+              </Text>
+            </View>
+            {item.topic && item.topic.value ? (
+              <SlackText text={item.topic.value} style={styles.itemTopic} numberOfLines={1} />
             ) : null}
-            <Text style={[styles.itemName, unread > 0 && styles.itemNameUnread, prefix === 'lock' && { marginLeft: 4 }]} numberOfLines={1}>
-              {prefix === 'lock' ? '' : prefix}{name}
-            </Text>
           </View>
-          {item.topic && item.topic.value ? (
-            <SlackText text={item.topic.value} style={styles.itemTopic} numberOfLines={1} />
+          {unread > 0 ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unread > 99 ? '99+' : unread}</Text>
+            </View>
           ) : null}
         </View>
-        {unread > 0 ? (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{unread > 99 ? '99+' : unread}</Text>
-          </View>
-        ) : null}
-      </TouchableOpacity>
+      </TouchableHighlight>
     );
   }
 
@@ -259,10 +264,12 @@ var styles = StyleSheet.create({
     borderColor: '#565856',
   },
   item: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 10,
+  },
+  itemInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   itemLeft: {
     flex: 1,

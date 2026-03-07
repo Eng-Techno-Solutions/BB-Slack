@@ -3,6 +3,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  TouchableHighlight,
   Modal,
   StyleSheet,
 } from 'react-native';
@@ -26,15 +27,17 @@ export default class ActionSheet extends Component {
           <View style={styles.sheet}>
             {actions.map(function (action, i) {
               return (
-                <TouchableOpacity
+                <TouchableHighlight
                   key={i}
                   style={[styles.action, action.destructive && styles.destructive]}
+                  underlayColor="rgba(255, 255, 255, 0.1)"
                   onPress={action.onPress}
+                  data-type="action-item"
                 >
                   <Text style={[styles.actionText, action.destructive && styles.destructiveText]}>
                     {action.label}
                   </Text>
-                </TouchableOpacity>
+                </TouchableHighlight>
               );
             })}
             <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>

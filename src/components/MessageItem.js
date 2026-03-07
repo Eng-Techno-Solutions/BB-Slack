@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { View, Text, Image, TouchableOpacity, Linking, StyleSheet, Platform } from 'react-native';
+import { View, Text, Image, TouchableOpacity, TouchableHighlight, Linking, StyleSheet, Platform } from 'react-native';
 import { formatTime, getUserName } from '../utils/format';
 import { emojiFromName, replaceEmojisInText } from '../utils/emoji';
 import Icon from './Icon';
@@ -188,11 +188,13 @@ export default class MessageItem extends Component {
     var self = this;
 
     return (
-      <TouchableOpacity
+      <TouchableHighlight
         style={styles.container}
+        underlayColor="rgba(255, 255, 255, 0.05)"
         onLongPress={function () { onLongPress && onLongPress(message); }}
-        activeOpacity={0.8}
+        data-type="message"
       >
+        <View style={styles.msgInner}>
         <View style={styles.avatarCol}>
           {profileImg ? (
             <Image source={{ uri: profileImg }} style={styles.avatar} />
@@ -254,17 +256,20 @@ export default class MessageItem extends Component {
             </TouchableOpacity>
           ) : null}
         </View>
-      </TouchableOpacity>
+        </View>
+      </TouchableHighlight>
     );
   }
 }
 
 var styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
     paddingHorizontal: 16,
     paddingVertical: 8,
     paddingRight: 12,
+  },
+  msgInner: {
+    flexDirection: 'row',
   },
   avatarCol: { width: 36, marginRight: 10, paddingTop: 2 },
   avatar: { width: 36, height: 36, borderRadius: 4 },
