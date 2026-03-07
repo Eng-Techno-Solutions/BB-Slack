@@ -1,47 +1,68 @@
 import React from 'react';
-import { Text } from 'react-native';
+import ChevronDown from 'lucide-react-native/dist/esm/icons/chevron-down';
+import ChevronLeft from 'lucide-react-native/dist/esm/icons/chevron-left';
+import ChevronRight from 'lucide-react-native/dist/esm/icons/chevron-right';
+import X from 'lucide-react-native/dist/esm/icons/x';
+import Lock from 'lucide-react-native/dist/esm/icons/lock';
+import Search from 'lucide-react-native/dist/esm/icons/search';
+import SendHorizontal from 'lucide-react-native/dist/esm/icons/send-horizontal';
+import Hash from 'lucide-react-native/dist/esm/icons/hash';
+import Info from 'lucide-react-native/dist/esm/icons/info';
+import LogOut from 'lucide-react-native/dist/esm/icons/log-out';
+import MessageSquare from 'lucide-react-native/dist/esm/icons/message-square';
+import Reply from 'lucide-react-native/dist/esm/icons/reply';
+import ThumbsUp from 'lucide-react-native/dist/esm/icons/thumbs-up';
+import Heart from 'lucide-react-native/dist/esm/icons/heart';
+import Eye from 'lucide-react-native/dist/esm/icons/eye';
+import Check from 'lucide-react-native/dist/esm/icons/check';
+import Pencil from 'lucide-react-native/dist/esm/icons/pencil';
+import Trash2 from 'lucide-react-native/dist/esm/icons/trash-2';
+import Play from 'lucide-react-native/dist/esm/icons/play';
+import Pause from 'lucide-react-native/dist/esm/icons/pause';
+import Smile from 'lucide-react-native/dist/esm/icons/smile';
+import Sun from 'lucide-react-native/dist/esm/icons/sun';
+import Moon from 'lucide-react-native/dist/esm/icons/moon';
+import Paperclip from 'lucide-react-native/dist/esm/icons/paperclip';
+import Mic from 'lucide-react-native/dist/esm/icons/mic';
+import Square from 'lucide-react-native/dist/esm/icons/square';
 
 var ICON_MAP = {
-  'chevron-down': '\u25BE',
-  'chevron-left': '\u2039',
-  'chevron-right': '\u203A',
-  'close': '\u2715',
-  'lock': '\u2302',
-  'search': '\u2315',
-  'send': '\u27A4',
-  'hash': '#',
-  'info': '\u24D8',
-  'log-out': '\u21B6',
-  'message-square': '\u2709',
-  'reply': '\u21A9',
-  'thumbs-up': '+1',
-  'heart': '\u2665',
-  'eye': '\u25C9',
-  'check': '\u2713',
-  'edit': '\u270E',
-  'trash': '\u2717',
-  'play': '\u25B6',
-  'pause': '\u2016',
-  'smile': '\u263A',
-  'sun': '\u263C',
-  'moon': '\u263E',
-  'paperclip': '\u273D',
-  'mic': '\u25CF',
-  'square': '\u25A0',
+  'chevron-down': ChevronDown,
+  'chevron-left': ChevronLeft,
+  'chevron-right': ChevronRight,
+  'close': X,
+  'lock': Lock,
+  'search': Search,
+  'send': SendHorizontal,
+  'hash': Hash,
+  'info': Info,
+  'log-out': LogOut,
+  'message-square': MessageSquare,
+  'reply': Reply,
+  'thumbs-up': ThumbsUp,
+  'heart': Heart,
+  'eye': Eye,
+  'check': Check,
+  'edit': Pencil,
+  'trash': Trash2,
+  'play': Play,
+  'pause': Pause,
+  'smile': Smile,
+  'sun': Sun,
+  'moon': Moon,
+  'paperclip': Paperclip,
+  'mic': Mic,
+  'square': Square,
 };
 
 function Icon({ name, size, color }) {
   var s = size || 20;
   var c = color || '#D1D2D3';
-  var icon = ICON_MAP[name];
+  var IconComponent = ICON_MAP[name];
 
-  if (!icon) return null;
+  if (!IconComponent) return null;
 
-  return (
-    <Text style={{ fontSize: s, color: c, lineHeight: s + 2, textAlign: 'center', width: s }}>
-      {icon}
-    </Text>
-  );
+  return <IconComponent size={s} color={c} strokeWidth={2} />;
 }
 
 export default Icon;

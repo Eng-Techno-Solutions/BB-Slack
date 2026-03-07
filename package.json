@@ -6,17 +6,20 @@
     "start": "node node_modules/react-native/local-cli/cli.js start",
     "android": "node node_modules/react-native/local-cli/cli.js run-android",
     "web": "react-scripts start",
-    "build:android": "cd android && JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-8.jdk/Contents/Home ./gradlew assembleRelease"
+    "build:android": "cd android && JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-8.jdk/Contents/Home ./gradlew assembleRelease",
+    "postinstall": "node scripts/patch-svg.js"
   },
   "dependencies": {
     "ajv": "^8.18.0",
     "base64-js": "^1.5.1",
     "lucide-react": "^0.577.0",
+    "lucide-react-native": "^0.577.0",
     "react": "^16.14.0",
     "react-dom": "^16.14.0",
     "react-native": "0.53.3",
     "react-native-fs": "^2.11.17",
     "react-native-sound": "^0.11.2",
+    "react-native-svg": "^9.13.6",
     "react-native-web": "^0.17.7"
   },
   "devDependencies": {
