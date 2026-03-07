@@ -244,6 +244,7 @@ export default class MessageItem extends Component {
             <TouchableOpacity
               style={styles.threadLink}
               onPress={function () { onThreadPress && onThreadPress(message); }}
+
             >
               <View style={styles.threadBar} />
               <Text style={styles.threadText}>

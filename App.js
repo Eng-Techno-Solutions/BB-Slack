@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   StatusBar,
+  BackHandler,
 } from 'react-native';
 import SlackAPI from './src/api/slack';
 import { saveToken, getToken, clearToken } from './src/utils/storage';
@@ -32,6 +33,20 @@ export default class App extends Component {
 
   componentDidMount() {
     this.tryAutoLogin();
+    var self = this;
+    this._backHandler = BackHandler.addEventListener('hardwareBackPress', function () {
+      if (self.state.stack.length > 1) {
+        self.goBack();
+        return true;
+      }
+      return false;
+    });
+  }
+
+  componentWillUnmount() {
+    if (this._backHandler) {
+      this._backHandler.remove();
+    }
   }
 
   async tryAutoLogin() {

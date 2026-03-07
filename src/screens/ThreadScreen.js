@@ -139,6 +139,7 @@ export default class ThreadScreen extends Component {
             onChangeText={function (t) { self.setState({ inputText: t }); }}
             onSubmitEditing={function () { self.sendReply(); }}
             returnKeyType="send"
+            autoFocus={true}
           />
           <TouchableOpacity
             style={[styles.sendBtn, (!inputText.trim() || sending) && styles.sendDisabled]}

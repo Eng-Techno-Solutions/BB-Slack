@@ -327,6 +327,7 @@ export default class ChatScreen extends Component {
           ) : null}
           <View style={styles.inputRow}>
             <TextInput
+              ref={function (r) { self._inputRef = r; }}
               style={styles.input}
               placeholder="Message..."
               placeholderTextColor="#696969"
@@ -335,11 +336,13 @@ export default class ChatScreen extends Component {
               onSubmitEditing={function () { self.sendMessage(); }}
               returnKeyType="send"
               multiline={false}
+              autoFocus={true}
             />
             <TouchableOpacity
               style={[styles.sendBtn, (!inputText.trim() || sending) && styles.sendDisabled]}
               onPress={function () { self.sendMessage(); }}
               disabled={!inputText.trim() || sending}
+
             >
               {sending ? (
                 <ActivityIndicator size="small" color="#ffffff" />
