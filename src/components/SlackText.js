@@ -5,6 +5,7 @@ import { getUserName } from '../utils/format';
 import { getColors } from '../theme';
 
 var IS_ANDROID = Platform.OS === 'android';
+var TOKEN_CHAR = '\x01';
 
 function replaceEmojisWithImages(text) {
   if (!text) return text;
@@ -46,48 +47,75 @@ function openUrl(url) {
   }
 }
 
-function parseSlackLinks(text, usersMap) {
-  if (!text) return [];
+function resolveToken(inner, usersMap) {
+  var pipeIndex = inner.indexOf('|');
+  var target = pipeIndex !== -1 ? inner.substring(0, pipeIndex) : inner;
+  var label = pipeIndex !== -1 ? inner.substring(pipeIndex + 1) : null;
 
+  if (target.indexOf('http://') === 0 || target.indexOf('https://') === 0 || target.indexOf('mailto:') === 0) {
+    return { type: 'link', url: target, label: label || target.replace(/^https?:\/\//, '').replace(/\/$/, '') };
+  }
+  if (target.charAt(0) === '@') {
+    var userId = target.substring(1);
+    var name = usersMap ? getUserName(userId, usersMap) : userId;
+    return { type: 'mention', value: '@' + (label || name) };
+  }
+  if (target.charAt(0) === '#') {
+    return { type: 'channel', value: '#' + (label || target.substring(1)) };
+  }
+  if (target.charAt(0) === '!') {
+    var cmd = target.substring(1);
+    if (cmd === 'here' || cmd === 'channel' || cmd === 'everyone') {
+      return { type: 'mention', value: '@' + cmd };
+    }
+    if (label) {
+      return { type: 'mention', value: '@' + label };
+    }
+    return { type: 'text', value: '@' + cmd };
+  }
+  if (pipeIndex !== -1) {
+    return { type: 'link', url: target, label: label };
+  }
+  return { type: 'text', value: '<' + inner + '>' };
+}
+
+function tokenizeLinks(text) {
+  var tokens = [];
+  var result = text.replace(/<([^>]+)>/g, function (match) {
+    var idx = tokens.length;
+    tokens.push(match);
+    return TOKEN_CHAR + idx + TOKEN_CHAR;
+  });
+  return { text: result, tokens: tokens };
+}
+
+var TOKEN_REGEX = new RegExp(TOKEN_CHAR + '(\\d+)' + TOKEN_CHAR, 'g');
+
+function expandTokens(text, tokens, usersMap) {
   var parts = [];
-  var regex = /<([^>]+)>/g;
+  var regex = new RegExp(TOKEN_CHAR + '(\\d+)' + TOKEN_CHAR, 'g');
   var lastIndex = 0;
   var match;
-
   while ((match = regex.exec(text)) !== null) {
     if (match.index > lastIndex) {
       parts.push({ type: 'text', value: text.substring(lastIndex, match.index) });
     }
-
-    var inner = match[1];
-    var pipeIndex = inner.indexOf('|');
-    var target = pipeIndex !== -1 ? inner.substring(0, pipeIndex) : inner;
-    var label = pipeIndex !== -1 ? inner.substring(pipeIndex + 1) : null;
-
-    if (target.indexOf('http://') === 0 || target.indexOf('https://') === 0 || target.indexOf('mailto:') === 0) {
-      var displayLabel = label || target.replace(/^https?:\/\//, '').replace(/\/$/, '');
-      parts.push({ type: 'link', url: target, label: displayLabel });
-    } else if (target.charAt(0) === '@') {
-      var userId = target.substring(1);
-      var name = usersMap ? getUserName(userId, usersMap) : userId;
-      parts.push({ type: 'mention', value: '@' + (label || name) });
-    } else if (target.charAt(0) === '#') {
-      var channelId = target.substring(1);
-      parts.push({ type: 'channel', value: '#' + (label || channelId) });
-    } else if (target.indexOf('http') === -1 && pipeIndex === -1) {
-      parts.push({ type: 'text', value: '<' + inner + '>' });
-    } else {
-      parts.push({ type: 'link', url: target, label: label || target });
-    }
-
+    var tokenIdx = parseInt(match[1]);
+    var raw = tokens[tokenIdx];
+    var inner = raw.substring(1, raw.length - 1);
+    parts.push(resolveToken(inner, usersMap));
     lastIndex = match.index + match[0].length;
   }
-
   if (lastIndex < text.length) {
     parts.push({ type: 'text', value: text.substring(lastIndex) });
   }
-
   return parts;
+}
+
+function restoreTokensAsText(text, tokens) {
+  return text.replace(new RegExp(TOKEN_CHAR + '(\\d+)' + TOKEN_CHAR, 'g'), function (m, idx) {
+    return tokens[parseInt(idx)];
+  });
 }
 
 function parseFormatting(text) {
@@ -156,43 +184,71 @@ function applyInlineFormatting(text) {
   return parts;
 }
 
-function renderInlineText(text, key) {
+function processTextSegment(text, tokens, usersMap) {
   var inlineParts = applyInlineFormatting(text);
-  if (inlineParts.length === 1 && inlineParts[0].type === 'text') {
-    return replaceEmojisWithImages(inlineParts[0].value);
+  var result = [];
+  for (var i = 0; i < inlineParts.length; i++) {
+    var ip = inlineParts[i];
+    var expanded = expandTokens(ip.value, tokens, usersMap);
+    if (ip.type === 'text') {
+      result = result.concat(expanded);
+    } else {
+      result.push({ type: ip.type, children: expanded });
+    }
   }
-  return inlineParts.map(function (p, j) {
-    var k = key + '_' + j;
-    if (p.type === 'bold') {
-      return <Text key={k} style={styles.bold}>{replaceEmojisWithImages(p.value)}</Text>;
+  return result;
+}
+
+function renderPart(part, key, c) {
+  if (part.type === 'link') {
+    return (
+      <Text key={key} style={[styles.link, { color: c.accentLight }]} onPress={function () { openUrl(part.url); }}>
+        {replaceEmojisWithImages(part.label)}
+      </Text>
+    );
+  }
+  if (part.type === 'mention') {
+    return <Text key={key} style={[styles.mention, { color: c.accentLight, backgroundColor: c.mentionBg }]}>{part.value}</Text>;
+  }
+  if (part.type === 'channel') {
+    return <Text key={key} style={[styles.channel, { color: c.accentLight }]}>{part.value}</Text>;
+  }
+  if (part.type === 'code') {
+    return <Text key={key} style={[styles.inlineCode, { color: c.codeInlineColor, backgroundColor: c.codeInlineBg, borderColor: c.codeBorder }]}>{part.value}</Text>;
+  }
+  if (part.type === 'bold' || part.type === 'italic' || part.type === 'strike') {
+    var s = part.type === 'bold' ? styles.bold : part.type === 'italic' ? styles.italic : styles.strike;
+    if (part.children) {
+      return (
+        <Text key={key} style={s}>
+          {part.children.map(function (child, j) {
+            return renderPart(child, key + '_' + j, c);
+          })}
+        </Text>
+      );
     }
-    if (p.type === 'italic') {
-      return <Text key={k} style={styles.italic}>{replaceEmojisWithImages(p.value)}</Text>;
-    }
-    if (p.type === 'strike') {
-      return <Text key={k} style={styles.strike}>{replaceEmojisWithImages(p.value)}</Text>;
-    }
-    return replaceEmojisWithImages(p.value);
-  });
+    return <Text key={key} style={s}>{replaceEmojisWithImages(part.value)}</Text>;
+  }
+  return replaceEmojisWithImages(part.value);
 }
 
 function SlackText({ text, usersMap, style, numberOfLines }) {
   if (!text) return null;
 
   var c = getColors();
-  var linkParts = parseSlackLinks(text, usersMap);
-  if (linkParts.length === 0) return null;
+
+  var tokenized = tokenizeLinks(text);
+  var codeParts = parseFormatting(tokenized.text);
 
   var allParts = [];
-  for (var i = 0; i < linkParts.length; i++) {
-    var lp = linkParts[i];
-    if (lp.type === 'text') {
-      var formatted = parseFormatting(lp.value);
-      for (var j = 0; j < formatted.length; j++) {
-        allParts.push(formatted[j]);
-      }
+  for (var i = 0; i < codeParts.length; i++) {
+    var cp = codeParts[i];
+    if (cp.type === 'codeblock' || cp.type === 'code') {
+      cp.value = restoreTokensAsText(cp.value, tokenized.tokens);
+      allParts.push(cp);
     } else {
-      allParts.push(lp);
+      var processed = processTextSegment(cp.value, tokenized.tokens, usersMap);
+      allParts = allParts.concat(processed);
     }
   }
 
@@ -205,23 +261,7 @@ function SlackText({ text, usersMap, style, numberOfLines }) {
     return (
       <Text style={style} numberOfLines={numberOfLines}>
         {allParts.map(function (part, i) {
-          if (part.type === 'link') {
-            return (
-              <Text key={i} style={[styles.link, { color: c.accentLight }]} onPress={function () { openUrl(part.url); }}>
-                {replaceEmojisWithImages(part.label)}
-              </Text>
-            );
-          }
-          if (part.type === 'mention') {
-            return <Text key={i} style={[styles.mention, { color: c.accentLight, backgroundColor: c.mentionBg }]}>{part.value}</Text>;
-          }
-          if (part.type === 'channel') {
-            return <Text key={i} style={[styles.channel, { color: c.accentLight }]}>{part.value}</Text>;
-          }
-          if (part.type === 'code') {
-            return <Text key={i} style={[styles.inlineCode, { color: c.codeInlineColor, backgroundColor: c.codeInlineBg, borderColor: c.codeBorder }]}>{part.value}</Text>;
-          }
-          return <Text key={i}>{renderInlineText(part.value, i)}</Text>;
+          return renderPart(part, i, c);
         })}
       </Text>
     );
@@ -237,25 +277,7 @@ function SlackText({ text, usersMap, style, numberOfLines }) {
             </View>
           );
         }
-        if (part.type === 'link') {
-          return (
-            <Text key={i} style={[style, styles.link, { color: c.accentLight }]} onPress={function () { openUrl(part.url); }}>
-              {replaceEmojisWithImages(part.label)}
-            </Text>
-          );
-        }
-        if (part.type === 'mention') {
-          return <Text key={i} style={[style, styles.mention, { color: c.accentLight, backgroundColor: c.mentionBg }]}>{part.value}</Text>;
-        }
-        if (part.type === 'channel') {
-          return <Text key={i} style={[style, styles.channel, { color: c.accentLight }]}>{part.value}</Text>;
-        }
-        if (part.type === 'code') {
-          return <Text key={i} style={[style, styles.inlineCode, { color: c.codeInlineColor, backgroundColor: c.codeInlineBg, borderColor: c.codeBorder }]}>{part.value}</Text>;
-        }
-        var trimmed = part.value;
-        if (!trimmed || !trimmed.trim()) return null;
-        return <Text key={i} style={style}>{renderInlineText(trimmed, i)}</Text>;
+        return <Text key={i} style={style}>{renderPart(part, i, c)}</Text>;
       })}
     </View>
   );
