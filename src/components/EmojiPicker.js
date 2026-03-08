@@ -14,20 +14,31 @@ import {
 import { EMOJI_MAP, getTwemojiUrl } from '../utils/emoji';
 import { getColors } from '../theme';
 
+var IS_ANDROID = Platform.OS === 'android';
+
 var ALL_EMOJIS = Object.keys(EMOJI_MAP).reduce(function (acc, name) {
   var emoji = EMOJI_MAP[name];
   if (acc.seen[emoji]) return acc;
   acc.seen[emoji] = true;
-  acc.list.push({ name: name, emoji: emoji, url: getTwemojiUrl(emoji) });
+  var url = IS_ANDROID ? getTwemojiUrl(emoji) : null;
+  if (IS_ANDROID && !url) return acc;
+  acc.list.push({ name: name, emoji: emoji, url: url });
   return acc;
 }, { list: [], seen: {} }).list;
 
-var IS_ANDROID = Platform.OS === 'android';
+function EmojiImage(props) {
+  return React.createElement(Image, {
+    source: { uri: props.url },
+    style: styles.emojiImg,
+    defaultSource: undefined,
+  });
+}
 
 export default class EmojiPicker extends Component {
   constructor(props) {
     super(props);
     this.state = { search: '' };
+    this._renderItem = this._renderItem.bind(this);
   }
 
   getFiltered() {
@@ -36,6 +47,28 @@ export default class EmojiPicker extends Component {
     return ALL_EMOJIS.filter(function (e) {
       return e.name.indexOf(q) !== -1;
     });
+  }
+
+  _renderItem(info) {
+    var e = info.item;
+    var self = this;
+    var onSelect = this.props.onSelect;
+    return (
+      <TouchableOpacity
+        style={styles.emojiBtn}
+        data-type="emoji-item"
+        onPress={function () {
+          self.setState({ search: '' });
+          onSelect(e.name, e.emoji);
+        }}
+      >
+        {IS_ANDROID ? (
+          <Image source={{ uri: e.url }} style={styles.emojiImg} />
+        ) : (
+          <Text style={styles.emojiText}>{e.emoji}</Text>
+        )}
+      </TouchableOpacity>
+    );
   }
 
   render() {
@@ -76,37 +109,27 @@ export default class EmojiPicker extends Component {
             />
             <FlatList
               data={filtered}
-              keyExtractor={function (item) { return item.name; }}
+              keyExtractor={keyExtractor}
               numColumns={8}
               keyboardShouldPersistTaps="handled"
-              initialNumToRender={40}
-              maxToRenderPerBatch={40}
-              windowSize={5}
-              renderItem={function (info) {
-                var e = info.item;
-                return (
-                  <TouchableOpacity
-                    style={styles.emojiBtn}
-                    data-type="emoji-item"
-                    onPress={function () {
-                      self.setState({ search: '' });
-                      onSelect(e.name, e.emoji);
-                    }}
-                  >
-                    {IS_ANDROID ? (
-                      <Image source={{ uri: e.url }} style={styles.emojiImg} />
-                    ) : (
-                      <Text style={styles.emojiText}>{e.emoji}</Text>
-                    )}
-                  </TouchableOpacity>
-                );
-              }}
+              initialNumToRender={16}
+              maxToRenderPerBatch={16}
+              windowSize={3}
+              removeClippedSubviews={true}
+              renderItem={this._renderItem}
+              getItemLayout={getItemLayout}
             />
           </View>
         </View>
       </Modal>
     );
   }
+}
+
+function keyExtractor(item) { return item.name; }
+
+function getItemLayout(data, index) {
+  return { length: 44, offset: 44 * Math.floor(index / 8), index: index };
 }
 
 var styles = StyleSheet.create({

@@ -55,8 +55,17 @@ export default class App extends Component {
       var mode = await getTheme();
       setMode(mode);
       this.setState({ themeMode: mode });
+      this._applyThemeToDOM(mode);
     } catch (err) {
       // Default dark
+    }
+  }
+
+  _applyThemeToDOM(mode) {
+    try {
+      document.documentElement.setAttribute('data-theme', mode);
+    } catch (e) {
+      // Non-web platform
     }
   }
 
@@ -65,6 +74,7 @@ export default class App extends Component {
     setMode(newMode);
     this.setState({ themeMode: newMode });
     saveTheme(newMode);
+    this._applyThemeToDOM(newMode);
   }
 
   async tryAutoLogin() {

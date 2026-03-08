@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { getColors } from '../theme';
 import { request } from '../api/http';
+import { addKeyEventListener, removeKeyEventListener } from '../utils/keyEvents';
 
 var SLACK_API = Platform.OS === 'web' ? '/slack-api/' : 'https://slack.com/api/';
 
@@ -33,7 +34,70 @@ export default class LoginScreen extends Component {
       // Shared state
       loading: false,
       error: null,
+      focusIndex: -1,
     };
+    this._keySub = null;
+    this._inputRefs = {};
+  }
+
+  componentDidMount() {
+    var self = this;
+    this._keySub = addKeyEventListener(function (e) {
+      self._handleKeyEvent(e);
+    });
+  }
+
+  componentWillUnmount() {
+    removeKeyEventListener(this._keySub);
+  }
+
+  _getFields() {
+    var { mode, needsPin } = this.state;
+    if (mode === 'email' && needsPin) {
+      return ['pin', 'verify', 'pinBack'];
+    }
+    if (mode === 'email') {
+      return ['emailTab', 'tokenTab', 'workspace', 'email', 'password', 'signin'];
+    }
+    return ['emailTab', 'tokenTab', 'token', 'signin', 'openApps'];
+  }
+
+  _handleKeyEvent(e) {
+    var action = e.action;
+    var fields = this._getFields();
+    var idx = this.state.focusIndex;
+
+    if (action === 'down') {
+      var next = Math.min(idx + 1, fields.length - 1);
+      this.setState({ focusIndex: next });
+      this._focusField(fields[next]);
+    } else if (action === 'up') {
+      var prev = Math.max(idx - 1, 0);
+      this.setState({ focusIndex: prev });
+      this._focusField(fields[prev]);
+    } else if (action === 'select') {
+      if (idx >= 0 && idx < fields.length) {
+        this._activateField(fields[idx]);
+      }
+    }
+  }
+
+  _focusField(field) {
+    var ref = this._inputRefs[field];
+    if (ref && ref.focus) ref.focus();
+  }
+
+  _activateField(field) {
+    var self = this;
+    if (field === 'emailTab') this.setState({ mode: 'email', error: null, focusIndex: 0 });
+    else if (field === 'tokenTab') this.setState({ mode: 'token', error: null, focusIndex: 0 });
+    else if (field === 'signin') {
+      if (this.state.mode === 'email') this.handleEmailLogin();
+      else this.handleTokenLogin();
+    }
+    else if (field === 'verify') this.handlePinSubmit();
+    else if (field === 'pinBack') this.setState({ needsPin: false, pin: '', error: null, focusIndex: -1 });
+    else if (field === 'openApps') Linking.openURL('https://api.slack.com/apps');
   }
 
   async handleEmailLogin() {
@@ -149,9 +213,10 @@ export default class LoginScreen extends Component {
   }
 
   render() {
-    var { mode, workspace, email, password, token, loading, error, needsPin, pin } = this.state;
+    var { mode, workspace, email, password, token, loading, error, needsPin, pin, focusIndex } = this.state;
     var self = this;
     var c = getColors();
+    var fields = this._getFields();
 
     return (
       <ScrollView
@@ -169,6 +234,7 @@ export default class LoginScreen extends Component {
               styles.tab,
               { borderColor: c.border },
               mode === 'email' && { backgroundColor: c.purple, borderColor: c.purple },
+              focusIndex === fields.indexOf('emailTab') && { borderColor: c.accent, borderWidth: 2 },
             ]}
             underlayColor={c.purple}
             onPress={function () { self.setState({ mode: 'email', error: null }); }}
@@ -185,6 +251,7 @@ export default class LoginScreen extends Component {
               styles.tab,
               { borderColor: c.border },
               mode === 'token' && { backgroundColor: c.purple, borderColor: c.purple },
+              focusIndex === fields.indexOf('tokenTab') && { borderColor: c.accent, borderWidth: 2 },
             ]}
             underlayColor={c.purple}
             onPress={function () { self.setState({ mode: 'token', error: null }); }}
@@ -204,7 +271,8 @@ export default class LoginScreen extends Component {
             <Text style={[styles.label, { color: c.textSecondary }]}>Workspace</Text>
             <View style={styles.workspaceRow}>
               <TextInput
-                style={[styles.input, styles.workspaceInput, { backgroundColor: c.bgTertiary, color: c.textSecondary, borderColor: c.borderInput }]}
+                ref={function (r) { self._inputRefs.workspace = r; }}
+                style={[styles.input, styles.workspaceInput, { backgroundColor: c.bgTertiary, color: c.textSecondary, borderColor: focusIndex === fields.indexOf('workspace') ? c.accent : c.borderInput }]}
                 placeholder="your-team"
                 placeholderTextColor={c.textPlaceholder}
                 value={workspace}
@@ -219,7 +287,8 @@ export default class LoginScreen extends Component {
 
             <Text style={[styles.label, { color: c.textSecondary }]}>Email</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: c.bgTertiary, color: c.textSecondary, borderColor: c.borderInput }]}
+              ref={function (r) { self._inputRefs.email = r; }}
+              style={[styles.input, { backgroundColor: c.bgTertiary, color: c.textSecondary, borderColor: focusIndex === fields.indexOf('email') ? c.accent : c.borderInput }]}
               placeholder="you@example.com"
               placeholderTextColor={c.textPlaceholder}
               value={email}
@@ -233,7 +302,8 @@ export default class LoginScreen extends Component {
 
             <Text style={[styles.label, { color: c.textSecondary }]}>Password</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: c.bgTertiary, color: c.textSecondary, borderColor: c.borderInput }]}
+              ref={function (r) { self._inputRefs.password = r; }}
+              style={[styles.input, { backgroundColor: c.bgTertiary, color: c.textSecondary, borderColor: focusIndex === fields.indexOf('password') ? c.accent : c.borderInput }]}
               placeholder="Password"
               placeholderTextColor={c.textPlaceholder}
               value={password}
@@ -245,7 +315,7 @@ export default class LoginScreen extends Component {
             />
 
             <TouchableHighlight
-              style={[styles.button, { backgroundColor: c.purple }, (!workspace.trim() || !email.trim() || !password) && styles.buttonDisabled]}
+              style={[styles.button, { backgroundColor: c.purple }, (!workspace.trim() || !email.trim() || !password) && styles.buttonDisabled, focusIndex === fields.indexOf('signin') && styles.buttonFocused]}
               underlayColor="#3a1d6e"
               onPress={function () { self.handleEmailLogin(); }}
               disabled={loading || !workspace.trim() || !email.trim() || !password}
@@ -273,7 +343,8 @@ export default class LoginScreen extends Component {
               Enter the 6-digit code from your authenticator app or SMS.
             </Text>
             <TextInput
-              style={[styles.input, { backgroundColor: c.bgTertiary, color: c.textSecondary, borderColor: c.borderInput, textAlign: 'center', fontSize: 20, letterSpacing: 8 }]}
+              ref={function (r) { self._inputRefs.pin = r; }}
+              style={[styles.input, { backgroundColor: c.bgTertiary, color: c.textSecondary, borderColor: focusIndex === fields.indexOf('pin') ? c.accent : c.borderInput, textAlign: 'center', fontSize: 20, letterSpacing: 8 }]}
               placeholder="000000"
               placeholderTextColor={c.textPlaceholder}
               value={pin}
@@ -286,7 +357,7 @@ export default class LoginScreen extends Component {
             />
 
             <TouchableHighlight
-              style={[styles.button, { backgroundColor: c.purple }, pin.trim().length < 6 && styles.buttonDisabled]}
+              style={[styles.button, { backgroundColor: c.purple }, pin.trim().length < 6 && styles.buttonDisabled, focusIndex === fields.indexOf('verify') && styles.buttonFocused]}
               underlayColor="#3a1d6e"
               onPress={function () { self.handlePinSubmit(); }}
               disabled={loading || pin.trim().length < 6}
@@ -300,7 +371,7 @@ export default class LoginScreen extends Component {
             </TouchableHighlight>
 
             <TouchableHighlight
-              style={[styles.linkButton, { borderColor: c.border, marginTop: 12 }]}
+              style={[styles.linkButton, { borderColor: c.border, marginTop: 12 }, focusIndex === fields.indexOf('pinBack') && { borderColor: c.accent }]}
               underlayColor={c.bgTertiary}
               onPress={function () { self.setState({ needsPin: false, pin: '', error: null }); }}
               data-type="btn"
@@ -315,7 +386,8 @@ export default class LoginScreen extends Component {
           <View style={styles.form}>
             <Text style={[styles.label, { color: c.textSecondary }]}>Slack Token</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: c.bgTertiary, color: c.textSecondary, borderColor: c.borderInput }]}
+              ref={function (r) { self._inputRefs.token = r; }}
+              style={[styles.input, { backgroundColor: c.bgTertiary, color: c.textSecondary, borderColor: focusIndex === fields.indexOf('token') ? c.accent : c.borderInput }]}
               placeholder="xoxp-... or xoxb-..."
               placeholderTextColor={c.textPlaceholder}
               value={token}
@@ -328,7 +400,7 @@ export default class LoginScreen extends Component {
             />
 
             <TouchableHighlight
-              style={[styles.button, { backgroundColor: c.purple }, !token.trim() && styles.buttonDisabled]}
+              style={[styles.button, { backgroundColor: c.purple }, !token.trim() && styles.buttonDisabled, focusIndex === fields.indexOf('signin') && styles.buttonFocused]}
               underlayColor="#3a1d6e"
               onPress={function () { self.handleTokenLogin(); }}
               disabled={loading || !token.trim()}
@@ -352,7 +424,7 @@ export default class LoginScreen extends Component {
               <Text style={[styles.step, { color: c.textTertiary }]}>6. Copy the "User OAuth Token" (xoxp-...)</Text>
 
               <TouchableHighlight
-                style={[styles.linkButton, { borderColor: c.purple }]}
+                style={[styles.linkButton, { borderColor: c.purple }, focusIndex === fields.indexOf('openApps') && { borderColor: c.accent, borderWidth: 2 }]}
                 underlayColor={c.bgTertiary}
                 onPress={function () { self.openTokenPage(); }}
                 data-type="btn"
@@ -442,6 +514,10 @@ var styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
+  },
+  buttonFocused: {
+    borderWidth: 2,
+    borderColor: '#1264A3',
   },
   buttonText: {
     color: '#ffffff',

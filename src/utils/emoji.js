@@ -729,15 +729,22 @@ export function replaceEmojisInText(text) {
 }
 
 export function getTwemojiUrl(emoji) {
-  var codepoints = [];
-  for (var i = 0; i < emoji.length;) {
-    var cp = emoji.codePointAt(i);
-    i += cp > 0xFFFF ? 2 : 1;
-    if (cp !== 0xFE0F && cp !== 0xFE0E) {
-      codepoints.push(cp.toString(16));
+  try {
+    if (!emoji || typeof emoji !== 'string') return null;
+    var codepoints = [];
+    for (var i = 0; i < emoji.length;) {
+      var cp = emoji.codePointAt(i);
+      if (cp === undefined) break;
+      i += cp > 0xFFFF ? 2 : 1;
+      if (cp !== 0xFE0F && cp !== 0xFE0E) {
+        codepoints.push(cp.toString(16));
+      }
     }
+    if (codepoints.length === 0) return null;
+    return 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/' + codepoints.join('-') + '.png';
+  } catch (e) {
+    return null;
   }
-  return 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/' + codepoints.join('-') + '.png';
 }
 
 export function getTwemojiUrlByName(name) {

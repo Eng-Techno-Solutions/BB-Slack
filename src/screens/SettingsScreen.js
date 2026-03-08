@@ -10,6 +10,7 @@ import {
 import Header from '../components/Header';
 import Icon from '../components/Icon';
 import { getColors, getMode } from '../theme';
+import { addKeyEventListener, removeKeyEventListener } from '../utils/keyEvents';
 
 var INTERVAL_OPTIONS = [
   { label: '1 minute', value: 60000 },
@@ -26,11 +27,74 @@ var FONT_SIZE_OPTIONS = [
 ];
 
 export default class SettingsScreen extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { focusIndex: -1 };
+    this._keySub = null;
+    this._actions = [];
+  }
+
+  componentDidMount() {
+    var self = this;
+    this._keySub = addKeyEventListener(function (e) {
+      self._handleKeyEvent(e);
+    });
+  }
+
+  componentWillUnmount() {
+    removeKeyEventListener(this._keySub);
+  }
+
+  _buildActions() {
+    var actions = [];
+    var { notifEnabled, onToggleNotif, onToggleSound, onChangeInterval, onToggleTheme, onChangeFontSize } = this.props;
+    actions.push({ type: 'toggle', action: onToggleNotif });
+    actions.push({ type: 'toggle', action: onToggleSound });
+    if (notifEnabled) {
+      for (var i = 0; i < INTERVAL_OPTIONS.length; i++) {
+        var opt = INTERVAL_OPTIONS[i];
+        actions.push({ type: 'select', action: function (v) { return function () { onChangeInterval(v); }; }(opt.value) });
+      }
+    }
+    actions.push({ type: 'toggle', action: onToggleTheme });
+    for (var j = 0; j < FONT_SIZE_OPTIONS.length; j++) {
+      var fopt = FONT_SIZE_OPTIONS[j];
+      actions.push({ type: 'select', action: function (v) { return function () { onChangeFontSize(v); }; }(fopt.value) });
+    }
+    actions.push({ type: 'link', action: function () { Linking.openURL('https://ammaryaser.com/'); } });
+    actions.push({ type: 'link', action: function () { Linking.openURL('https://ammaryaser.com/'); } });
+    actions.push({ type: 'link', action: function () { Linking.openURL('https://buymeacoffee.com/ammaryaserh'); } });
+    actions.push({ type: 'link', action: function () { Linking.openURL('https://paypal.me/ammartechno?locale.x=en_US&country.x=EG'); } });
+    this._actions = actions;
+    return actions;
+  }
+
+  _handleKeyEvent(e) {
+    var action = e.action;
+    var actions = this._buildActions();
+    var idx = this.state.focusIndex;
+
+    if (action === 'down') {
+      var next = Math.min(idx + 1, actions.length - 1);
+      this.setState({ focusIndex: next });
+    } else if (action === 'up') {
+      var prev = Math.max(idx - 1, 0);
+      this.setState({ focusIndex: prev });
+    } else if (action === 'select') {
+      if (idx >= 0 && idx < actions.length) {
+        actions[idx].action();
+      }
+    } else if (action === 'back') {
+      this.props.onBack();
+    }
+  }
   renderToggleRow(icon, label, enabled, onPress) {
     var c = getColors();
+    var ri = this._renderIdx++;
+    var focused = this.state.focusIndex === ri;
     return (
       <TouchableHighlight
-        style={[styles.row, { borderBottomColor: c.border }]}
+        style={[styles.row, { borderBottomColor: c.border }, focused && { backgroundColor: c.listUnderlay }]}
         underlayColor={c.listUnderlay}
         onPress={onPress}
         data-type="list-item"
@@ -50,12 +114,15 @@ export default class SettingsScreen extends Component {
 
   renderSelectList(options, selectedValue, onSelect) {
     var c = getColors();
+    var self = this;
     return options.map(function (opt) {
       var selected = selectedValue === opt.value;
+      var ri = self._renderIdx++;
+      var focused = self.state.focusIndex === ri;
       return (
         <TouchableHighlight
           key={opt.value}
-          style={[styles.row, { borderBottomColor: c.border }]}
+          style={[styles.row, { borderBottomColor: c.border }, focused && { backgroundColor: c.listUnderlay }]}
           underlayColor={c.listUnderlay}
           onPress={function () { onSelect(opt.value); }}
           data-type="list-item"
@@ -81,6 +148,13 @@ export default class SettingsScreen extends Component {
     } = this.props;
     var c = getColors();
     var isDark = getMode() === 'dark';
+    var fi = this.state.focusIndex;
+
+    // Reset render index counter - used by renderToggleRow/renderSelectList
+    this._renderIdx = 0;
+
+    // Inline rows need their own index tracking
+    var themeIdx, engTechnoIdx, websiteIdx, coffeeIdx, paypalIdx;
 
     return (
       <View style={[styles.container, { backgroundColor: c.bg }]}>
@@ -103,8 +177,9 @@ export default class SettingsScreen extends Component {
 
           <Text style={[styles.sectionTitle, { color: c.textPlaceholder }]}>APPEARANCE</Text>
 
+          {(themeIdx = this._renderIdx++, null)}
           <TouchableHighlight
-            style={[styles.row, { borderBottomColor: c.border }]}
+            style={[styles.row, { borderBottomColor: c.border }, fi === themeIdx && { backgroundColor: c.listUnderlay }]}
             underlayColor={c.listUnderlay}
             onPress={onToggleTheme}
             data-type="list-item"
@@ -134,8 +209,9 @@ export default class SettingsScreen extends Component {
               <Text style={[styles.rowValue, { color: c.textPlaceholder }]}>1.0.0</Text>
             </View>
           </View>
+          {(engTechnoIdx = this._renderIdx++, null)}
           <TouchableHighlight
-            style={[styles.row, { borderBottomColor: c.border }]}
+            style={[styles.row, { borderBottomColor: c.border }, fi === engTechnoIdx && { backgroundColor: c.listUnderlay }]}
             underlayColor={c.listUnderlay}
             onPress={function () { Linking.openURL('https://ammaryaser.com/'); }}
             data-type="list-item"
@@ -163,8 +239,9 @@ export default class SettingsScreen extends Component {
               Senior Software Engineer & Product Builder. Full-stack development across frontend, backend, mobile & desktop with over a decade of experience.
             </Text>
           </View>
+          {(websiteIdx = this._renderIdx++, null)}
           <TouchableHighlight
-            style={[styles.row, { borderBottomColor: c.border }]}
+            style={[styles.row, { borderBottomColor: c.border }, fi === websiteIdx && { backgroundColor: c.listUnderlay }]}
             underlayColor={c.listUnderlay}
             onPress={function () { Linking.openURL('https://ammaryaser.com/'); }}
             data-type="list-item"
@@ -179,8 +256,9 @@ export default class SettingsScreen extends Component {
           </TouchableHighlight>
 
           <Text style={[styles.sectionTitle, { color: c.textPlaceholder }]}>SUPPORT</Text>
+          {(coffeeIdx = this._renderIdx++, null)}
           <TouchableHighlight
-            style={[styles.row, { borderBottomColor: c.border }]}
+            style={[styles.row, { borderBottomColor: c.border }, fi === coffeeIdx && { backgroundColor: c.listUnderlay }]}
             underlayColor={c.listUnderlay}
             onPress={function () { Linking.openURL('https://buymeacoffee.com/ammaryaserh'); }}
             data-type="list-item"
@@ -193,8 +271,9 @@ export default class SettingsScreen extends Component {
               <Icon name="external-link" size={14} color={c.textPlaceholder} />
             </View>
           </TouchableHighlight>
+          {(paypalIdx = this._renderIdx++, null)}
           <TouchableHighlight
-            style={[styles.row, { borderBottomColor: c.border }]}
+            style={[styles.row, { borderBottomColor: c.border }, fi === paypalIdx && { backgroundColor: c.listUnderlay }]}
             underlayColor={c.listUnderlay}
             onPress={function () { Linking.openURL('https://paypal.me/ammartechno?locale.x=en_US&country.x=EG'); }}
             data-type="list-item"

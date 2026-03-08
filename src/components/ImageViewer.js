@@ -253,14 +253,14 @@ export default class ImageViewer extends Component {
         onRequestClose={onClose}
       >
         <View style={[styles.overlay, { backgroundColor: c.overlayHeavy }]}>
-          <View style={[styles.topBar, { borderBottomColor: c.border }]}>
+          <View style={[styles.topBar, { backgroundColor: 'rgba(0,0,0,0.85)', borderBottomColor: c.border }]}>
             <View style={styles.titleArea}>
-              <Text style={[styles.fileName, { color: c.textPrimary }]} numberOfLines={1}>
+              <Text style={[styles.fileName, { color: '#FFFFFF' }]} numberOfLines={1}>
                 {fileName || 'Image'}
               </Text>
             </View>
-            <TouchableOpacity style={[styles.closeBtn, { backgroundColor: c.fileIconBg }]} onPress={onClose} data-type="icon-btn">
-              <Icon name="close" size={18} color={c.textSecondary} />
+            <TouchableOpacity style={[styles.closeBtn, { backgroundColor: 'rgba(255,255,255,0.15)' }]} onPress={onClose} data-type="icon-btn">
+              <Icon name="close" size={18} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
@@ -292,7 +292,7 @@ var styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: 1,
   },
   titleArea: {
@@ -300,7 +300,7 @@ var styles = StyleSheet.create({
   },
   fileName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   closeBtn: {
     width: 36,
