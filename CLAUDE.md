@@ -32,6 +32,7 @@ There are **two separate App.js files** that must stay in sync:
 - **Manual stack navigation** — `state.stack` array in App.js, with `navigate()`, `goBack()`, `replaceTop()`. No react-navigation.
 - **Props drilling** — App component owns all global state, passes props to screens. No Redux/Context.
 - **Slack API client** (`src/api/slack.js`) — wraps Slack Web API with Bearer token auth. Android hits `https://slack.com/api/` directly; web uses `/slack-api/` proxy (configured in `src/setupProxy.js`).
+- **Code style** — uses `function` keyword throughout (no arrow functions in most files). Async/await is used. `var` has been replaced with `const`/`let`.
 
 ## Platform Patterns
 
@@ -42,6 +43,8 @@ There are **two separate App.js files** that must stay in sync:
 **Icons**: Android uses `react-native-vector-icons/Feather`, web uses `lucide-react`. Both exposed through `Icon` component.
 
 **HTTP**: Android uses `NativeModules.HttpModule` (Java bridge), web falls back to `fetch()`. Abstracted in `src/api/http.js`.
+
+**Web proxy** (`src/setupProxy.js`): Two endpoints — `/slack-api` proxies to `slack.com/api`, `/slack-file` proxies authenticated file downloads (images, audio).
 
 **Storage** (`src/utils/storage.js`): Web uses `localStorage`, Android uses `AsyncStorage`. All functions are async.
 

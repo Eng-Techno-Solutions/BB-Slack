@@ -33,6 +33,7 @@ const ICON_MAP = {
   'globe': 'globe',
   'user': 'user',
   'coffee': 'coffee',
+  'smartphone': 'smartphone',
   'external-link': 'external-link',
 };
 

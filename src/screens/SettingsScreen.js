@@ -32,6 +32,8 @@ export default class SettingsScreen extends Component {
     this.state = { focusIndex: -1 };
     this._keySub = null;
     this._actions = [];
+    this._rowY = {};
+    this._scrollView = null;
   }
 
   componentDidMount() {
@@ -64,22 +66,33 @@ export default class SettingsScreen extends Component {
     actions.push({ type: 'link', action: function () { Linking.openURL('https://ammaryaser.com/'); } });
     actions.push({ type: 'link', action: function () { Linking.openURL('https://ammaryaser.com/'); } });
     actions.push({ type: 'link', action: function () { Linking.openURL('https://buymeacoffee.com/ammaryaserh'); } });
+    actions.push({ type: 'link', action: function () { Linking.openURL('https://ipn.eg/S/ammar.yaser1998/instapay/9txW8n'); } });
     actions.push({ type: 'link', action: function () { Linking.openURL('https://paypal.me/ammartechno?locale.x=en_US&country.x=EG'); } });
     this._actions = actions;
     return actions;
+  }
+
+  _scrollToFocused(idx) {
+    const y = this._rowY[idx];
+    if (y !== undefined && this._scrollView) {
+      this._scrollView.scrollTo({ y: Math.max(0, y - 80), animated: true });
+    }
   }
 
   _handleKeyEvent(e) {
     const action = e.action;
     const actions = this._buildActions();
     const idx = this.state.focusIndex;
+    const self = this;
 
     if (action === 'down') {
       const next = Math.min(idx + 1, actions.length - 1);
       this.setState({ focusIndex: next });
+      self._scrollToFocused(next);
     } else if (action === 'up') {
       const prev = Math.max(idx - 1, 0);
       this.setState({ focusIndex: prev });
+      self._scrollToFocused(prev);
     } else if (action === 'select') {
       if (idx >= 0 && idx < actions.length) {
         actions[idx].action();
@@ -90,10 +103,12 @@ export default class SettingsScreen extends Component {
   }
   renderToggleRow(icon, label, enabled, onPress) {
     const c = getColors();
+    const self = this;
     const ri = this._renderIdx++;
     const focused = this.state.focusIndex === ri;
     return (
       <TouchableHighlight
+        onLayout={function(e) { self._rowY[ri] = e.nativeEvent.layout.y; }}
         style={[styles.row, { borderBottomColor: c.border }, focused && { backgroundColor: c.listUnderlay }]}
         underlayColor={c.listUnderlay}
         onPress={onPress}
@@ -122,6 +137,7 @@ export default class SettingsScreen extends Component {
       return (
         <TouchableHighlight
           key={opt.value}
+          onLayout={function(e) { self._rowY[ri] = e.nativeEvent.layout.y; }}
           style={[styles.row, { borderBottomColor: c.border }, focused && { backgroundColor: c.listUnderlay }]}
           underlayColor={c.listUnderlay}
           onPress={function () { onSelect(opt.value); }}
@@ -152,33 +168,33 @@ export default class SettingsScreen extends Component {
 
     // Reset render index counter - used by renderToggleRow/renderSelectList
     this._renderIdx = 0;
+    const self = this;
 
     // Inline rows need their own index tracking
-    let themeIdx, engTechnoIdx, websiteIdx, coffeeIdx, paypalIdx;
+    let themeIdx, engTechnoIdx, websiteIdx, coffeeIdx, instapayIdx, paypalIdx;
 
     return (
       <View style={[styles.container, { backgroundColor: c.bg }]}>
         <Header title="Settings" onBack={onBack} />
-        <ScrollView>
+        <ScrollView ref={function(r) { self._scrollView = r; }}>
 
           <Text style={[styles.sectionTitle, { color: c.textPlaceholder }]}>NOTIFICATIONS</Text>
           {this.renderToggleRow('bell', 'Push Notifications', notifEnabled, onToggleNotif)}
           {this.renderToggleRow('mic', 'Notification Sound', soundEnabled, onToggleSound)}
 
+          {notifEnabled ? <Text style={[styles.sectionTitle, { color: c.textPlaceholder }]}>CHECK INTERVAL</Text> : null}
+          {notifEnabled ? this.renderSelectList(INTERVAL_OPTIONS, notifInterval, onChangeInterval) : null}
           {notifEnabled ? (
-            <View>
-              <Text style={[styles.sectionTitle, { color: c.textPlaceholder }]}>CHECK INTERVAL</Text>
-              {this.renderSelectList(INTERVAL_OPTIONS, notifInterval, onChangeInterval)}
-              <Text style={[styles.hint, { color: c.textPlaceholder }]}>
-                How often the app checks for new DMs and mentions.
-              </Text>
-            </View>
+            <Text style={[styles.hint, { color: c.textPlaceholder }]}>
+              How often the app checks for new DMs and mentions.
+            </Text>
           ) : null}
 
           <Text style={[styles.sectionTitle, { color: c.textPlaceholder }]}>APPEARANCE</Text>
 
           {(themeIdx = this._renderIdx++, null)}
           <TouchableHighlight
+            onLayout={function(e) { self._rowY[themeIdx] = e.nativeEvent.layout.y; }}
             style={[styles.row, { borderBottomColor: c.border }, fi === themeIdx && { backgroundColor: c.listUnderlay }]}
             underlayColor={c.listUnderlay}
             onPress={onToggleTheme}
@@ -211,6 +227,7 @@ export default class SettingsScreen extends Component {
           </View>
           {(engTechnoIdx = this._renderIdx++, null)}
           <TouchableHighlight
+            onLayout={function(e) { self._rowY[engTechnoIdx] = e.nativeEvent.layout.y; }}
             style={[styles.row, { borderBottomColor: c.border }, fi === engTechnoIdx && { backgroundColor: c.listUnderlay }]}
             underlayColor={c.listUnderlay}
             onPress={function () { Linking.openURL('https://ammaryaser.com/'); }}
@@ -241,6 +258,7 @@ export default class SettingsScreen extends Component {
           </View>
           {(websiteIdx = this._renderIdx++, null)}
           <TouchableHighlight
+            onLayout={function(e) { self._rowY[websiteIdx] = e.nativeEvent.layout.y; }}
             style={[styles.row, { borderBottomColor: c.border }, fi === websiteIdx && { backgroundColor: c.listUnderlay }]}
             underlayColor={c.listUnderlay}
             onPress={function () { Linking.openURL('https://ammaryaser.com/'); }}
@@ -258,6 +276,7 @@ export default class SettingsScreen extends Component {
           <Text style={[styles.sectionTitle, { color: c.textPlaceholder }]}>SUPPORT</Text>
           {(coffeeIdx = this._renderIdx++, null)}
           <TouchableHighlight
+            onLayout={function(e) { self._rowY[coffeeIdx] = e.nativeEvent.layout.y; }}
             style={[styles.row, { borderBottomColor: c.border }, fi === coffeeIdx && { backgroundColor: c.listUnderlay }]}
             underlayColor={c.listUnderlay}
             onPress={function () { Linking.openURL('https://buymeacoffee.com/ammaryaserh'); }}
@@ -271,8 +290,25 @@ export default class SettingsScreen extends Component {
               <Icon name="external-link" size={14} color={c.textPlaceholder} />
             </View>
           </TouchableHighlight>
+          {(instapayIdx = this._renderIdx++, null)}
+          <TouchableHighlight
+            onLayout={function(e) { self._rowY[instapayIdx] = e.nativeEvent.layout.y; }}
+            style={[styles.row, { borderBottomColor: c.border }, fi === instapayIdx && { backgroundColor: c.listUnderlay }]}
+            underlayColor={c.listUnderlay}
+            onPress={function () { Linking.openURL('https://ipn.eg/S/ammar.yaser1998/instapay/9txW8n'); }}
+            data-type="list-item"
+          >
+            <View style={styles.rowInner}>
+              <View style={styles.rowLeft}>
+                <Icon name="smartphone" size={18} color={c.textTertiary} />
+                <Text style={[styles.rowLabel, { color: c.textSecondary }]}>Donate via InstaPay</Text>
+              </View>
+              <Icon name="external-link" size={14} color={c.textPlaceholder} />
+            </View>
+          </TouchableHighlight>
           {(paypalIdx = this._renderIdx++, null)}
           <TouchableHighlight
+            onLayout={function(e) { self._rowY[paypalIdx] = e.nativeEvent.layout.y; }}
             style={[styles.row, { borderBottomColor: c.border }, fi === paypalIdx && { backgroundColor: c.listUnderlay }]}
             underlayColor={c.listUnderlay}
             onPress={function () { Linking.openURL('https://paypal.me/ammartechno?locale.x=en_US&country.x=EG'); }}

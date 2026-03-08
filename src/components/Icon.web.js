@@ -30,6 +30,7 @@ import Bell from 'lucide-react/dist/esm/icons/bell';
 import Globe from 'lucide-react/dist/esm/icons/globe';
 import User from 'lucide-react/dist/esm/icons/user';
 import Coffee from 'lucide-react/dist/esm/icons/coffee';
+import Smartphone from 'lucide-react/dist/esm/icons/smartphone';
 import ExternalLink from 'lucide-react/dist/esm/icons/external-link';
 
 const ICON_MAP = {
@@ -64,6 +65,7 @@ const ICON_MAP = {
   'globe': Globe,
   'user': User,
   'coffee': Coffee,
+  'smartphone': Smartphone,
   'external-link': ExternalLink,
 };
 
