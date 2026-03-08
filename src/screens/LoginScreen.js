@@ -38,6 +38,8 @@ export default class LoginScreen extends Component {
     };
     this._keySub = null;
     this._inputRefs = {};
+    this._scrollView = null;
+    this._scrollY = 0;
   }
 
   componentDidMount() {
@@ -71,10 +73,12 @@ export default class LoginScreen extends Component {
       const next = Math.min(idx + 1, fields.length - 1);
       this.setState({ focusIndex: next });
       this._focusField(fields[next]);
+      this._scrollToField(fields[next]);
     } else if (action === 'up') {
       const prev = Math.max(idx - 1, 0);
       this.setState({ focusIndex: prev });
       this._focusField(fields[prev]);
+      this._scrollToField(fields[prev]);
     } else if (action === 'select') {
       if (idx >= 0 && idx < fields.length) {
         this._activateField(fields[idx]);
@@ -85,6 +89,18 @@ export default class LoginScreen extends Component {
   _focusField(field) {
     const ref = this._inputRefs[field];
     if (ref && ref.focus) ref.focus();
+  }
+
+  _scrollToField(field) {
+    const ref = this._inputRefs[field];
+    if (!ref || !this._scrollView) return;
+    const sv = this._scrollView;
+    const scrollY = this._scrollY;
+    ref.measure(function (fx, fy, w, h, px, py) {
+      if (py === undefined) return;
+      const target = Math.max(0, scrollY + py - 120);
+      sv.scrollTo({ y: target, animated: true });
+    });
   }
 
   _activateField(field) {
@@ -220,9 +236,12 @@ export default class LoginScreen extends Component {
 
     return (
       <ScrollView
+        ref={function (r) { self._scrollView = r; }}
         style={{ flex: 1, backgroundColor: c.bg }}
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
+        onScroll={function (e) { self._scrollY = e.nativeEvent.contentOffset.y; }}
+        scrollEventThrottle={16}
       >
         <Text style={[styles.logo, { color: c.textPrimary }]}>BB Slack</Text>
         <Text style={[styles.subtitle, { color: c.textTertiary }]}>Slack client for BlackBerry</Text>
@@ -230,6 +249,7 @@ export default class LoginScreen extends Component {
         {/* Mode tabs */}
         {!needsPin ? <View style={styles.tabs}>
           <TouchableHighlight
+            ref={function (r) { self._inputRefs.emailTab = r; }}
             style={[
               styles.tab,
               { borderColor: c.border },
@@ -247,6 +267,7 @@ export default class LoginScreen extends Component {
             ]}>Email</Text>
           </TouchableHighlight>
           <TouchableHighlight
+            ref={function (r) { self._inputRefs.tokenTab = r; }}
             style={[
               styles.tab,
               { borderColor: c.border },
@@ -315,6 +336,7 @@ export default class LoginScreen extends Component {
             />
 
             <TouchableHighlight
+              ref={function (r) { self._inputRefs.signin = r; }}
               style={[styles.button, { backgroundColor: c.purple }, (!workspace.trim() || !email.trim() || !password) && styles.buttonDisabled, focusIndex === fields.indexOf('signin') && styles.buttonFocused]}
               underlayColor="#3a1d6e"
               onPress={function () { self.handleEmailLogin(); }}
@@ -357,6 +379,7 @@ export default class LoginScreen extends Component {
             />
 
             <TouchableHighlight
+              ref={function (r) { self._inputRefs.verify = r; }}
               style={[styles.button, { backgroundColor: c.purple }, pin.trim().length < 6 && styles.buttonDisabled, focusIndex === fields.indexOf('verify') && styles.buttonFocused]}
               underlayColor="#3a1d6e"
               onPress={function () { self.handlePinSubmit(); }}
@@ -371,6 +394,7 @@ export default class LoginScreen extends Component {
             </TouchableHighlight>
 
             <TouchableHighlight
+              ref={function (r) { self._inputRefs.pinBack = r; }}
               style={[styles.linkButton, { borderColor: c.border, marginTop: 12 }, focusIndex === fields.indexOf('pinBack') && { borderColor: c.accent }]}
               underlayColor={c.bgTertiary}
               onPress={function () { self.setState({ needsPin: false, pin: '', error: null }); }}
@@ -400,6 +424,7 @@ export default class LoginScreen extends Component {
             />
 
             <TouchableHighlight
+              ref={function (r) { if (self.state.mode === 'token') self._inputRefs.signin = r; }}
               style={[styles.button, { backgroundColor: c.purple }, !token.trim() && styles.buttonDisabled, focusIndex === fields.indexOf('signin') && styles.buttonFocused]}
               underlayColor="#3a1d6e"
               onPress={function () { self.handleTokenLogin(); }}
@@ -424,6 +449,7 @@ export default class LoginScreen extends Component {
               <Text style={[styles.step, { color: c.textTertiary }]}>6. Copy the "User OAuth Token" (xoxp-...)</Text>
 
               <TouchableHighlight
+                ref={function (r) { self._inputRefs.openApps = r; }}
                 style={[styles.linkButton, { borderColor: c.purple }, focusIndex === fields.indexOf('openApps') && { borderColor: c.accent, borderWidth: 2 }]}
                 underlayColor={c.bgTertiary}
                 onPress={function () { self.openTokenPage(); }}

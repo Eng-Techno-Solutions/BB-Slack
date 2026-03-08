@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import {
   View,
   Text,
+  ScrollView,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
@@ -115,55 +116,57 @@ export default class ProfileScreen extends Component {
     return (
       <View style={[styles.container, { backgroundColor: c.bg }]}>
         <Header title="Profile" onBack={onBack} />
-        <View style={[styles.profileSection, { borderBottomColor: c.border }]}>
-          <View style={[styles.avatar, { backgroundColor: c.purple }]}>
-            <Text style={styles.avatarText}>
-              {(displayName || '?').charAt(0).toUpperCase()}
-            </Text>
+        <ScrollView>
+          <View style={[styles.profileSection, { borderBottomColor: c.border }]}>
+            <View style={[styles.avatar, { backgroundColor: c.purple }]}>
+              <Text style={styles.avatarText}>
+                {(displayName || '?').charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            <Text style={[styles.displayName, { color: c.textPrimary }]}>{displayName}</Text>
+            {realName && realName !== displayName ? (
+              <Text style={[styles.realName, { color: c.textSecondary }]}>{realName}</Text>
+            ) : null}
+            {title ? <Text style={[styles.title, { color: c.textTertiary }]}>{title}</Text> : null}
+            {status ? <Text style={[styles.status, { color: c.textSecondary }]}>{status}</Text> : null}
+            {isBot ? <Text style={[styles.botBadge, { color: c.textSecondary, backgroundColor: c.bgTertiary }]}>BOT</Text> : null}
           </View>
-          <Text style={[styles.displayName, { color: c.textPrimary }]}>{displayName}</Text>
-          {realName && realName !== displayName ? (
-            <Text style={[styles.realName, { color: c.textSecondary }]}>{realName}</Text>
-          ) : null}
-          {title ? <Text style={[styles.title, { color: c.textTertiary }]}>{title}</Text> : null}
-          {status ? <Text style={[styles.status, { color: c.textSecondary }]}>{status}</Text> : null}
-          {isBot ? <Text style={[styles.botBadge, { color: c.textSecondary, backgroundColor: c.bgTertiary }]}>BOT</Text> : null}
-        </View>
 
-        <View style={styles.detailsSection}>
-          {email ? (
+          <View style={styles.detailsSection}>
+            {email ? (
+              <View style={[styles.detailRow, { borderBottomColor: c.border }]}>
+                <Text style={[styles.detailLabel, { color: c.textTertiary }]}>Email</Text>
+                <Text style={[styles.detailValue, { color: c.textSecondary }]}>{email}</Text>
+              </View>
+            ) : null}
+            {phone ? (
+              <View style={[styles.detailRow, { borderBottomColor: c.border }]}>
+                <Text style={[styles.detailLabel, { color: c.textTertiary }]}>Phone</Text>
+                <Text style={[styles.detailValue, { color: c.textSecondary }]}>{phone}</Text>
+              </View>
+            ) : null}
+            {tz ? (
+              <View style={[styles.detailRow, { borderBottomColor: c.border }]}>
+                <Text style={[styles.detailLabel, { color: c.textTertiary }]}>Timezone</Text>
+                <Text style={[styles.detailValue, { color: c.textSecondary }]}>{tz}</Text>
+              </View>
+            ) : null}
             <View style={[styles.detailRow, { borderBottomColor: c.border }]}>
-              <Text style={[styles.detailLabel, { color: c.textTertiary }]}>Email</Text>
-              <Text style={[styles.detailValue, { color: c.textSecondary }]}>{email}</Text>
+              <Text style={[styles.detailLabel, { color: c.textTertiary }]}>Username</Text>
+              <Text style={[styles.detailValue, { color: c.textSecondary }]}>@{user.name}</Text>
             </View>
-          ) : null}
-          {phone ? (
-            <View style={[styles.detailRow, { borderBottomColor: c.border }]}>
-              <Text style={[styles.detailLabel, { color: c.textTertiary }]}>Phone</Text>
-              <Text style={[styles.detailValue, { color: c.textSecondary }]}>{phone}</Text>
-            </View>
-          ) : null}
-          {tz ? (
-            <View style={[styles.detailRow, { borderBottomColor: c.border }]}>
-              <Text style={[styles.detailLabel, { color: c.textTertiary }]}>Timezone</Text>
-              <Text style={[styles.detailValue, { color: c.textSecondary }]}>{tz}</Text>
-            </View>
-          ) : null}
-          <View style={[styles.detailRow, { borderBottomColor: c.border }]}>
-            <Text style={[styles.detailLabel, { color: c.textTertiary }]}>Username</Text>
-            <Text style={[styles.detailValue, { color: c.textSecondary }]}>@{user.name}</Text>
           </View>
-        </View>
 
-        {!isOwn ? (
-          <TouchableOpacity
-            style={[styles.dmButton, { backgroundColor: c.green }]}
-            onPress={function () { self.openDM(); }}
-            data-type="btn"
-          >
-            <Text style={styles.dmButtonText}>Message</Text>
-          </TouchableOpacity>
-        ) : null}
+          {!isOwn ? (
+            <TouchableOpacity
+              style={[styles.dmButton, { backgroundColor: c.green }]}
+              onPress={function () { self.openDM(); }}
+              data-type="btn"
+            >
+              <Text style={styles.dmButtonText}>Message</Text>
+            </TouchableOpacity>
+          ) : null}
+        </ScrollView>
       </View>
     );
   }
