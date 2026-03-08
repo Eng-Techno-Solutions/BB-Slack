@@ -234,7 +234,7 @@ export default class ChannelListScreen extends Component {
 
   render() {
     var { tab, filter } = this.state;
-    var { loading, onSearch, onLogout, onToggleTheme, teamName, teamIcon } = this.props;
+    var { loading, onSearch, onLogout, onToggleTheme, onSettings, teamName, teamIcon } = this.props;
     var self = this;
     var data = this.getFilteredChannels();
     this._data = data;
@@ -269,6 +269,9 @@ export default class ChannelListScreen extends Component {
           </TouchableOpacity>
           <TouchableOpacity style={styles.searchBtn} onPress={onSearch} data-type="icon-btn">
             <Icon name="search" size={18} color={c.headerIcon} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.searchBtn} onPress={onSettings} data-type="icon-btn">
+            <Icon name="settings" size={18} color={c.headerIcon} />
           </TouchableOpacity>
         </View>
         <View style={[styles.tabs, { backgroundColor: c.bgHeader, borderBottomColor: c.headerBorder }]}>

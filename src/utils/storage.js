@@ -2,6 +2,8 @@ import { Platform } from 'react-native';
 
 var TOKEN_KEY = '@BBSlack:token';
 var THEME_KEY = '@BBSlack:theme';
+var NOTIF_INTERVAL_KEY = '@BBSlack:notifInterval';
+var NOTIF_ENABLED_KEY = '@BBSlack:notifEnabled';
 
 function getAsyncStorage() {
   return require('react-native').AsyncStorage;
@@ -44,4 +46,42 @@ export async function getTheme() {
   }
   var val = await getAsyncStorage().getItem(THEME_KEY);
   return val || 'dark';
+}
+
+export async function saveNotifInterval(ms) {
+  var val = String(ms);
+  if (Platform.OS === 'web') {
+    localStorage.setItem(NOTIF_INTERVAL_KEY, val);
+  } else {
+    await getAsyncStorage().setItem(NOTIF_INTERVAL_KEY, val);
+  }
+}
+
+export async function getNotifInterval() {
+  var val;
+  if (Platform.OS === 'web') {
+    val = localStorage.getItem(NOTIF_INTERVAL_KEY);
+  } else {
+    val = await getAsyncStorage().getItem(NOTIF_INTERVAL_KEY);
+  }
+  return val ? parseInt(val, 10) : 120000;
+}
+
+export async function saveNotifEnabled(enabled) {
+  var val = enabled ? '1' : '0';
+  if (Platform.OS === 'web') {
+    localStorage.setItem(NOTIF_ENABLED_KEY, val);
+  } else {
+    await getAsyncStorage().setItem(NOTIF_ENABLED_KEY, val);
+  }
+}
+
+export async function getNotifEnabled() {
+  var val;
+  if (Platform.OS === 'web') {
+    val = localStorage.getItem(NOTIF_ENABLED_KEY);
+  } else {
+    val = await getAsyncStorage().getItem(NOTIF_ENABLED_KEY);
+  }
+  return val !== '0';
 }

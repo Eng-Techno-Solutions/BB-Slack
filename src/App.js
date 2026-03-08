@@ -15,7 +15,9 @@ import ThreadScreen from './screens/ThreadScreen';
 import SearchScreen from './screens/SearchScreen';
 import ChannelInfoScreen from './screens/ChannelInfoScreen';
 import ProfileScreen from './screens/ProfileScreen';
+import SettingsScreen from './screens/SettingsScreen';
 import { playNotification } from './utils/notificationSound';
+import { getNotifInterval, saveNotifInterval, getNotifEnabled, saveNotifEnabled } from './utils/storage';
 
 export default class App extends Component {
   constructor(props) {
@@ -31,11 +33,14 @@ export default class App extends Component {
       channelsLoading: false,
       stack: [{ screen: 'login', params: {} }],
       themeMode: 'dark',
+      notifInterval: 120000,
+      notifEnabled: true,
     };
   }
 
   componentDidMount() {
     this.loadTheme();
+    this.loadNotifSettings();
     this.tryAutoLogin();
   }
 
@@ -94,10 +99,12 @@ export default class App extends Component {
 
   startChannelPolling(slack) {
     this.stopChannelPolling();
+    if (!this.state.notifEnabled) return;
     var self = this;
+    var interval = this.state.notifInterval || 120000;
     this._channelPollTimer = setInterval(function () {
       self.loadChannels(slack);
-    }, 60000);
+    }, interval);
   }
 
   stopChannelPolling() {
@@ -201,6 +208,36 @@ export default class App extends Component {
     this._loadingChannels = false;
   }
 
+  async loadNotifSettings() {
+    try {
+      var interval = await getNotifInterval();
+      var enabled = await getNotifEnabled();
+      this.setState({ notifInterval: interval, notifEnabled: enabled });
+    } catch (err) {
+      // Defaults
+    }
+  }
+
+  async handleToggleNotif() {
+    var enabled = !this.state.notifEnabled;
+    await saveNotifEnabled(enabled);
+    this.setState({ notifEnabled: enabled });
+    if (enabled) {
+      this.startChannelPolling(this.state.slack);
+    } else {
+      this.stopChannelPolling();
+    }
+  }
+
+  async handleChangeInterval(ms) {
+    await saveNotifInterval(ms);
+    this.setState({ notifInterval: ms });
+    if (this.state.notifEnabled && this.state.slack) {
+      this.stopChannelPolling();
+      this.startChannelPolling(this.state.slack);
+    }
+  }
+
   async handleLogout() {
     this.stopChannelPolling();
     await clearToken();
@@ -277,6 +314,9 @@ export default class App extends Component {
             onToggleTheme={function () {
               self.toggleTheme();
             }}
+            onSettings={function () {
+              self.navigate('settings');
+            }}
           />
         );
 
@@ -344,6 +384,18 @@ export default class App extends Component {
             onProfile={function (userId) {
               self.navigate('profile', { userId: userId, channel: params.channel });
             }}
+          />
+        );
+
+      case 'settings':
+        return (
+          <SettingsScreen
+            themeMode={themeMode}
+            notifEnabled={this.state.notifEnabled}
+            notifInterval={this.state.notifInterval}
+            onToggleNotif={function () { self.handleToggleNotif(); }}
+            onChangeInterval={function (ms) { self.handleChangeInterval(ms); }}
+            onBack={function () { self.goBack(); }}
           />
         );
 

@@ -25,6 +25,8 @@ import Moon from 'lucide-react/dist/esm/icons/moon';
 import Paperclip from 'lucide-react/dist/esm/icons/paperclip';
 import Mic from 'lucide-react/dist/esm/icons/mic';
 import Square from 'lucide-react/dist/esm/icons/square';
+import Settings from 'lucide-react/dist/esm/icons/settings';
+import Bell from 'lucide-react/dist/esm/icons/bell';
 
 var ICON_MAP = {
   'chevron-down': ChevronDown,
@@ -53,6 +55,8 @@ var ICON_MAP = {
   'paperclip': Paperclip,
   'mic': Mic,
   'square': Square,
+  'settings': Settings,
+  'bell': Bell,
 };
 
 function Icon({ name, size, color }) {

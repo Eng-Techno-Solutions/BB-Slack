@@ -5,9 +5,19 @@ import {
   StyleSheet,
   StatusBar,
   BackHandler,
+  AppState,
+  DeviceEventEmitter,
 } from 'react-native';
 import SlackAPI from './src/api/slack';
-import { saveToken, getToken, clearToken } from './src/utils/storage';
+import { saveToken, getToken, clearToken, getNotifInterval, saveNotifInterval, getNotifEnabled, saveNotifEnabled } from './src/utils/storage';
+import {
+  startNotificationService,
+  stopNotificationService,
+  setAppForeground,
+  cancelAllNotifications,
+  clearUnreadTracking,
+} from './src/utils/notification';
+import { playNotification } from './src/utils/notificationSound';
 import LoginScreen from './src/screens/LoginScreen';
 import ChannelListScreen from './src/screens/ChannelListScreen';
 import ChatScreen from './src/screens/ChatScreen';
@@ -15,6 +25,7 @@ import ThreadScreen from './src/screens/ThreadScreen';
 import SearchScreen from './src/screens/SearchScreen';
 import ChannelInfoScreen from './src/screens/ChannelInfoScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
 
 export default class App extends Component {
   constructor(props) {
@@ -28,7 +39,11 @@ export default class App extends Component {
       channels: [],
       channelsLoading: false,
       stack: [{ screen: 'login', params: {} }],
+      notifInterval: 120000,
+      notifEnabled: true,
     };
+    this._unreadState = {};
+    this._notifPollTimer = null;
   }
 
   componentDidMount() {
@@ -41,12 +56,28 @@ export default class App extends Component {
       }
       return false;
     });
+    this._appStateListener = AppState.addEventListener
+      ? AppState.addEventListener('change', function (state) { self._handleAppState(state); })
+      : null;
+    if (!this._appStateListener) {
+      AppState.addEventListener('change', function (state) { self._handleAppState(state); });
+    }
+    this._notifOpenListener = DeviceEventEmitter.addListener('onNotificationOpen', function (channelId) {
+      self._handleNotificationOpen(channelId);
+    });
   }
 
   componentWillUnmount() {
     if (this._backHandler) {
       this._backHandler.remove();
     }
+    if (this._appStateListener && this._appStateListener.remove) {
+      this._appStateListener.remove();
+    }
+    if (this._notifOpenListener) {
+      this._notifOpenListener.remove();
+    }
+    this._stopNotifPolling();
   }
 
   async tryAutoLogin() {
@@ -77,6 +108,7 @@ export default class App extends Component {
     await saveToken(token);
     this.loadUsers(slack);
     this.loadChannels(slack);
+    this._loadNotifSettings();
   }
 
   async loadUsers(slack) {
@@ -118,12 +150,18 @@ export default class App extends Component {
       } while (cursor);
 
       this.setState({ channels: allChannels, channelsLoading: false });
+      this._updateUnreadState(allChannels);
+      this._startBackgroundService();
     } catch (err) {
       this.setState({ channelsLoading: false });
     }
   }
 
   async handleLogout() {
+    this._stopNotifPolling();
+    stopNotificationService();
+    clearUnreadTracking();
+    cancelAllNotifications();
     await clearToken();
     this.setState({
       slack: null,
@@ -133,6 +171,176 @@ export default class App extends Component {
       channels: [],
       stack: [{ screen: 'login', params: {} }],
     });
+  }
+
+  _handleAppState(state) {
+    if (state === 'active') {
+      setAppForeground(true);
+      cancelAllNotifications();
+      if (this.state.notifEnabled) this._startNotifPolling();
+    } else if (state === 'background') {
+      setAppForeground(false);
+      this._stopNotifPolling();
+    }
+  }
+
+  _handleNotificationOpen(channelId) {
+    if (!channelId) return;
+    var ch = this.state.channels.find(function (c) { return c.id === channelId; });
+    if (ch) {
+      this.navigate('chat', { channel: ch });
+    }
+  }
+
+  _startBackgroundService() {
+    var { slack, currentUser, usersMap, notifEnabled, notifInterval } = this.state;
+    if (!slack || !currentUser || !notifEnabled) {
+      stopNotificationService();
+      return;
+    }
+    var minimalUsersMap = {};
+    var keys = Object.keys(usersMap);
+    for (var i = 0; i < keys.length; i++) {
+      var u = usersMap[keys[i]];
+      minimalUsersMap[keys[i]] = {
+        name: u.name || '',
+        real_name: u.real_name || '',
+        profile: {
+          display_name: (u.profile && u.profile.display_name) || '',
+          real_name: (u.profile && u.profile.real_name) || '',
+        },
+      };
+    }
+    startNotificationService(slack.token, currentUser, minimalUsersMap, notifInterval);
+  }
+
+  async _loadNotifSettings() {
+    try {
+      var interval = await getNotifInterval();
+      var enabled = await getNotifEnabled();
+      this.setState({ notifInterval: interval, notifEnabled: enabled }, function () {
+        if (enabled) {
+          this._startNotifPolling();
+        }
+      }.bind(this));
+    } catch (err) {
+      this._startNotifPolling();
+    }
+  }
+
+  async _handleToggleNotif() {
+    var enabled = !this.state.notifEnabled;
+    await saveNotifEnabled(enabled);
+    this.setState({ notifEnabled: enabled });
+    if (enabled) {
+      this._startNotifPolling();
+      this._startBackgroundService();
+    } else {
+      this._stopNotifPolling();
+      stopNotificationService();
+      cancelAllNotifications();
+    }
+  }
+
+  async _handleChangeInterval(ms) {
+    await saveNotifInterval(ms);
+    this.setState({ notifInterval: ms });
+    this._startNotifPolling();
+    this._startBackgroundService();
+  }
+
+  _updateUnreadState(channels) {
+    for (var i = 0; i < channels.length; i++) {
+      var ch = channels[i];
+      this._unreadState[ch.id] = {
+        unread: ch.unread_count_display || 0,
+        mentions: ch.mention_count_display || 0,
+      };
+    }
+  }
+
+  _startNotifPolling() {
+    this._stopNotifPolling();
+    if (!this.state.notifEnabled) return;
+    var self = this;
+    var interval = this.state.notifInterval || 120000;
+    this._notifPollTimer = setInterval(function () {
+      if (self.state.slack && !self._notifPolling) self._pollUnreads();
+    }, interval);
+  }
+
+  _stopNotifPolling() {
+    if (this._notifPollTimer) {
+      clearInterval(this._notifPollTimer);
+      this._notifPollTimer = null;
+    }
+  }
+
+  _getCurrentChannelId() {
+    var stack = this.state.stack;
+    var current = stack[stack.length - 1];
+    if (current.screen === 'chat' && current.params && current.params.channel) {
+      return current.params.channel.id;
+    }
+    return null;
+  }
+
+  async _pollUnreads() {
+    var { slack, currentUser } = this.state;
+    if (!slack || !currentUser) return;
+    this._notifPolling = true;
+    try {
+      var allChannels = [];
+      var cursor = '';
+      do {
+        var res = await slack.conversationsList(
+          'public_channel,private_channel,mpim,im',
+          cursor || undefined,
+          200
+        );
+        allChannels = allChannels.concat(res.channels || []);
+        cursor = res.response_metadata && res.response_metadata.next_cursor
+          ? res.response_metadata.next_cursor
+          : '';
+      } while (cursor);
+
+      var currentChId = this._getCurrentChannelId();
+      var hasNewNotif = false;
+      var hasAnyChange = false;
+
+      for (var i = 0; i < allChannels.length; i++) {
+        var ch = allChannels[i];
+        var prev = this._unreadState[ch.id];
+        var unread = ch.unread_count_display || 0;
+        var mentions = ch.mention_count_display || 0;
+
+        if (!prev || prev.unread !== unread || prev.mentions !== mentions) {
+          hasAnyChange = true;
+        }
+
+        if (ch.id !== currentChId && prev) {
+          var isDm = ch.is_im || ch.is_mpim;
+          if (isDm && unread > prev.unread && unread > 0) {
+            hasNewNotif = true;
+          } else if (!isDm && mentions > prev.mentions && mentions > 0) {
+            hasNewNotif = true;
+          }
+        }
+      }
+
+      if (hasNewNotif) {
+        playNotification();
+      }
+
+      this._updateUnreadState(allChannels);
+
+      if (hasAnyChange) {
+        this.setState({ channels: allChannels });
+      }
+    } catch (err) {
+      // Silent fail
+    }
+    this._notifPolling = false;
   }
 
   navigate(screen, params) {
@@ -190,6 +398,9 @@ export default class App extends Component {
             }}
             onLogout={function () {
               self.handleLogout();
+            }}
+            onSettings={function () {
+              self.navigate('settings');
             }}
           />
         );
@@ -253,6 +464,17 @@ export default class App extends Component {
             onProfile={function (userId) {
               self.navigate('profile', { userId: userId, channel: params.channel });
             }}
+          />
+        );
+
+      case 'settings':
+        return (
+          <SettingsScreen
+            notifEnabled={this.state.notifEnabled}
+            notifInterval={this.state.notifInterval}
+            onToggleNotif={function () { self._handleToggleNotif(); }}
+            onChangeInterval={function (ms) { self._handleChangeInterval(ms); }}
+            onBack={function () { self.goBack(); }}
           />
         );
 

@@ -1,5 +1,6 @@
 package com.bbweather;
 
+import android.content.Intent;
 import android.view.KeyEvent;
 import com.facebook.react.ReactActivity;
 import com.facebook.react.ReactInstanceManager;
@@ -10,6 +11,27 @@ public class MainActivity extends ReactActivity {
     @Override
     protected String getMainComponentName() {
         return "BBWeather";
+    }
+
+    @Override
+    public void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        handleNotificationIntent(intent);
+    }
+
+    private void handleNotificationIntent(Intent intent) {
+        if (intent == null) return;
+        String channelId = intent.getStringExtra("notificationChannelId");
+        if (channelId != null) {
+            intent.removeExtra("notificationChannelId");
+            ReactInstanceManager mgr = getReactNativeHost().getReactInstanceManager();
+            ReactContext ctx = mgr.getCurrentReactContext();
+            if (ctx != null) {
+                NotificationModule.emitNotificationOpen(
+                    (com.facebook.react.bridge.ReactApplicationContext) ctx, channelId
+                );
+            }
+        }
     }
 
     @Override
