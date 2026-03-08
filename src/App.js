@@ -6,8 +6,8 @@ import {
   StatusBar,
 } from 'react-native';
 import SlackAPI from './api/slack';
-import { saveToken, getToken, clearToken, saveTheme, getTheme } from './utils/storage';
-import { getColors, getMode, setMode } from './theme';
+import { saveToken, getToken, clearToken, saveTheme, getTheme, saveSoundEnabled, getSoundEnabled, saveFontSize, getFontSize } from './utils/storage';
+import { getColors, getMode, setMode, setFontSizeKey } from './theme';
 import LoginScreen from './screens/LoginScreen';
 import ChannelListScreen from './screens/ChannelListScreen';
 import ChatScreen from './screens/ChatScreen';
@@ -16,7 +16,7 @@ import SearchScreen from './screens/SearchScreen';
 import ChannelInfoScreen from './screens/ChannelInfoScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import SettingsScreen from './screens/SettingsScreen';
-import { playNotification } from './utils/notificationSound';
+import { playNotification, setNotificationMuted } from './utils/notificationSound';
 import { getNotifInterval, saveNotifInterval, getNotifEnabled, saveNotifEnabled } from './utils/storage';
 
 export default class App extends Component {
@@ -35,6 +35,8 @@ export default class App extends Component {
       themeMode: 'dark',
       notifInterval: 120000,
       notifEnabled: true,
+      soundEnabled: true,
+      fontSize: 'medium',
     };
   }
 
@@ -212,7 +214,11 @@ export default class App extends Component {
     try {
       var interval = await getNotifInterval();
       var enabled = await getNotifEnabled();
-      this.setState({ notifInterval: interval, notifEnabled: enabled });
+      var sound = await getSoundEnabled();
+      var font = await getFontSize();
+      setNotificationMuted(!sound);
+      setFontSizeKey(font);
+      this.setState({ notifInterval: interval, notifEnabled: enabled, soundEnabled: sound, fontSize: font });
     } catch (err) {
       // Defaults
     }
@@ -236,6 +242,19 @@ export default class App extends Component {
       this.stopChannelPolling();
       this.startChannelPolling(this.state.slack);
     }
+  }
+
+  async handleToggleSound() {
+    var enabled = !this.state.soundEnabled;
+    await saveSoundEnabled(enabled);
+    setNotificationMuted(!enabled);
+    this.setState({ soundEnabled: enabled });
+  }
+
+  async handleChangeFontSize(size) {
+    await saveFontSize(size);
+    setFontSizeKey(size);
+    this.setState({ fontSize: size });
   }
 
   async handleLogout() {
@@ -310,9 +329,6 @@ export default class App extends Component {
             }}
             onLogout={function () {
               self.handleLogout();
-            }}
-            onToggleTheme={function () {
-              self.toggleTheme();
             }}
             onSettings={function () {
               self.navigate('settings');
@@ -393,8 +409,13 @@ export default class App extends Component {
             themeMode={themeMode}
             notifEnabled={this.state.notifEnabled}
             notifInterval={this.state.notifInterval}
+            soundEnabled={this.state.soundEnabled}
+            fontSize={this.state.fontSize}
             onToggleNotif={function () { self.handleToggleNotif(); }}
             onChangeInterval={function (ms) { self.handleChangeInterval(ms); }}
+            onToggleSound={function () { self.handleToggleSound(); }}
+            onToggleTheme={function () { self.toggleTheme(); }}
+            onChangeFontSize={function (s) { self.handleChangeFontSize(s); }}
             onBack={function () { self.goBack(); }}
           />
         );

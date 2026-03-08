@@ -4,6 +4,8 @@ var TOKEN_KEY = '@BBSlack:token';
 var THEME_KEY = '@BBSlack:theme';
 var NOTIF_INTERVAL_KEY = '@BBSlack:notifInterval';
 var NOTIF_ENABLED_KEY = '@BBSlack:notifEnabled';
+var SOUND_ENABLED_KEY = '@BBSlack:soundEnabled';
+var FONT_SIZE_KEY = '@BBSlack:fontSize';
 
 function getAsyncStorage() {
   return require('react-native').AsyncStorage;
@@ -84,4 +86,41 @@ export async function getNotifEnabled() {
     val = await getAsyncStorage().getItem(NOTIF_ENABLED_KEY);
   }
   return val !== '0';
+}
+
+export async function saveSoundEnabled(enabled) {
+  var val = enabled ? '1' : '0';
+  if (Platform.OS === 'web') {
+    localStorage.setItem(SOUND_ENABLED_KEY, val);
+  } else {
+    await getAsyncStorage().setItem(SOUND_ENABLED_KEY, val);
+  }
+}
+
+export async function getSoundEnabled() {
+  var val;
+  if (Platform.OS === 'web') {
+    val = localStorage.getItem(SOUND_ENABLED_KEY);
+  } else {
+    val = await getAsyncStorage().getItem(SOUND_ENABLED_KEY);
+  }
+  return val !== '0';
+}
+
+export async function saveFontSize(size) {
+  if (Platform.OS === 'web') {
+    localStorage.setItem(FONT_SIZE_KEY, size);
+  } else {
+    await getAsyncStorage().setItem(FONT_SIZE_KEY, size);
+  }
+}
+
+export async function getFontSize() {
+  var val;
+  if (Platform.OS === 'web') {
+    val = localStorage.getItem(FONT_SIZE_KEY);
+  } else {
+    val = await getAsyncStorage().getItem(FONT_SIZE_KEY);
+  }
+  return val || 'medium';
 }

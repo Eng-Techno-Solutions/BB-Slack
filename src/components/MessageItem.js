@@ -8,7 +8,7 @@ import { formatTime, getUserName } from '../utils/format';
 import { emojiFromName, replaceEmojisInText } from '../utils/emoji';
 import Icon from './Icon';
 import SlackText from './SlackText';
-import { getColors } from '../theme';
+import { getColors, getMessageFontSize } from '../theme';
 
 var AVATAR_COLORS = [
   '#E8912D', '#2BAC76', '#CD2553', '#1264A3',
@@ -254,7 +254,7 @@ export default class MessageItem extends Component {
           </View>
 
           {message.text ? (
-            <SlackText text={message.text} usersMap={usersMap} style={[styles.text, { color: c.textSecondary }]} />
+            <SlackText text={message.text} usersMap={usersMap} style={[styles.text, { color: c.textSecondary, fontSize: getMessageFontSize() }]} />
           ) : null}
 
           {files.length > 0 ? (

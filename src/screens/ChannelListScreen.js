@@ -264,9 +264,6 @@ export default class ChannelListScreen extends Component {
               <Text style={styles.badgeText}>{unreadCounts.total > 99 ? '99+' : unreadCounts.total}</Text>
             </View>
           ) : null}
-          <TouchableOpacity style={styles.themeBtn} onPress={onToggleTheme} data-type="icon-btn">
-            <Icon name={isDark ? 'sun' : 'moon'} size={18} color={c.headerIcon} />
-          </TouchableOpacity>
           <TouchableOpacity style={styles.searchBtn} onPress={onSearch} data-type="icon-btn">
             <Icon name="search" size={18} color={c.headerIcon} />
           </TouchableOpacity>

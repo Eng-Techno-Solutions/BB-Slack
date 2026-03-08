@@ -1,4 +1,5 @@
 var audioCtx = null;
+var _muted = false;
 
 function getAudioContext() {
   if (!audioCtx) {
@@ -8,7 +9,12 @@ function getAudioContext() {
   return audioCtx;
 }
 
+export function setNotificationMuted(muted) {
+  _muted = muted;
+}
+
 export function playNotification() {
+  if (_muted) return;
   var ctx = getAudioContext();
   if (!ctx) return;
 

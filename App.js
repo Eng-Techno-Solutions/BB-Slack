@@ -9,7 +9,7 @@ import {
   DeviceEventEmitter,
 } from 'react-native';
 import SlackAPI from './src/api/slack';
-import { saveToken, getToken, clearToken, getNotifInterval, saveNotifInterval, getNotifEnabled, saveNotifEnabled } from './src/utils/storage';
+import { saveToken, getToken, clearToken, getNotifInterval, saveNotifInterval, getNotifEnabled, saveNotifEnabled, saveSoundEnabled, getSoundEnabled, saveFontSize, getFontSize } from './src/utils/storage';
 import {
   startNotificationService,
   stopNotificationService,
@@ -17,7 +17,9 @@ import {
   cancelAllNotifications,
   clearUnreadTracking,
 } from './src/utils/notification';
-import { playNotification } from './src/utils/notificationSound';
+import { playNotification, setNotificationMuted } from './src/utils/notificationSound';
+import { setFontSizeKey, getMode, setMode } from './src/theme';
+import { saveTheme, getTheme } from './src/utils/storage';
 import LoginScreen from './src/screens/LoginScreen';
 import ChannelListScreen from './src/screens/ChannelListScreen';
 import ChatScreen from './src/screens/ChatScreen';
@@ -41,12 +43,16 @@ export default class App extends Component {
       stack: [{ screen: 'login', params: {} }],
       notifInterval: 120000,
       notifEnabled: true,
+      soundEnabled: true,
+      fontSize: 'medium',
+      themeMode: 'dark',
     };
     this._unreadState = {};
     this._notifPollTimer = null;
   }
 
   componentDidMount() {
+    this._loadTheme();
     this.tryAutoLogin();
     var self = this;
     this._backHandler = BackHandler.addEventListener('hardwareBackPress', function () {
@@ -214,11 +220,30 @@ export default class App extends Component {
     startNotificationService(slack.token, currentUser, minimalUsersMap, notifInterval);
   }
 
+  async _loadTheme() {
+    try {
+      var mode = await getTheme();
+      setMode(mode);
+      this.setState({ themeMode: mode });
+    } catch (err) {}
+  }
+
+  _toggleTheme() {
+    var newMode = getMode() === 'dark' ? 'light' : 'dark';
+    setMode(newMode);
+    this.setState({ themeMode: newMode });
+    saveTheme(newMode);
+  }
+
   async _loadNotifSettings() {
     try {
       var interval = await getNotifInterval();
       var enabled = await getNotifEnabled();
-      this.setState({ notifInterval: interval, notifEnabled: enabled }, function () {
+      var sound = await getSoundEnabled();
+      var font = await getFontSize();
+      setNotificationMuted(!sound);
+      setFontSizeKey(font);
+      this.setState({ notifInterval: interval, notifEnabled: enabled, soundEnabled: sound, fontSize: font }, function () {
         if (enabled) {
           this._startNotifPolling();
         }
@@ -247,6 +272,19 @@ export default class App extends Component {
     this.setState({ notifInterval: ms });
     this._startNotifPolling();
     this._startBackgroundService();
+  }
+
+  async _handleToggleSound() {
+    var enabled = !this.state.soundEnabled;
+    await saveSoundEnabled(enabled);
+    setNotificationMuted(!enabled);
+    this.setState({ soundEnabled: enabled });
+  }
+
+  async _handleChangeFontSize(size) {
+    await saveFontSize(size);
+    setFontSizeKey(size);
+    this.setState({ fontSize: size });
   }
 
   _updateUnreadState(channels) {
@@ -472,8 +510,13 @@ export default class App extends Component {
           <SettingsScreen
             notifEnabled={this.state.notifEnabled}
             notifInterval={this.state.notifInterval}
+            soundEnabled={this.state.soundEnabled}
+            fontSize={this.state.fontSize}
             onToggleNotif={function () { self._handleToggleNotif(); }}
             onChangeInterval={function (ms) { self._handleChangeInterval(ms); }}
+            onToggleSound={function () { self._handleToggleSound(); }}
+            onToggleTheme={function () { self._toggleTheme(); }}
+            onChangeFontSize={function (s) { self._handleChangeFontSize(s); }}
             onBack={function () { self.goBack(); }}
           />
         );

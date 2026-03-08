@@ -91,6 +91,8 @@ var lightColors = {
 };
 
 var currentMode = 'dark';
+var currentFontSize = 'medium';
+var FONT_SIZES = { small: 13, medium: 15, large: 17 };
 
 function getColors() {
   return currentMode === 'dark' ? darkColors : lightColors;
@@ -104,8 +106,23 @@ function setMode(mode) {
   currentMode = mode;
 }
 
+function getMessageFontSize() {
+  return FONT_SIZES[currentFontSize] || 15;
+}
+
+function getFontSizeKey() {
+  return currentFontSize;
+}
+
+function setFontSizeKey(key) {
+  currentFontSize = key;
+}
+
 module.exports = {
   getColors: getColors,
   getMode: getMode,
   setMode: setMode,
+  getMessageFontSize: getMessageFontSize,
+  getFontSizeKey: getFontSizeKey,
+  setFontSizeKey: setFontSizeKey,
 };
