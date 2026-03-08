@@ -1,10 +1,10 @@
 import { NativeModules } from 'react-native';
 
-var HttpModule = NativeModules.HttpModule;
-var RNFS = require('react-native-fs');
+const HttpModule = NativeModules.HttpModule;
+const RNFS = require('react-native-fs');
 
 function downloadAudio(url, token, callback) {
-  var destPath = RNFS.CachesDirectoryPath + '/bb_audio_' + Date.now() + '.mp4';
+  const destPath = RNFS.CachesDirectoryPath + '/bb_audio_' + Date.now() + '.mp4';
 
   if (HttpModule && HttpModule.downloadFile) {
     HttpModule.downloadFile(url, token, destPath)

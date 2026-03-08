@@ -54,7 +54,7 @@ export default class App extends Component {
   componentDidMount() {
     this._loadTheme();
     this.tryAutoLogin();
-    var self = this;
+    const self = this;
     this._backHandler = BackHandler.addEventListener('hardwareBackPress', function () {
       if (self.state.stack.length > 1) {
         self.goBack();
@@ -88,7 +88,7 @@ export default class App extends Component {
 
   async tryAutoLogin() {
     try {
-      var token = await getToken();
+      const token = await getToken();
       if (token) {
         await this.doLogin(token);
       } else {
@@ -100,8 +100,8 @@ export default class App extends Component {
   }
 
   async doLogin(token) {
-    var slack = new SlackAPI(token);
-    var auth = await slack.authTest();
+    const slack = new SlackAPI(token);
+    const auth = await slack.authTest();
 
     this.setState({
       slack: slack,
@@ -119,12 +119,12 @@ export default class App extends Component {
 
   async loadUsers(slack) {
     try {
-      var usersMap = {};
-      var cursor = '';
+      const usersMap = {};
+      let cursor = '';
       do {
-        var res = await slack.usersList(cursor || undefined, 200);
-        var members = res.members || [];
-        for (var i = 0; i < members.length; i++) {
+        const res = await slack.usersList(cursor || undefined, 200);
+        const members = res.members || [];
+        for (let i = 0; i < members.length; i++) {
           usersMap[members[i].id] = members[i];
         }
         cursor = res.response_metadata && res.response_metadata.next_cursor
@@ -141,10 +141,10 @@ export default class App extends Component {
   async loadChannels(slack) {
     this.setState({ channelsLoading: true });
     try {
-      var allChannels = [];
-      var cursor = '';
+      let allChannels = [];
+      let cursor = '';
       do {
-        var res = await slack.conversationsList(
+        const res = await slack.conversationsList(
           'public_channel,private_channel,mpim,im',
           cursor || undefined,
           200
@@ -192,22 +192,22 @@ export default class App extends Component {
 
   _handleNotificationOpen(channelId) {
     if (!channelId) return;
-    var ch = this.state.channels.find(function (c) { return c.id === channelId; });
+    const ch = this.state.channels.find(function (c) { return c.id === channelId; });
     if (ch) {
       this.navigate('chat', { channel: ch });
     }
   }
 
   _startBackgroundService() {
-    var { slack, currentUser, usersMap, notifEnabled, notifInterval } = this.state;
+    const { slack, currentUser, usersMap, notifEnabled, notifInterval } = this.state;
     if (!slack || !currentUser || !notifEnabled) {
       stopNotificationService();
       return;
     }
-    var minimalUsersMap = {};
-    var keys = Object.keys(usersMap);
-    for (var i = 0; i < keys.length; i++) {
-      var u = usersMap[keys[i]];
+    const minimalUsersMap = {};
+    const keys = Object.keys(usersMap);
+    for (let i = 0; i < keys.length; i++) {
+      const u = usersMap[keys[i]];
       minimalUsersMap[keys[i]] = {
         name: u.name || '',
         real_name: u.real_name || '',
@@ -222,14 +222,14 @@ export default class App extends Component {
 
   async _loadTheme() {
     try {
-      var mode = await getTheme();
+      const mode = await getTheme();
       setMode(mode);
       this.setState({ themeMode: mode });
     } catch (err) {}
   }
 
   _toggleTheme() {
-    var newMode = getMode() === 'dark' ? 'light' : 'dark';
+    const newMode = getMode() === 'dark' ? 'light' : 'dark';
     setMode(newMode);
     this.setState({ themeMode: newMode });
     saveTheme(newMode);
@@ -237,10 +237,10 @@ export default class App extends Component {
 
   async _loadNotifSettings() {
     try {
-      var interval = await getNotifInterval();
-      var enabled = await getNotifEnabled();
-      var sound = await getSoundEnabled();
-      var font = await getFontSize();
+      const interval = await getNotifInterval();
+      const enabled = await getNotifEnabled();
+      const sound = await getSoundEnabled();
+      const font = await getFontSize();
       setNotificationMuted(!sound);
       setFontSizeKey(font);
       this.setState({ notifInterval: interval, notifEnabled: enabled, soundEnabled: sound, fontSize: font }, function () {
@@ -254,7 +254,7 @@ export default class App extends Component {
   }
 
   async _handleToggleNotif() {
-    var enabled = !this.state.notifEnabled;
+    const enabled = !this.state.notifEnabled;
     await saveNotifEnabled(enabled);
     this.setState({ notifEnabled: enabled });
     if (enabled) {
@@ -275,7 +275,7 @@ export default class App extends Component {
   }
 
   async _handleToggleSound() {
-    var enabled = !this.state.soundEnabled;
+    const enabled = !this.state.soundEnabled;
     await saveSoundEnabled(enabled);
     setNotificationMuted(!enabled);
     this.setState({ soundEnabled: enabled });
@@ -288,8 +288,8 @@ export default class App extends Component {
   }
 
   _updateUnreadState(channels) {
-    for (var i = 0; i < channels.length; i++) {
-      var ch = channels[i];
+    for (let i = 0; i < channels.length; i++) {
+      const ch = channels[i];
       this._unreadState[ch.id] = {
         unread: ch.unread_count_display || 0,
         mentions: ch.mention_count_display || 0,
@@ -300,8 +300,8 @@ export default class App extends Component {
   _startNotifPolling() {
     this._stopNotifPolling();
     if (!this.state.notifEnabled) return;
-    var self = this;
-    var interval = this.state.notifInterval || 120000;
+    const self = this;
+    const interval = this.state.notifInterval || 120000;
     this._notifPollTimer = setInterval(function () {
       if (self.state.slack && !self._notifPolling) self._pollUnreads();
     }, interval);
@@ -315,8 +315,8 @@ export default class App extends Component {
   }
 
   _getCurrentChannelId() {
-    var stack = this.state.stack;
-    var current = stack[stack.length - 1];
+    const stack = this.state.stack;
+    const current = stack[stack.length - 1];
     if (current.screen === 'chat' && current.params && current.params.channel) {
       return current.params.channel.id;
     }
@@ -324,14 +324,14 @@ export default class App extends Component {
   }
 
   async _pollUnreads() {
-    var { slack, currentUser } = this.state;
+    const { slack, currentUser } = this.state;
     if (!slack || !currentUser) return;
     this._notifPolling = true;
     try {
-      var allChannels = [];
-      var cursor = '';
+      let allChannels = [];
+      let cursor = '';
       do {
-        var res = await slack.conversationsList(
+        const res = await slack.conversationsList(
           'public_channel,private_channel,mpim,im',
           cursor || undefined,
           200
@@ -342,22 +342,22 @@ export default class App extends Component {
           : '';
       } while (cursor);
 
-      var currentChId = this._getCurrentChannelId();
-      var hasNewNotif = false;
-      var hasAnyChange = false;
+      const currentChId = this._getCurrentChannelId();
+      let hasNewNotif = false;
+      let hasAnyChange = false;
 
-      for (var i = 0; i < allChannels.length; i++) {
-        var ch = allChannels[i];
-        var prev = this._unreadState[ch.id];
-        var unread = ch.unread_count_display || 0;
-        var mentions = ch.mention_count_display || 0;
+      for (let i = 0; i < allChannels.length; i++) {
+        const ch = allChannels[i];
+        const prev = this._unreadState[ch.id];
+        const unread = ch.unread_count_display || 0;
+        const mentions = ch.mention_count_display || 0;
 
         if (!prev || prev.unread !== unread || prev.mentions !== mentions) {
           hasAnyChange = true;
         }
 
         if (ch.id !== currentChId && prev) {
-          var isDm = ch.is_im || ch.is_mpim;
+          const isDm = ch.is_im || ch.is_mpim;
           if (isDm && unread > prev.unread && unread > 0) {
             hasNewNotif = true;
           } else if (!isDm && mentions > prev.mentions && mentions > 0) {
@@ -398,18 +398,18 @@ export default class App extends Component {
 
   replaceTop(screen, params) {
     this.setState(function (prev) {
-      var newStack = prev.stack.slice(0, -1);
+      const newStack = prev.stack.slice(0, -1);
       newStack.push({ screen: screen, params: params || {} });
       return { stack: newStack };
     });
   }
 
   renderScreen() {
-    var { stack, slack, currentUser, usersMap, channels, channelsLoading, teamName } = this.state;
-    var current = stack[stack.length - 1];
-    var screen = current.screen;
-    var params = current.params || {};
-    var self = this;
+    const { stack, slack, currentUser, usersMap, channels, channelsLoading, teamName } = this.state;
+    const current = stack[stack.length - 1];
+    const screen = current.screen;
+    const params = current.params || {};
+    const self = this;
 
     switch (screen) {
       case 'login':
@@ -482,7 +482,7 @@ export default class App extends Component {
             onBack={function () { self.goBack(); }}
             onSelectMessage={function (msg) {
               if (msg.channel && msg.channel.id) {
-                var ch = channels.find(function (c) { return c.id === msg.channel.id; });
+                const ch = channels.find(function (c) { return c.id === msg.channel.id; });
                 if (ch) {
                   self.navigate('chat', { channel: ch });
                 }
@@ -558,7 +558,7 @@ export default class App extends Component {
   }
 }
 
-var styles = StyleSheet.create({
+const styles = StyleSheet.create({
   app: {
     flex: 1,
     backgroundColor: '#1A1D21',

@@ -14,7 +14,7 @@ import { getColors } from '../theme';
 import { request } from '../api/http';
 import { addKeyEventListener, removeKeyEventListener } from '../utils/keyEvents';
 
-var SLACK_API = Platform.OS === 'web' ? '/slack-api/' : 'https://slack.com/api/';
+const SLACK_API = Platform.OS === 'web' ? '/slack-api/' : 'https://slack.com/api/';
 
 export default class LoginScreen extends Component {
   constructor(props) {
@@ -41,7 +41,7 @@ export default class LoginScreen extends Component {
   }
 
   componentDidMount() {
-    var self = this;
+    const self = this;
     this._keySub = addKeyEventListener(function (e) {
       self._handleKeyEvent(e);
     });
@@ -52,7 +52,7 @@ export default class LoginScreen extends Component {
   }
 
   _getFields() {
-    var { mode, needsPin } = this.state;
+    const { mode, needsPin } = this.state;
     if (mode === 'email' && needsPin) {
       return ['pin', 'verify', 'pinBack'];
     }
@@ -63,16 +63,16 @@ export default class LoginScreen extends Component {
   }
 
   _handleKeyEvent(e) {
-    var action = e.action;
-    var fields = this._getFields();
-    var idx = this.state.focusIndex;
+    const action = e.action;
+    const fields = this._getFields();
+    const idx = this.state.focusIndex;
 
     if (action === 'down') {
-      var next = Math.min(idx + 1, fields.length - 1);
+      const next = Math.min(idx + 1, fields.length - 1);
       this.setState({ focusIndex: next });
       this._focusField(fields[next]);
     } else if (action === 'up') {
-      var prev = Math.max(idx - 1, 0);
+      const prev = Math.max(idx - 1, 0);
       this.setState({ focusIndex: prev });
       this._focusField(fields[prev]);
     } else if (action === 'select') {
@@ -83,12 +83,12 @@ export default class LoginScreen extends Component {
   }
 
   _focusField(field) {
-    var ref = this._inputRefs[field];
+    const ref = this._inputRefs[field];
     if (ref && ref.focus) ref.focus();
   }
 
   _activateField(field) {
-    var self = this;
+    const self = this;
     if (field === 'emailTab') this.setState({ mode: 'email', error: null, focusIndex: 0 });
     else if (field === 'tokenTab') this.setState({ mode: 'token', error: null, focusIndex: 0 });
     else if (field === 'signin') {
@@ -101,38 +101,38 @@ export default class LoginScreen extends Component {
   }
 
   async handleEmailLogin() {
-    var { workspace, email, password } = this.state;
+    let { workspace, email, password } = this.state;
     workspace = workspace.trim().toLowerCase().replace(/\.slack\.com$/, '');
     email = email.trim();
     if (!workspace || !email || !password) return;
 
     this.setState({ loading: true, error: null });
     try {
-      var headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+      const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
 
       // Step 1: Find the team to verify it exists
-      var findBody = 'domain=' + encodeURIComponent(workspace);
-      var findRes = await request('POST', SLACK_API + 'auth.findTeam', headers, findBody);
-      var findData = JSON.parse(findRes.body);
+      const findBody = 'domain=' + encodeURIComponent(workspace);
+      const findRes = await request('POST', SLACK_API + 'auth.findTeam', headers, findBody);
+      const findData = JSON.parse(findRes.body);
 
       if (!findData.ok) {
         throw new Error('Workspace "' + workspace + '" not found. Check the workspace name.');
       }
 
-      var teamId = findData.team_id;
+      const teamId = findData.team_id;
 
       // Step 2: Sign in with email + password
-      var signinData = await this._callSignin(headers, teamId, email, password, '');
+      const signinData = await this._callSignin(headers, teamId, email, password, '');
 
       if (!signinData.ok) {
-        var errCode = signinData.error || 'Login failed';
+        const errCode = signinData.error || 'Login failed';
         // 2FA required — show PIN input
         if (errCode === 'missing_pin_app_sms' || errCode === 'missing_pin' ||
             errCode === 'two_factor_setup_required' || errCode === 'two_factor_required') {
           this.setState({ loading: false, needsPin: true, _teamId: teamId, error: null });
           return;
         }
-        var errMsg = errCode;
+        let errMsg = errCode;
         if (errMsg === 'invalid_auth' || errMsg === 'invalid_password') {
           errMsg = 'Invalid email or password.';
         } else if (errMsg === 'ratelimited') {
@@ -143,7 +143,7 @@ export default class LoginScreen extends Component {
         throw new Error(errMsg);
       }
 
-      var token = signinData.token;
+      const token = signinData.token;
       if (!token) {
         throw new Error('No token received. Please use the Token method instead.');
       }
@@ -155,28 +155,28 @@ export default class LoginScreen extends Component {
   }
 
   async _callSignin(headers, teamId, email, password, pin) {
-    var signinBody = 'team=' + encodeURIComponent(teamId) +
+    let signinBody = 'team=' + encodeURIComponent(teamId) +
       '&email=' + encodeURIComponent(email) +
       '&password=' + encodeURIComponent(password);
     if (pin) {
       signinBody += '&pin=' + encodeURIComponent(pin);
     }
-    var signinRes = await request('POST', SLACK_API + 'auth.signin', headers, signinBody);
+    const signinRes = await request('POST', SLACK_API + 'auth.signin', headers, signinBody);
     return JSON.parse(signinRes.body);
   }
 
   async handlePinSubmit() {
-    var { pin, _teamId, email, password } = this.state;
+    let { pin, _teamId, email, password } = this.state;
     pin = pin.trim();
     if (!pin || !_teamId) return;
 
     this.setState({ loading: true, error: null });
     try {
-      var headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
-      var data = await this._callSignin(headers, _teamId, email.trim(), password, pin);
+      const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+      const data = await this._callSignin(headers, _teamId, email.trim(), password, pin);
 
       if (!data.ok) {
-        var errMsg = data.error || 'Verification failed';
+        let errMsg = data.error || 'Verification failed';
         if (errMsg === 'invalid_pin' || errMsg === 'missing_pin_app_sms' || errMsg === 'missing_pin') {
           errMsg = 'Invalid code. Please try again.';
         } else if (errMsg === 'ratelimited') {
@@ -185,7 +185,7 @@ export default class LoginScreen extends Component {
         throw new Error(errMsg);
       }
 
-      var token = data.token;
+      const token = data.token;
       if (!token) {
         throw new Error('No token received. Please use the Token method instead.');
       }
@@ -197,7 +197,7 @@ export default class LoginScreen extends Component {
   }
 
   async handleTokenLogin() {
-    var token = this.state.token.trim();
+    const token = this.state.token.trim();
     if (!token) return;
 
     this.setState({ loading: true, error: null });
@@ -213,10 +213,10 @@ export default class LoginScreen extends Component {
   }
 
   render() {
-    var { mode, workspace, email, password, token, loading, error, needsPin, pin, focusIndex } = this.state;
-    var self = this;
-    var c = getColors();
-    var fields = this._getFields();
+    const { mode, workspace, email, password, token, loading, error, needsPin, pin, focusIndex } = this.state;
+    const self = this;
+    const c = getColors();
+    const fields = this._getFields();
 
     return (
       <ScrollView
@@ -445,7 +445,7 @@ export default class LoginScreen extends Component {
   }
 }
 
-var styles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     justifyContent: 'center',
     padding: 24,

@@ -1,7 +1,7 @@
 import React from 'react';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 
-var ICON_MAP = {
+const ICON_MAP = {
   'chevron-down': 'chevron-down',
   'chevron-left': 'chevron-left',
   'chevron-right': 'chevron-right',
@@ -37,9 +37,9 @@ var ICON_MAP = {
 };
 
 function Icon({ name, size, color }) {
-  var s = size || 20;
-  var c = color || '#D1D2D3';
-  var iconName = ICON_MAP[name];
+  const s = size || 20;
+  const c = color || '#D1D2D3';
+  const iconName = ICON_MAP[name];
 
   if (!iconName) return null;
 

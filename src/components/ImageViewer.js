@@ -47,8 +47,8 @@ export default class ImageViewer extends Component {
   handleWheel(e) {
     e.preventDefault();
     this.setState(function (prev) {
-      var delta = e.deltaY > 0 ? -0.15 : 0.15;
-      var next = Math.min(5, Math.max(0.5, prev.scale + delta));
+      const delta = e.deltaY > 0 ? -0.15 : 0.15;
+      const next = Math.min(5, Math.max(0.5, prev.scale + delta));
       if (next <= 1) {
         return { scale: next, translateX: 0, translateY: 0 };
       }
@@ -65,8 +65,8 @@ export default class ImageViewer extends Component {
 
   handleMouseMove(e) {
     if (!this.state.dragging) return;
-    var dx = e.clientX - this.lastMouse.x;
-    var dy = e.clientY - this.lastMouse.y;
+    const dx = e.clientX - this.lastMouse.x;
+    const dy = e.clientY - this.lastMouse.y;
     this.lastMouse = { x: e.clientX, y: e.clientY };
     this.setState(function (prev) {
       return { translateX: prev.translateX + dx, translateY: prev.translateY + dy };
@@ -78,9 +78,9 @@ export default class ImageViewer extends Component {
   }
 
   renderWebImage(win, source, token) {
-    var self = this;
-    var s = this.state;
-    var c = getColors();
+    const self = this;
+    const s = this.state;
+    const c = getColors();
 
     return (
       <View style={styles.imageContainer}>
@@ -119,28 +119,57 @@ export default class ImageViewer extends Component {
             onError={function () { self.setState({ loading: false, error: true }); }}
           />
         </View>
-        {s.scale > 1 ? (
+        <View style={styles.zoomControls}>
           <TouchableOpacity
-            style={[styles.resetZoomBtn, { borderColor: c.border }]}
-            onPress={function () { self.setState({ scale: 1, translateX: 0, translateY: 0 }); }}
+            style={[styles.zoomBtn, { borderColor: c.border }]}
+            onPress={function () {
+              self.setState(function (prev) {
+                const next = Math.min(5, prev.scale + 0.5);
+                return { scale: next };
+              });
+            }}
             data-type="btn"
           >
-            <Text style={[styles.resetZoomText, { color: c.textSecondary }]}>Reset Zoom</Text>
+            <Icon name="plus" size={18} color="#FFFFFF" />
           </TouchableOpacity>
-        ) : null}
+          <TouchableOpacity
+            style={[styles.zoomBtn, { borderColor: c.border }]}
+            onPress={function () {
+              self.setState(function (prev) {
+                const next = Math.max(0.5, prev.scale - 0.5);
+                if (next <= 1) {
+                  return { scale: next, translateX: 0, translateY: 0 };
+                }
+                return { scale: next };
+              });
+            }}
+            data-type="btn"
+          >
+            <Icon name="minus" size={18} color="#FFFFFF" />
+          </TouchableOpacity>
+          {s.scale !== 1 ? (
+            <TouchableOpacity
+              style={[styles.zoomBtn, { borderColor: c.border }]}
+              onPress={function () { self.setState({ scale: 1, translateX: 0, translateY: 0 }); }}
+              data-type="btn"
+            >
+              <Icon name="rotate-ccw" size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
       </View>
     );
   }
 
   _getDistance(touches) {
-    var dx = touches[0].pageX - touches[1].pageX;
-    var dy = touches[0].pageY - touches[1].pageY;
+    const dx = touches[0].pageX - touches[1].pageX;
+    const dy = touches[0].pageY - touches[1].pageY;
     return Math.sqrt(dx * dx + dy * dy);
   }
 
   _setupPanResponder() {
     if (this._panResponder) return this._panResponder;
-    var self = this;
+    const self = this;
     this._baseScale = 1;
     this._baseTX = 0;
     this._baseTY = 0;
@@ -152,7 +181,7 @@ export default class ImageViewer extends Component {
       onStartShouldSetPanResponder: function () { return true; },
       onMoveShouldSetPanResponder: function () { return true; },
       onPanResponderGrant: function (e) {
-        var touches = e.nativeEvent.touches;
+        const touches = e.nativeEvent.touches;
         self._baseScale = self.state.scale;
         self._baseTX = self.state.translateX;
         self._baseTY = self.state.translateY;
@@ -164,16 +193,16 @@ export default class ImageViewer extends Component {
         }
       },
       onPanResponderMove: function (e) {
-        var touches = e.nativeEvent.touches;
+        const touches = e.nativeEvent.touches;
         if (touches && touches.length === 2) {
-          var dist = self._getDistance(touches);
+          const dist = self._getDistance(touches);
           if (self._pinchStartDist > 0) {
-            var newScale = Math.min(5, Math.max(0.5, self._baseScale * (dist / self._pinchStartDist)));
+            const newScale = Math.min(5, Math.max(0.5, self._baseScale * (dist / self._pinchStartDist)));
             self.setState({ scale: newScale });
           }
         } else if (touches && touches.length === 1 && self.state.scale > 1) {
-          var dx = touches[0].pageX - self._lastMoveX;
-          var dy = touches[0].pageY - self._lastMoveY;
+          const dx = touches[0].pageX - self._lastMoveX;
+          const dy = touches[0].pageY - self._lastMoveY;
           self._lastMoveX = touches[0].pageX;
           self._lastMoveY = touches[0].pageY;
           self.setState(function (prev) {
@@ -191,10 +220,10 @@ export default class ImageViewer extends Component {
   }
 
   renderNativeImage(win, source, token) {
-    var self = this;
-    var s = this.state;
-    var c = getColors();
-    var panHandlers = this._setupPanResponder().panHandlers;
+    const self = this;
+    const s = this.state;
+    const c = getColors();
+    const panHandlers = this._setupPanResponder().panHandlers;
 
     return (
       <View style={styles.imageContainer}>
@@ -225,25 +254,54 @@ export default class ImageViewer extends Component {
             onError={function () { self.setState({ loading: false, error: true }); }}
           />
         </View>
-        {s.scale > 1 ? (
+        <View style={styles.zoomControls}>
           <TouchableOpacity
-            style={[styles.resetZoomBtn, { borderColor: c.border }]}
-            onPress={function () { self.setState({ scale: 1, translateX: 0, translateY: 0 }); }}
+            style={[styles.zoomBtn, { borderColor: c.border }]}
+            onPress={function () {
+              self.setState(function (prev) {
+                const next = Math.min(5, prev.scale + 0.5);
+                return { scale: next };
+              });
+            }}
             data-type="btn"
           >
-            <Text style={[styles.resetZoomText, { color: c.textSecondary }]}>Reset Zoom</Text>
+            <Icon name="plus" size={18} color="#FFFFFF" />
           </TouchableOpacity>
-        ) : null}
+          <TouchableOpacity
+            style={[styles.zoomBtn, { borderColor: c.border }]}
+            onPress={function () {
+              self.setState(function (prev) {
+                const next = Math.max(0.5, prev.scale - 0.5);
+                if (next <= 1) {
+                  return { scale: next, translateX: 0, translateY: 0 };
+                }
+                return { scale: next };
+              });
+            }}
+            data-type="btn"
+          >
+            <Icon name="minus" size={18} color="#FFFFFF" />
+          </TouchableOpacity>
+          {s.scale !== 1 ? (
+            <TouchableOpacity
+              style={[styles.zoomBtn, { borderColor: c.border }]}
+              onPress={function () { self.setState({ scale: 1, translateX: 0, translateY: 0 }); }}
+              data-type="btn"
+            >
+              <Icon name="rotate-ccw" size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
       </View>
     );
   }
 
   render() {
-    var { visible, source, fileName, token, onClose } = this.props;
-    var { error } = this.state;
-    var self = this;
-    var win = Dimensions.get('window');
-    var c = getColors();
+    const { visible, source, fileName, token, onClose } = this.props;
+    const { error } = this.state;
+    const self = this;
+    const win = Dimensions.get('window');
+    const c = getColors();
 
     return (
       <Modal
@@ -284,7 +342,7 @@ export default class ImageViewer extends Component {
   }
 }
 
-var styles = StyleSheet.create({
+const styles = StyleSheet.create({
   overlay: {
     flex: 1,
   },
@@ -343,17 +401,20 @@ var styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  resetZoomBtn: {
+  zoomControls: {
     position: 'absolute',
     bottom: 16,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  zoomBtn: {
     backgroundColor: 'rgba(0,0,0,0.7)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    width: 40,
+    height: 40,
     borderRadius: 20,
     borderWidth: 1,
-  },
-  resetZoomText: {
-    fontSize: 13,
-    fontWeight: '600',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 4,
   },
 });

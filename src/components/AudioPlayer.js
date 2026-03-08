@@ -12,8 +12,8 @@ import audioDownload from '../utils/audioDownload';
 import { getColors } from '../theme';
 
 function formatSecs(s) {
-  var m = Math.floor(s / 60);
-  var sec = Math.floor(s % 60);
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
   return m + ':' + (sec < 10 ? '0' : '') + sec;
 }
 
@@ -54,10 +54,10 @@ export default class AudioPlayer extends Component {
 
   loadSound(url) {
     this.stopAndRelease();
-    var SoundClass = this.getNativeSound();
+    const SoundClass = this.getNativeSound();
     if (!SoundClass) return;
-    var self = this;
-    var token = this.props.token;
+    const self = this;
+    const token = this.props.token;
 
     if (Platform.OS !== 'web' && token && url) {
       this.downloadAndPlay(url, token, SoundClass);
@@ -67,7 +67,7 @@ export default class AudioPlayer extends Component {
   }
 
   downloadAndPlay(url, token, SoundClass) {
-    var self = this;
+    const self = this;
     audioDownload.downloadAudio(url, token, function (err, localPath) {
       if (err) {
         self.setState({ error: err });
@@ -79,7 +79,7 @@ export default class AudioPlayer extends Component {
   }
 
   playSoundFromUrl(url, SoundClass) {
-    var self = this;
+    const self = this;
     this.sound = new SoundClass(url, null, function (err) {
       if (err) {
         self.setState({ error: 'Failed to load audio' });
@@ -96,7 +96,7 @@ export default class AudioPlayer extends Component {
 
   play() {
     if (!this.sound) return;
-    var self = this;
+    const self = this;
     this.sound.play(function (success) {
       if (success) {
         self.setState({ playing: false, position: self.state.duration });
@@ -134,7 +134,7 @@ export default class AudioPlayer extends Component {
 
   startTimer() {
     this.clearTimer();
-    var self = this;
+    const self = this;
     this.timer = setInterval(function () {
       if (self.sound && self.state.playing) {
         self.sound.getCurrentTime(function (sec) {
@@ -171,7 +171,7 @@ export default class AudioPlayer extends Component {
   }
 
   renderWebPlayer() {
-    var source = this.props.source;
+    const source = this.props.source;
     return (
       <View style={styles.playerArea}>
         <audio
@@ -190,9 +190,9 @@ export default class AudioPlayer extends Component {
   }
 
   renderNativePlayer() {
-    var self = this;
-    var s = this.state;
-    var c = getColors();
+    const self = this;
+    const s = this.state;
+    const c = getColors();
 
     if (s.error) {
       return (
@@ -209,7 +209,7 @@ export default class AudioPlayer extends Component {
       );
     }
 
-    var progress = s.duration > 0 ? s.position / s.duration : 0;
+    const progress = s.duration > 0 ? s.position / s.duration : 0;
 
     return (
       <View style={styles.playerArea}>
@@ -237,9 +237,9 @@ export default class AudioPlayer extends Component {
   }
 
   render() {
-    var { visible, fileName } = this.props;
-    var self = this;
-    var c = getColors();
+    const { visible, fileName } = this.props;
+    const self = this;
+    const c = getColors();
 
     if (!visible) return null;
 
@@ -280,7 +280,7 @@ export default class AudioPlayer extends Component {
   }
 }
 
-var styles = StyleSheet.create({
+const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'center',

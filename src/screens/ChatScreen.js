@@ -46,7 +46,7 @@ export default class ChatScreen extends Component {
       recordingTime: 0,
       focusIndex: -1,
     };
-    var self = this;
+    const self = this;
     this._onLongPress = function (m) { self.onMessageLongPress(m); };
     this._onReactionPress = function (m, name, reacted) { self.toggleReaction(m, name, reacted); };
     this._onImagePress = function (img) { self.setState({ viewerImage: img }); };
@@ -62,7 +62,7 @@ export default class ChatScreen extends Component {
     this._userScrolledUp = false;
     this.loadMessages();
     this.startPolling();
-    var self = this;
+    const self = this;
     this._keySub = addKeyEventListener(function (e) {
       self.handleKeyEvent(e);
     });
@@ -81,16 +81,16 @@ export default class ChatScreen extends Component {
   }
 
   handleKeyEvent(e) {
-    var action = e.action;
-    var msgs = this.state.messages;
-    var idx = this.state.focusIndex;
+    const action = e.action;
+    const msgs = this.state.messages;
+    const idx = this.state.focusIndex;
 
     if (action === 'down') {
-      var next = Math.max(idx - 1, 0);
+      const next = Math.max(idx - 1, 0);
       this.setState({ focusIndex: next });
       if (this._list) this._list.scrollToIndex({ index: next, viewOffset: 80, animated: true });
     } else if (action === 'up') {
-      var prev = Math.min(idx + 1, msgs.length - 1);
+      const prev = Math.min(idx + 1, msgs.length - 1);
       this.setState({ focusIndex: prev });
       if (this._list) this._list.scrollToIndex({ index: prev, viewOffset: 80, animated: true });
     } else if (action === 'select' && idx >= 0 && idx < msgs.length) {
@@ -101,7 +101,7 @@ export default class ChatScreen extends Component {
   }
 
   startPolling() {
-    var self = this;
+    const self = this;
     this._pollTimer = setInterval(function () {
       if (self._mounted) self.pollNewMessages();
     }, 5000);
@@ -115,12 +115,12 @@ export default class ChatScreen extends Component {
   }
 
   async loadMessages() {
-    var self = this;
-    var { slack, channel } = this.props;
+    const self = this;
+    const { slack, channel } = this.props;
     try {
-      var res = await slack.conversationsHistory(channel.id, null, 30);
-      var msgs = (res.messages || []).slice();
-      var cursor = res.response_metadata && res.response_metadata.next_cursor;
+      const res = await slack.conversationsHistory(channel.id, null, 30);
+      const msgs = (res.messages || []).slice();
+      const cursor = res.response_metadata && res.response_metadata.next_cursor;
       this.setState({
         messages: msgs,
         loading: false,
@@ -135,41 +135,41 @@ export default class ChatScreen extends Component {
   }
 
   async pollNewMessages() {
-    var { slack, channel } = this.props;
-    var { messages, loading } = this.state;
+    const { slack, channel } = this.props;
+    const { messages, loading } = this.state;
     if (loading || this._polling) return;
     this._polling = true;
     try {
-      var limit = Math.min(Math.max(messages.length, 30), 100);
-      var res = await slack.conversationsHistory(channel.id, null, limit);
-      var fetched = (res.messages || []).slice();
+      const limit = Math.min(Math.max(messages.length, 30), 100);
+      const res = await slack.conversationsHistory(channel.id, null, limit);
+      const fetched = (res.messages || []).slice();
       if (fetched.length === 0) return;
 
-      var existingMap = {};
-      for (var i = 0; i < messages.length; i++) {
+      const existingMap = {};
+      for (let i = 0; i < messages.length; i++) {
         existingMap[messages[i].ts] = true;
       }
 
-      var hasNew = false;
-      for (var j = 0; j < fetched.length; j++) {
+      let hasNew = false;
+      for (let j = 0; j < fetched.length; j++) {
         if (!existingMap[fetched[j].ts]) {
           hasNew = true;
           break;
         }
       }
 
-      var fetchedMap = {};
-      for (var k = 0; k < fetched.length; k++) {
+      const fetchedMap = {};
+      for (let k = 0; k < fetched.length; k++) {
         fetchedMap[fetched[k].ts] = fetched[k];
       }
 
-      var merged = [];
-      for (var n = 0; n < fetched.length; n++) {
+      const merged = [];
+      for (let n = 0; n < fetched.length; n++) {
         if (!existingMap[fetched[n].ts]) {
           merged.push(fetched[n]);
         }
       }
-      for (var m = 0; m < messages.length; m++) {
+      for (let m = 0; m < messages.length; m++) {
         if (fetchedMap[messages[m].ts]) {
           merged.push(fetchedMap[messages[m].ts]);
         } else {
@@ -177,12 +177,12 @@ export default class ChatScreen extends Component {
         }
       }
 
-      var self = this;
-      var currentUserId = this.props.currentUserId;
+      const self = this;
+      const currentUserId = this.props.currentUserId;
       this.setState({ messages: merged });
       if (hasNew) {
-        var newMsgs = fetched.filter(function (f) { return !existingMap[f.ts]; });
-        var fromOthers = newMsgs.filter(function (msg) { return msg.user !== currentUserId; });
+        const newMsgs = fetched.filter(function (f) { return !existingMap[f.ts]; });
+        const fromOthers = newMsgs.filter(function (msg) { return msg.user !== currentUserId; });
         if (fromOthers.length > 0) {
           playNotification();
         }
@@ -200,15 +200,15 @@ export default class ChatScreen extends Component {
   }
 
   async loadMore() {
-    var { slack, channel } = this.props;
-    var { cursor, loadingMore, hasMore } = this.state;
+    const { slack, channel } = this.props;
+    const { cursor, loadingMore, hasMore } = this.state;
     if (loadingMore || !hasMore || !cursor) return;
 
     this.setState({ loadingMore: true });
     try {
-      var res = await slack.conversationsHistory(channel.id, cursor, 30);
-      var older = (res.messages || []).slice();
-      var nextCursor = res.response_metadata && res.response_metadata.next_cursor;
+      const res = await slack.conversationsHistory(channel.id, cursor, 30);
+      const older = (res.messages || []).slice();
+      const nextCursor = res.response_metadata && res.response_metadata.next_cursor;
       this.setState(function (prev) {
         return {
           messages: prev.messages.concat(older),
@@ -223,17 +223,17 @@ export default class ChatScreen extends Component {
   }
 
   markRead(msgs) {
-    var { slack, channel } = this.props;
+    const { slack, channel } = this.props;
     if (msgs.length > 0) {
-      var lastTs = msgs[0].ts;
+      const lastTs = msgs[0].ts;
       slack.conversationsMark(channel.id, lastTs).catch(function () {});
     }
   }
 
   async sendMessage() {
-    var { slack, channel } = this.props;
-    var { inputText, editingMessage } = this.state;
-    var text = inputText.trim();
+    const { slack, channel } = this.props;
+    const { inputText, editingMessage } = this.state;
+    const text = inputText.trim();
     if (!text) return;
 
     this.setState({ sending: true });
@@ -241,7 +241,7 @@ export default class ChatScreen extends Component {
       if (editingMessage) {
         await slack.chatUpdate(channel.id, editingMessage.ts, text);
         this.setState(function (prev) {
-          var updated = prev.messages.map(function (m) {
+          const updated = prev.messages.map(function (m) {
             if (m.ts === editingMessage.ts) {
               return Object.assign({}, m, { text: text, edited: { user: '', ts: '' } });
             }
@@ -261,13 +261,13 @@ export default class ChatScreen extends Component {
   }
 
   async handleAttachment() {
-    var { slack, channel } = this.props;
-    var self = this;
+    const { slack, channel } = this.props;
+    const self = this;
     try {
-      var file = await pickFile();
+      const file = await pickFile();
       if (!file) return;
       this.setState({ uploading: true });
-      var text = this.state.inputText.trim();
+      const text = this.state.inputText.trim();
       await slack.filesUpload(channel.id, file, null, text || null);
       this.setState({ uploading: false, inputText: '' });
       this.pollNewMessages();
@@ -278,7 +278,7 @@ export default class ChatScreen extends Component {
   }
 
   async handleStartRecording() {
-    var self = this;
+    const self = this;
     try {
       await startRecording();
       this.setState({ recording: true, recordingTime: 0 });
@@ -295,13 +295,13 @@ export default class ChatScreen extends Component {
   }
 
   async handleStopRecording() {
-    var { slack, channel } = this.props;
+    const { slack, channel } = this.props;
     if (this._recordTimer) {
       clearInterval(this._recordTimer);
       this._recordTimer = null;
     }
     try {
-      var audio = await stopRecording();
+      const audio = await stopRecording();
       this.setState({ recording: false, recordingTime: 0, uploading: true });
       await slack.filesUpload(channel.id, audio);
       this.setState({ uploading: false });
@@ -322,7 +322,7 @@ export default class ChatScreen extends Component {
   }
 
   async deleteMessage(message) {
-    var { slack, channel } = this.props;
+    const { slack, channel } = this.props;
     try {
       await slack.chatDelete(channel.id, message.ts);
       this.setState(function (prev) {
@@ -337,7 +337,7 @@ export default class ChatScreen extends Component {
   }
 
   async addReaction(message, name) {
-    var { slack, channel } = this.props;
+    const { slack, channel } = this.props;
     try {
       await slack.reactionsAdd(channel.id, name, message.ts);
       this.setState({ actionMessage: null });
@@ -348,7 +348,7 @@ export default class ChatScreen extends Component {
   }
 
   async removeReaction(message, name) {
-    var { slack, channel } = this.props;
+    const { slack, channel } = this.props;
     try {
       await slack.reactionsRemove(channel.id, name, message.ts);
       this.pollNewMessages();
@@ -383,8 +383,8 @@ export default class ChatScreen extends Component {
   }
 
   _handleScroll(e) {
-    var offset = e.nativeEvent.contentOffset.y;
-    var nearBottom = offset < 150;
+    const offset = e.nativeEvent.contentOffset.y;
+    const nearBottom = offset < 150;
     this._userScrolledUp = !nearBottom;
     if (nearBottom && this._unseenCount > 0) {
       this._unseenCount = 0;
@@ -400,7 +400,7 @@ export default class ChatScreen extends Component {
   }
 
   onEmojiSelect(name, emoji) {
-    var mode = this.state.emojiPickerMode;
+    const mode = this.state.emojiPickerMode;
     if (mode === 'reaction') {
       this.addReaction(this.state.reactionTarget, name);
     } else if (mode === 'input') {
@@ -412,13 +412,13 @@ export default class ChatScreen extends Component {
   }
 
   getActions() {
-    var { currentUserId } = this.props;
-    var { actionMessage } = this.state;
+    const { currentUserId } = this.props;
+    const { actionMessage } = this.state;
     if (!actionMessage) return [];
 
-    var self = this;
-    var isOwn = actionMessage.user === currentUserId;
-    var actions = [];
+    const self = this;
+    const isOwn = actionMessage.user === currentUserId;
+    const actions = [];
 
     actions.push({
       label: 'Reply in Thread',
@@ -462,11 +462,11 @@ export default class ChatScreen extends Component {
   }
 
   render() {
-    var { slack, channel, usersMap, currentUserId, onBack, onThread, onMembers } = this.props;
-    var { messages, loading, loadingMore, inputText, sending, editingMessage, actionMessage, viewerImage, viewerAudio, emojiPickerMode, uploading, recording, recordingTime } = this.state;
-    var self = this;
-    var channelName = getChannelDisplayName(channel, usersMap, currentUserId);
-    var c = getColors();
+    const { slack, channel, usersMap, currentUserId, onBack, onThread, onMembers } = this.props;
+    const { messages, loading, loadingMore, inputText, sending, editingMessage, actionMessage, viewerImage, viewerAudio, emojiPickerMode, uploading, recording, recordingTime } = this.state;
+    const self = this;
+    const channelName = getChannelDisplayName(channel, usersMap, currentUserId);
+    const c = getColors();
 
     return (
       <View style={[styles.container, { backgroundColor: c.bg }]}>
@@ -659,7 +659,7 @@ export default class ChatScreen extends Component {
   }
 }
 
-var styles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
   },

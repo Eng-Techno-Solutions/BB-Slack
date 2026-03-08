@@ -1,29 +1,29 @@
 export function formatTime(ts) {
-  var date = new Date(parseFloat(ts) * 1000);
-  var hours = date.getHours();
-  var mins = date.getMinutes();
-  var ampm = hours >= 12 ? 'PM' : 'AM';
+  const date = new Date(parseFloat(ts) * 1000);
+  let hours = date.getHours();
+  const mins = date.getMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
   hours = hours % 12;
   if (hours === 0) hours = 12;
-  var m = mins < 10 ? '0' + mins : '' + mins;
+  const m = mins < 10 ? '0' + mins : '' + mins;
   return hours + ':' + m + ' ' + ampm;
 }
 
 export function formatDate(ts) {
-  var date = new Date(parseFloat(ts) * 1000);
-  var now = new Date();
-  var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  var msgDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  var diff = (today - msgDate) / (1000 * 60 * 60 * 24);
+  const date = new Date(parseFloat(ts) * 1000);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const msgDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diff = (today - msgDate) / (1000 * 60 * 60 * 24);
 
   if (diff === 0) return 'Today';
   if (diff === 1) return 'Yesterday';
   if (diff < 7) {
-    var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     return days[date.getDay()];
   }
 
-  var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   return months[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear();
 }
 
@@ -33,7 +33,7 @@ export function formatDateFull(ts) {
 
 export function getUserName(user, usersMap) {
   if (!user) return 'Unknown';
-  var u = usersMap[user];
+  const u = usersMap[user];
   if (!u) return user;
   return u.profile && u.profile.display_name
     ? u.profile.display_name

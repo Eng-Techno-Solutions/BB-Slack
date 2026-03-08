@@ -4,7 +4,6 @@ import {
   Text,
   Image,
   TouchableOpacity,
-  TouchableHighlight,
   Modal,
   FlatList,
   TextInput,
@@ -14,25 +13,17 @@ import {
 import { EMOJI_MAP, getTwemojiUrl } from '../utils/emoji';
 import { getColors } from '../theme';
 
-var IS_ANDROID = Platform.OS === 'android';
+const IS_ANDROID = Platform.OS === 'android';
 
-var ALL_EMOJIS = Object.keys(EMOJI_MAP).reduce(function (acc, name) {
-  var emoji = EMOJI_MAP[name];
+const ALL_EMOJIS = Object.keys(EMOJI_MAP).reduce(function (acc, name) {
+  const emoji = EMOJI_MAP[name];
   if (acc.seen[emoji]) return acc;
   acc.seen[emoji] = true;
-  var url = IS_ANDROID ? getTwemojiUrl(emoji) : null;
+  const url = IS_ANDROID ? getTwemojiUrl(emoji) : null;
   if (IS_ANDROID && !url) return acc;
   acc.list.push({ name: name, emoji: emoji, url: url });
   return acc;
 }, { list: [], seen: {} }).list;
-
-function EmojiImage(props) {
-  return React.createElement(Image, {
-    source: { uri: props.url },
-    style: styles.emojiImg,
-    defaultSource: undefined,
-  });
-}
 
 export default class EmojiPicker extends Component {
   constructor(props) {
@@ -42,7 +33,7 @@ export default class EmojiPicker extends Component {
   }
 
   getFiltered() {
-    var q = this.state.search.toLowerCase().trim();
+    const q = this.state.search.toLowerCase().trim();
     if (!q) return ALL_EMOJIS;
     return ALL_EMOJIS.filter(function (e) {
       return e.name.indexOf(q) !== -1;
@@ -50,9 +41,9 @@ export default class EmojiPicker extends Component {
   }
 
   _renderItem(info) {
-    var e = info.item;
-    var self = this;
-    var onSelect = this.props.onSelect;
+    const e = info.item;
+    const self = this;
+    const onSelect = this.props.onSelect;
     return (
       <TouchableOpacity
         style={styles.emojiBtn}
@@ -72,11 +63,11 @@ export default class EmojiPicker extends Component {
   }
 
   render() {
-    var { visible, onSelect, onClose } = this.props;
-    var { search } = this.state;
-    var self = this;
-    var filtered = this.getFiltered();
-    var c = getColors();
+    const { visible, onSelect, onClose } = this.props;
+    const { search } = this.state;
+    const self = this;
+    const filtered = this.getFiltered();
+    const c = getColors();
 
     return (
       <Modal
@@ -132,7 +123,7 @@ function getItemLayout(data, index) {
   return { length: 44, offset: 44 * Math.floor(index / 8), index: index };
 }
 
-var styles = StyleSheet.create({
+const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',

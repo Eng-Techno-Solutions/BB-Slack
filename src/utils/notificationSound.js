@@ -1,8 +1,8 @@
-var Sound = require('react-native-sound');
+const Sound = require('react-native-sound');
 Sound.setCategory('Playback');
 
-var notifSound = null;
-var _muted = false;
+let notifSound = null;
+let _muted = false;
 
 export function setNotificationMuted(muted) {
   _muted = muted;

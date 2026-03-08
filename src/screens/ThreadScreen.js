@@ -42,7 +42,7 @@ export default class ThreadScreen extends Component {
     this._mounted = true;
     this.loadReplies();
     this.startPolling();
-    var self = this;
+    const self = this;
     this._keySub = addKeyEventListener(function (e) {
       self.handleKeyEvent(e);
     });
@@ -61,16 +61,16 @@ export default class ThreadScreen extends Component {
   }
 
   handleKeyEvent(e) {
-    var action = e.action;
-    var replies = this.state.replies;
-    var idx = this.state.focusIndex;
+    const action = e.action;
+    const replies = this.state.replies;
+    const idx = this.state.focusIndex;
 
     if (action === 'down') {
-      var next = Math.min(idx + 1, replies.length - 1);
+      const next = Math.min(idx + 1, replies.length - 1);
       this.setState({ focusIndex: next });
       if (this._list) this._list.scrollToIndex({ index: next, viewOffset: 80, animated: true });
     } else if (action === 'up') {
-      var prev = Math.max(idx - 1, 0);
+      const prev = Math.max(idx - 1, 0);
       this.setState({ focusIndex: prev });
       if (this._list) this._list.scrollToIndex({ index: prev, viewOffset: 80, animated: true });
     } else if (action === 'select' && idx >= 0 && idx < replies.length) {
@@ -81,7 +81,7 @@ export default class ThreadScreen extends Component {
   }
 
   startPolling() {
-    var self = this;
+    const self = this;
     this._pollTimer = setInterval(function () {
       if (self._mounted) self.pollReplies();
     }, 5000);
@@ -95,9 +95,9 @@ export default class ThreadScreen extends Component {
   }
 
   async loadReplies() {
-    var { slack, channel, parentMessage } = this.props;
+    const { slack, channel, parentMessage } = this.props;
     try {
-      var res = await slack.conversationsReplies(channel.id, parentMessage.ts);
+      const res = await slack.conversationsReplies(channel.id, parentMessage.ts);
       this.setState({ replies: (res.messages || []).slice().reverse(), loading: false });
     } catch (err) {
       this.setState({ loading: false });
@@ -106,15 +106,15 @@ export default class ThreadScreen extends Component {
   }
 
   async pollReplies() {
-    var { slack, channel, parentMessage, currentUserId } = this.props;
-    var { loading, replies } = this.state;
+    const { slack, channel, parentMessage, currentUserId } = this.props;
+    const { loading, replies } = this.state;
     if (loading) return;
     try {
-      var res = await slack.conversationsReplies(channel.id, parentMessage.ts);
-      var newReplies = (res.messages || []).slice().reverse();
+      const res = await slack.conversationsReplies(channel.id, parentMessage.ts);
+      const newReplies = (res.messages || []).slice().reverse();
       if (newReplies.length > replies.length) {
-        var newOnes = newReplies.slice(0, newReplies.length - replies.length);
-        var fromOthers = newOnes.filter(function (m) { return m.user !== currentUserId; });
+        const newOnes = newReplies.slice(0, newReplies.length - replies.length);
+        const fromOthers = newOnes.filter(function (m) { return m.user !== currentUserId; });
         if (fromOthers.length > 0) {
           playNotification();
         }
@@ -126,9 +126,9 @@ export default class ThreadScreen extends Component {
   }
 
   async sendReply() {
-    var { slack, channel, parentMessage } = this.props;
-    var { inputText } = this.state;
-    var text = inputText.trim();
+    const { slack, channel, parentMessage } = this.props;
+    const { inputText } = this.state;
+    const text = inputText.trim();
     if (!text) return;
 
     this.setState({ sending: true });
@@ -143,12 +143,12 @@ export default class ThreadScreen extends Component {
   }
 
   async handleAttachment() {
-    var { slack, channel, parentMessage } = this.props;
+    const { slack, channel, parentMessage } = this.props;
     try {
-      var file = await pickFile();
+      const file = await pickFile();
       if (!file) return;
       this.setState({ uploading: true });
-      var text = this.state.inputText.trim();
+      const text = this.state.inputText.trim();
       await slack.filesUpload(channel.id, file, parentMessage.ts, text || null);
       this.setState({ uploading: false, inputText: '' });
       this.loadReplies();
@@ -159,7 +159,7 @@ export default class ThreadScreen extends Component {
   }
 
   async handleStartRecording() {
-    var self = this;
+    const self = this;
     try {
       await startRecording();
       this.setState({ recording: true, recordingTime: 0 });
@@ -176,13 +176,13 @@ export default class ThreadScreen extends Component {
   }
 
   async handleStopRecording() {
-    var { slack, channel, parentMessage } = this.props;
+    const { slack, channel, parentMessage } = this.props;
     if (this._recordTimer) {
       clearInterval(this._recordTimer);
       this._recordTimer = null;
     }
     try {
-      var audio = await stopRecording();
+      const audio = await stopRecording();
       this.setState({ recording: false, recordingTime: 0, uploading: true });
       await slack.filesUpload(channel.id, audio, parentMessage.ts);
       this.setState({ uploading: false });
@@ -203,7 +203,7 @@ export default class ThreadScreen extends Component {
   }
 
   async addReaction(message, name) {
-    var { slack, channel } = this.props;
+    const { slack, channel } = this.props;
     try {
       await slack.reactionsAdd(channel.id, name, message.ts);
       this.setState({ reactionTarget: null });
@@ -214,7 +214,7 @@ export default class ThreadScreen extends Component {
   }
 
   async removeReaction(message, name) {
-    var { slack, channel } = this.props;
+    const { slack, channel } = this.props;
     try {
       await slack.reactionsRemove(channel.id, name, message.ts);
       this.pollReplies();
@@ -232,7 +232,7 @@ export default class ThreadScreen extends Component {
   }
 
   onEmojiSelect(name, emoji) {
-    var mode = this.state.emojiPickerMode;
+    const mode = this.state.emojiPickerMode;
     if (mode === 'reaction') {
       this.addReaction(this.state.reactionTarget, name);
     } else if (mode === 'input') {
@@ -244,11 +244,11 @@ export default class ThreadScreen extends Component {
   }
 
   render() {
-    var { slack, usersMap, currentUserId, onBack, parentMessage } = this.props;
-    var { replies, loading, inputText, sending } = this.state;
-    var self = this;
-    var parentUser = getUserName(parentMessage.user, usersMap);
-    var c = getColors();
+    const { slack, usersMap, currentUserId, onBack, parentMessage } = this.props;
+    const { replies, loading, inputText, sending } = this.state;
+    const self = this;
+    const parentUser = getUserName(parentMessage.user, usersMap);
+    const c = getColors();
 
     return (
       <View style={[styles.container, { backgroundColor: c.bg }]}>
@@ -378,7 +378,7 @@ export default class ThreadScreen extends Component {
   }
 }
 
-var styles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
   },

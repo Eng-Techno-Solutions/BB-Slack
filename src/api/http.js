@@ -1,6 +1,6 @@
 import { NativeModules, Platform } from 'react-native';
 
-var HttpModule = NativeModules.HttpModule;
+const HttpModule = NativeModules.HttpModule;
 
 export function request(method, url, headers, body) {
   if (HttpModule && HttpModule.request) {
@@ -15,7 +15,7 @@ export function request(method, url, headers, body) {
   }
 
   // Fallback to fetch for dev testing on regular Android
-  var opts = {
+  const opts = {
     method: method,
     headers: headers || {},
   };
@@ -45,9 +45,9 @@ export function uploadFile(url, token, fields, fileData) {
   }
 
   // Web fallback using FormData
-  var formData = new FormData();
-  var keys = Object.keys(fields);
-  for (var i = 0; i < keys.length; i++) {
+  const formData = new FormData();
+  const keys = Object.keys(fields);
+  for (let i = 0; i < keys.length; i++) {
     formData.append(keys[i], fields[keys[i]]);
   }
   if (fileData.file || fileData.blob) {
@@ -72,12 +72,12 @@ export function uploadBinary(url, fileBase64, contentType) {
   }
 
   // Web fallback: decode base64 and POST as blob
-  var binary = atob(fileBase64);
-  var bytes = new Uint8Array(binary.length);
-  for (var i = 0; i < binary.length; i++) {
+  const binary = atob(fileBase64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i);
   }
-  var blob = new Blob([bytes], { type: contentType });
+  const blob = new Blob([bytes], { type: contentType });
   return fetch(url, {
     method: 'POST',
     body: blob,

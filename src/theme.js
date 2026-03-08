@@ -1,4 +1,4 @@
-var darkColors = {
+const darkColors = {
   bg: '#1A1D21',
   bgSecondary: '#19171D',
   bgTertiary: '#222529',
@@ -44,7 +44,7 @@ var darkColors = {
   fileIconBg: '#383838',
 };
 
-var lightColors = {
+const lightColors = {
   bg: '#FFFFFF',
   bgSecondary: '#FFFFFF',
   bgTertiary: '#F8F8F8',
@@ -90,9 +90,9 @@ var lightColors = {
   fileIconBg: '#E8E8E8',
 };
 
-var currentMode = 'dark';
-var currentFontSize = 'medium';
-var FONT_SIZES = { small: 13, medium: 15, large: 17 };
+let currentMode = 'dark';
+let currentFontSize = 'medium';
+const FONT_SIZES = { small: 13, medium: 15, large: 17 };
 
 function getColors() {
   return currentMode === 'dark' ? darkColors : lightColors;

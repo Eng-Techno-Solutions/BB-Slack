@@ -1,7 +1,7 @@
 import { request, uploadFile, uploadBinary } from './http';
 import { Platform } from 'react-native';
 
-var BASE = Platform.OS === 'web' ? '/slack-api/' : 'https://slack.com/api/';
+const BASE = Platform.OS === 'web' ? '/slack-api/' : 'https://slack.com/api/';
 
 export default class SlackAPI {
   constructor(token) {
@@ -22,21 +22,21 @@ export default class SlackAPI {
   }
 
   async _get(method, params) {
-    var qs = Object.keys(params || {})
+    const qs = Object.keys(params || {})
       .filter(function (k) { return params[k] !== undefined && params[k] !== null; })
       .map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]); })
       .join('&');
-    var url = BASE + method + (qs ? '?' + qs : '');
-    var res = await request('GET', url, this._authHeaders(), '');
-    var data = JSON.parse(res.body);
+    const url = BASE + method + (qs ? '?' + qs : '');
+    const res = await request('GET', url, this._authHeaders(), '');
+    const data = JSON.parse(res.body);
     if (!data.ok) throw new Error(data.error || 'Unknown error');
     return data;
   }
 
   async _post(method, body) {
-    var url = BASE + method;
-    var res = await request('POST', url, this._headers(), JSON.stringify(body));
-    var data = JSON.parse(res.body);
+    const url = BASE + method;
+    const res = await request('POST', url, this._headers(), JSON.stringify(body));
+    const data = JSON.parse(res.body);
     if (!data.ok) throw new Error(data.error || 'Unknown error');
     return data;
   }
@@ -99,7 +99,7 @@ export default class SlackAPI {
 
   // Chat
   chatPostMessage(channel, text, threadTs) {
-    var body = { channel: channel, text: text };
+    const body = { channel: channel, text: text };
     if (threadTs) body.thread_ts = threadTs;
     return this._post('chat.postMessage', body);
   }
@@ -178,27 +178,27 @@ export default class SlackAPI {
 
   // Files
   async filesUpload(channel, fileData, threadTs, comment) {
-    var self = this;
-    var fileName = fileData.name || 'file';
-    var fileSize = fileData.size || 0;
+    const self = this;
+    const fileName = fileData.name || 'file';
+    const fileSize = fileData.size || 0;
 
     // Try new V2 upload API first
     try {
-      var urlResult = await this._get('files.getUploadURLExternal', {
+      const urlResult = await this._get('files.getUploadURLExternal', {
         filename: fileName,
         length: fileSize,
       });
 
-      var uploadUrl = urlResult.upload_url;
-      var fileId = urlResult.file_id;
+      const uploadUrl = urlResult.upload_url;
+      const fileId = urlResult.file_id;
 
       // Upload file binary to the presigned URL
-      var contentType = fileData.type || 'application/octet-stream';
+      const contentType = fileData.type || 'application/octet-stream';
       if (fileData.base64) {
         await uploadBinary(uploadUrl, fileData.base64, contentType);
       } else {
         // Web: use FormData upload
-        var formData = new FormData();
+        const formData = new FormData();
         formData.append('file', fileData.file || fileData.blob, fileName);
         await fetch(uploadUrl, { method: 'POST', body: formData }).then(function (res) {
           if (!res.ok) throw new Error('Upload failed: ' + res.status);
@@ -206,7 +206,7 @@ export default class SlackAPI {
       }
 
       // Complete the upload
-      var completeBody = {
+      const completeBody = {
         files: [{ id: fileId, title: fileName }],
       };
       if (channel) completeBody.channel_id = channel;
@@ -215,13 +215,13 @@ export default class SlackAPI {
       return await self._post('files.completeUploadExternal', completeBody);
     } catch (v2Err) {
       // Fallback to legacy upload if V2 fails
-      var url = BASE + 'files.upload';
-      var fields = { channels: channel };
+      const url = BASE + 'files.upload';
+      const fields = { channels: channel };
       if (fileData.name) fields.filename = fileData.name;
       if (threadTs) fields.thread_ts = threadTs;
       if (comment) fields.initial_comment = comment;
-      var res = await uploadFile(url, self.token, fields, fileData);
-      var data = JSON.parse(res.body);
+      const res = await uploadFile(url, self.token, fields, fileData);
+      const data = JSON.parse(res.body);
       if (!data.ok) throw new Error(data.error || 'Upload failed');
       return data;
     }

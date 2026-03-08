@@ -1,6 +1,6 @@
 import { NativeModules } from 'react-native';
 
-var FilePickerModule = NativeModules.FilePickerModule;
+const FilePickerModule = NativeModules.FilePickerModule;
 
 export function pickFile() {
   if (!FilePickerModule) {
@@ -8,7 +8,7 @@ export function pickFile() {
   }
   return FilePickerModule.pickFile().then(function (result) {
     if (result === 'cancelled') return null;
-    var data = JSON.parse(result);
+    const data = JSON.parse(result);
     return {
       name: data.name,
       type: data.type,

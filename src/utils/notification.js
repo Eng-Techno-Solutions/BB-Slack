@@ -1,9 +1,9 @@
-var { NativeModules } = require('react-native');
-var NotificationModule = NativeModules.NotificationModule;
+const { NativeModules } = require('react-native');
+const NotificationModule = NativeModules.NotificationModule;
 
 export function startNotificationService(token, userId, usersMap, intervalMs) {
   if (!NotificationModule) return;
-  var usersJson = JSON.stringify(usersMap || {});
+  const usersJson = JSON.stringify(usersMap || {});
   NotificationModule.startService(token, userId, usersJson, intervalMs || 120000);
 }
 

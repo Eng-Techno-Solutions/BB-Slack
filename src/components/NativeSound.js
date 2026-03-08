@@ -1,3 +1,3 @@
-var Sound = require('react-native-sound');
+const Sound = require('react-native-sound');
 Sound.setCategory('Playback');
 export default Sound;

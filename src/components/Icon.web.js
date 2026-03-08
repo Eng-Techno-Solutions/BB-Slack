@@ -32,7 +32,7 @@ import User from 'lucide-react/dist/esm/icons/user';
 import Coffee from 'lucide-react/dist/esm/icons/coffee';
 import ExternalLink from 'lucide-react/dist/esm/icons/external-link';
 
-var ICON_MAP = {
+const ICON_MAP = {
   'chevron-down': ChevronDown,
   'chevron-left': ChevronLeft,
   'chevron-right': ChevronRight,
@@ -68,9 +68,9 @@ var ICON_MAP = {
 };
 
 function Icon({ name, size, color }) {
-  var s = size || 20;
-  var c = color || '#D1D2D3';
-  var IconComponent = ICON_MAP[name];
+  const s = size || 20;
+  const c = color || '#D1D2D3';
+  const IconComponent = ICON_MAP[name];
 
   if (!IconComponent) return null;
 

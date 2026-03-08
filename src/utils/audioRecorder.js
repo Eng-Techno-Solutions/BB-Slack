@@ -1,6 +1,6 @@
 import { NativeModules } from 'react-native';
 
-var AudioRecorderModule = NativeModules.AudioRecorderModule;
+const AudioRecorderModule = NativeModules.AudioRecorderModule;
 
 export function startRecording() {
   if (!AudioRecorderModule) {
@@ -14,7 +14,7 @@ export function stopRecording() {
     return Promise.reject(new Error('AudioRecorderModule not available'));
   }
   return AudioRecorderModule.stopRecording().then(function (result) {
-    var data = JSON.parse(result);
+    const data = JSON.parse(result);
     return {
       base64: data.base64,
       duration: data.duration,

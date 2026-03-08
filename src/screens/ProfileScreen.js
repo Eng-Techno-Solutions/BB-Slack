@@ -22,7 +22,7 @@ export default class ProfileScreen extends Component {
 
   componentDidMount() {
     this.loadUser();
-    var self = this;
+    const self = this;
     this._keySub = addKeyEventListener(function (e) {
       self.handleKeyEvent(e);
     });
@@ -33,7 +33,7 @@ export default class ProfileScreen extends Component {
   }
 
   handleKeyEvent(e) {
-    var action = e.action;
+    const action = e.action;
     if (action === 'back') {
       this.props.onBack && this.props.onBack();
     } else if (action === 'select') {
@@ -44,7 +44,7 @@ export default class ProfileScreen extends Component {
   }
 
   async loadUser() {
-    var { slack, userId, usersMap } = this.props;
+    const { slack, userId, usersMap } = this.props;
 
     if (usersMap[userId]) {
       this.setState({ user: usersMap[userId], loading: false });
@@ -52,7 +52,7 @@ export default class ProfileScreen extends Component {
     }
 
     try {
-      var res = await slack.usersInfo(userId);
+      const res = await slack.usersInfo(userId);
       this.setState({ user: res.user, loading: false });
     } catch (err) {
       this.setState({ loading: false });
@@ -61,9 +61,9 @@ export default class ProfileScreen extends Component {
   }
 
   async openDM() {
-    var { slack, userId, onOpenDM } = this.props;
+    const { slack, userId, onOpenDM } = this.props;
     try {
-      var res = await slack.conversationsOpen(userId);
+      const res = await slack.conversationsOpen(userId);
       if (res.channel && onOpenDM) {
         onOpenDM(res.channel);
       }
@@ -73,10 +73,10 @@ export default class ProfileScreen extends Component {
   }
 
   render() {
-    var { onBack, currentUserId, userId } = this.props;
-    var { user, loading } = this.state;
-    var self = this;
-    var c = getColors();
+    const { onBack, currentUserId, userId } = this.props;
+    const { user, loading } = this.state;
+    const self = this;
+    const c = getColors();
 
     if (loading) {
       return (
@@ -100,17 +100,17 @@ export default class ProfileScreen extends Component {
       );
     }
 
-    var displayName = user.profile && user.profile.display_name
+    const displayName = user.profile && user.profile.display_name
       ? user.profile.display_name
       : user.real_name || user.name;
-    var realName = user.real_name || '';
-    var title = user.profile && user.profile.title ? user.profile.title : '';
-    var status = user.profile && user.profile.status_text ? user.profile.status_text : '';
-    var email = user.profile && user.profile.email ? user.profile.email : '';
-    var phone = user.profile && user.profile.phone ? user.profile.phone : '';
-    var tz = user.tz_label || user.tz || '';
-    var isBot = user.is_bot;
-    var isOwn = userId === currentUserId;
+    const realName = user.real_name || '';
+    const title = user.profile && user.profile.title ? user.profile.title : '';
+    const status = user.profile && user.profile.status_text ? user.profile.status_text : '';
+    const email = user.profile && user.profile.email ? user.profile.email : '';
+    const phone = user.profile && user.profile.phone ? user.profile.phone : '';
+    const tz = user.tz_label || user.tz || '';
+    const isBot = user.is_bot;
+    const isOwn = userId === currentUserId;
 
     return (
       <View style={[styles.container, { backgroundColor: c.bg }]}>
@@ -169,7 +169,7 @@ export default class ProfileScreen extends Component {
   }
 }
 
-var styles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
   },

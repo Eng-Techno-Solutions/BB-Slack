@@ -18,7 +18,7 @@ import { getChannelDisplayName } from '../utils/format';
 import { getColors, getMode } from '../theme';
 import { addKeyEventListener, removeKeyEventListener } from '../utils/keyEvents';
 
-var TABS = [
+const TABS = [
   { key: 'channels', label: 'Channels', icon: 'hash' },
   { key: 'dms', label: 'DMs', icon: 'message-square' },
 ];
@@ -37,7 +37,7 @@ export default class ChannelListScreen extends Component {
   }
 
   componentDidMount() {
-    var self = this;
+    const self = this;
     this._keySub = addKeyEventListener(function (e) {
       self.handleKeyEvent(e);
     });
@@ -54,19 +54,19 @@ export default class ChannelListScreen extends Component {
   }
 
   handleKeyEvent(e) {
-    var action = e.action;
-    var data = this._data;
-    var idx = this.state.focusIndex;
+    const action = e.action;
+    const data = this._data;
+    const idx = this.state.focusIndex;
 
     if (action === 'down') {
-      var next = idx + 1;
+      let next = idx + 1;
       while (next < data.length && data[next]._sectionHeader) next++;
       if (next < data.length) {
         this.setState({ focusIndex: next });
         if (this._list) this._list.scrollToIndex({ index: next, viewOffset: 80, animated: true });
       }
     } else if (action === 'up') {
-      var prev = idx - 1;
+      let prev = idx - 1;
       while (prev >= 0 && data[prev]._sectionHeader) prev--;
       if (prev >= 0) {
         this.setState({ focusIndex: prev });
@@ -80,19 +80,19 @@ export default class ChannelListScreen extends Component {
   }
 
   isBot(ch) {
-    var { usersMap } = this.props;
+    const { usersMap } = this.props;
     if (!ch.is_im) return false;
-    var u = usersMap[ch.user];
+    const u = usersMap[ch.user];
     return u && (u.is_bot || u.id === 'USLACKBOT');
   }
 
   getUnreadCounts() {
-    var { channels } = this.props;
-    var channelsUnread = 0;
-    var dmsUnread = 0;
-    for (var i = 0; i < channels.length; i++) {
-      var ch = channels[i];
-      var count = ch.unread_count_display || 0;
+    const { channels } = this.props;
+    let channelsUnread = 0;
+    let dmsUnread = 0;
+    for (let i = 0; i < channels.length; i++) {
+      const ch = channels[i];
+      const count = ch.unread_count_display || 0;
       if (count > 0) {
         if (ch.is_im || ch.is_mpim) {
           dmsUnread += count;
@@ -105,18 +105,18 @@ export default class ChannelListScreen extends Component {
   }
 
   getFilteredChannels() {
-    var { channels, usersMap, currentUserId } = this.props;
-    var { tab, filter } = this.state;
-    var lowerFilter = filter.toLowerCase();
-    var self = this;
+    const { channels, usersMap, currentUserId } = this.props;
+    const { tab, filter } = this.state;
+    const lowerFilter = filter.toLowerCase();
+    const self = this;
 
-    var filtered = channels.filter(function (ch) {
+    let filtered = channels.filter(function (ch) {
       if (tab === 'channels') {
         return !ch.is_im && !ch.is_mpim;
       } else {
         if (!ch.is_im && !ch.is_mpim) return false;
         if (ch.is_im) {
-          var u = usersMap[ch.user];
+          const u = usersMap[ch.user];
           if (u && u.deleted) return false;
         }
         return true;
@@ -125,26 +125,26 @@ export default class ChannelListScreen extends Component {
 
     if (lowerFilter) {
       filtered = filtered.filter(function (ch) {
-        var name = getChannelDisplayName(ch, usersMap, currentUserId);
+        const name = getChannelDisplayName(ch, usersMap, currentUserId);
         return name.toLowerCase().indexOf(lowerFilter) !== -1;
       });
     }
 
-    var sortFn = function (a, b) {
-      var aUnread = (a.unread_count_display || 0) > 0 ? 1 : 0;
-      var bUnread = (b.unread_count_display || 0) > 0 ? 1 : 0;
+    const sortFn = function (a, b) {
+      const aUnread = (a.unread_count_display || 0) > 0 ? 1 : 0;
+      const bUnread = (b.unread_count_display || 0) > 0 ? 1 : 0;
       if (bUnread !== aUnread) return bUnread - aUnread;
-      var aName = getChannelDisplayName(a, usersMap, currentUserId).toLowerCase();
-      var bName = getChannelDisplayName(b, usersMap, currentUserId).toLowerCase();
+      const aName = getChannelDisplayName(a, usersMap, currentUserId).toLowerCase();
+      const bName = getChannelDisplayName(b, usersMap, currentUserId).toLowerCase();
       if (aName < bName) return -1;
       if (aName > bName) return 1;
       return 0;
     };
 
     if (tab === 'dms') {
-      var people = [];
-      var apps = [];
-      for (var i = 0; i < filtered.length; i++) {
+      const people = [];
+      const apps = [];
+      for (let i = 0; i < filtered.length; i++) {
         if (self.isBot(filtered[i])) {
           apps.push(filtered[i]);
         } else {
@@ -153,7 +153,7 @@ export default class ChannelListScreen extends Component {
       }
       people.sort(sortFn);
       apps.sort(sortFn);
-      var result = people;
+      let result = people;
       if (apps.length > 0) {
         result = result.concat([{ _sectionHeader: 'Apps' }], apps);
       }
@@ -165,10 +165,10 @@ export default class ChannelListScreen extends Component {
   }
 
   getProfileImage(userId) {
-    var { usersMap, slack } = this.props;
-    var u = usersMap[userId];
+    const { usersMap, slack } = this.props;
+    const u = usersMap[userId];
     if (!u || !u.profile) return null;
-    var url = u.profile.image_72 || u.profile.image_48 || null;
+    let url = u.profile.image_72 || u.profile.image_48 || null;
     if (Platform.OS === 'web' && url && slack && slack.token) {
       url = '/slack-file?url=' + encodeURIComponent(url) + '&token=' + encodeURIComponent(slack.token);
     }
@@ -176,16 +176,16 @@ export default class ChannelListScreen extends Component {
   }
 
   renderItem(item, isFocused) {
-    var { usersMap, currentUserId, onSelect } = this.props;
-    var c = getColors();
-    var name = getChannelDisplayName(item, usersMap, currentUserId);
-    var unread = item.unread_count_display || 0;
-    var prefix = '';
-    var isDm = item.is_im || item.is_mpim;
+    const { usersMap, currentUserId, onSelect } = this.props;
+    const c = getColors();
+    const name = getChannelDisplayName(item, usersMap, currentUserId);
+    const unread = item.unread_count_display || 0;
+    let prefix = '';
+    const isDm = item.is_im || item.is_mpim;
     if (!isDm) {
       prefix = item.is_private ? 'lock' : '# ';
     }
-    var imageUrl = isDm && item.is_im ? this.getProfileImage(item.user) : null;
+    const imageUrl = isDm && item.is_im ? this.getProfileImage(item.user) : null;
 
     return (
       <TouchableHighlight
@@ -233,14 +233,14 @@ export default class ChannelListScreen extends Component {
   }
 
   render() {
-    var { tab, filter } = this.state;
-    var { loading, onSearch, onLogout, onToggleTheme, onSettings, teamName, teamIcon } = this.props;
-    var self = this;
-    var data = this.getFilteredChannels();
+    const { tab, filter } = this.state;
+    const { loading, onSearch, onLogout, onToggleTheme, onSettings, teamName, teamIcon } = this.props;
+    const self = this;
+    const data = this.getFilteredChannels();
     this._data = data;
-    var c = getColors();
-    var isDark = getMode() === 'dark';
-    var unreadCounts = this.getUnreadCounts();
+    const c = getColors();
+    const isDark = getMode() === 'dark';
+    const unreadCounts = this.getUnreadCounts();
 
     return (
       <View style={[styles.container, { backgroundColor: c.bg }]}>
@@ -273,7 +273,7 @@ export default class ChannelListScreen extends Component {
         </View>
         <View style={[styles.tabs, { backgroundColor: c.bgHeader, borderBottomColor: c.headerBorder }]}>
           {TABS.map(function (t) {
-            var active = tab === t.key;
+            const active = tab === t.key;
             return (
               <TouchableOpacity
                 key={t.key}
@@ -338,7 +338,7 @@ export default class ChannelListScreen extends Component {
   }
 }
 
-var styles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
   },

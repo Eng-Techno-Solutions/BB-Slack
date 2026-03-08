@@ -1,17 +1,17 @@
 import { DeviceEventEmitter, Platform } from 'react-native';
 
-var listeners = [];
+const listeners = [];
 
 function addKeyEventListener(callback) {
   if (Platform.OS !== 'android') return { remove: function () {} };
-  var sub = DeviceEventEmitter.addListener('onKeyEvent', callback);
+  const sub = DeviceEventEmitter.addListener('onKeyEvent', callback);
   listeners.push(sub);
   return sub;
 }
 
 function removeKeyEventListener(sub) {
   if (sub && sub.remove) sub.remove();
-  var idx = listeners.indexOf(sub);
+  const idx = listeners.indexOf(sub);
   if (idx !== -1) listeners.splice(idx, 1);
 }
 

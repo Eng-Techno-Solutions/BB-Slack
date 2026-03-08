@@ -12,7 +12,7 @@ import Icon from '../components/Icon';
 import { getColors, getMode } from '../theme';
 import { addKeyEventListener, removeKeyEventListener } from '../utils/keyEvents';
 
-var INTERVAL_OPTIONS = [
+const INTERVAL_OPTIONS = [
   { label: '1 minute', value: 60000 },
   { label: '2 minutes', value: 120000 },
   { label: '3 minutes', value: 180000 },
@@ -20,7 +20,7 @@ var INTERVAL_OPTIONS = [
   { label: '10 minutes', value: 600000 },
 ];
 
-var FONT_SIZE_OPTIONS = [
+const FONT_SIZE_OPTIONS = [
   { label: 'Small', value: 'small' },
   { label: 'Medium', value: 'medium' },
   { label: 'Large', value: 'large' },
@@ -35,7 +35,7 @@ export default class SettingsScreen extends Component {
   }
 
   componentDidMount() {
-    var self = this;
+    const self = this;
     this._keySub = addKeyEventListener(function (e) {
       self._handleKeyEvent(e);
     });
@@ -46,19 +46,19 @@ export default class SettingsScreen extends Component {
   }
 
   _buildActions() {
-    var actions = [];
-    var { notifEnabled, onToggleNotif, onToggleSound, onChangeInterval, onToggleTheme, onChangeFontSize } = this.props;
+    const actions = [];
+    const { notifEnabled, onToggleNotif, onToggleSound, onChangeInterval, onToggleTheme, onChangeFontSize } = this.props;
     actions.push({ type: 'toggle', action: onToggleNotif });
     actions.push({ type: 'toggle', action: onToggleSound });
     if (notifEnabled) {
-      for (var i = 0; i < INTERVAL_OPTIONS.length; i++) {
-        var opt = INTERVAL_OPTIONS[i];
+      for (let i = 0; i < INTERVAL_OPTIONS.length; i++) {
+        const opt = INTERVAL_OPTIONS[i];
         actions.push({ type: 'select', action: function (v) { return function () { onChangeInterval(v); }; }(opt.value) });
       }
     }
     actions.push({ type: 'toggle', action: onToggleTheme });
-    for (var j = 0; j < FONT_SIZE_OPTIONS.length; j++) {
-      var fopt = FONT_SIZE_OPTIONS[j];
+    for (let j = 0; j < FONT_SIZE_OPTIONS.length; j++) {
+      const fopt = FONT_SIZE_OPTIONS[j];
       actions.push({ type: 'select', action: function (v) { return function () { onChangeFontSize(v); }; }(fopt.value) });
     }
     actions.push({ type: 'link', action: function () { Linking.openURL('https://ammaryaser.com/'); } });
@@ -70,15 +70,15 @@ export default class SettingsScreen extends Component {
   }
 
   _handleKeyEvent(e) {
-    var action = e.action;
-    var actions = this._buildActions();
-    var idx = this.state.focusIndex;
+    const action = e.action;
+    const actions = this._buildActions();
+    const idx = this.state.focusIndex;
 
     if (action === 'down') {
-      var next = Math.min(idx + 1, actions.length - 1);
+      const next = Math.min(idx + 1, actions.length - 1);
       this.setState({ focusIndex: next });
     } else if (action === 'up') {
-      var prev = Math.max(idx - 1, 0);
+      const prev = Math.max(idx - 1, 0);
       this.setState({ focusIndex: prev });
     } else if (action === 'select') {
       if (idx >= 0 && idx < actions.length) {
@@ -89,9 +89,9 @@ export default class SettingsScreen extends Component {
     }
   }
   renderToggleRow(icon, label, enabled, onPress) {
-    var c = getColors();
-    var ri = this._renderIdx++;
-    var focused = this.state.focusIndex === ri;
+    const c = getColors();
+    const ri = this._renderIdx++;
+    const focused = this.state.focusIndex === ri;
     return (
       <TouchableHighlight
         style={[styles.row, { borderBottomColor: c.border }, focused && { backgroundColor: c.listUnderlay }]}
@@ -113,12 +113,12 @@ export default class SettingsScreen extends Component {
   }
 
   renderSelectList(options, selectedValue, onSelect) {
-    var c = getColors();
-    var self = this;
+    const c = getColors();
+    const self = this;
     return options.map(function (opt) {
-      var selected = selectedValue === opt.value;
-      var ri = self._renderIdx++;
-      var focused = self.state.focusIndex === ri;
+      const selected = selectedValue === opt.value;
+      const ri = self._renderIdx++;
+      const focused = self.state.focusIndex === ri;
       return (
         <TouchableHighlight
           key={opt.value}
@@ -139,22 +139,22 @@ export default class SettingsScreen extends Component {
   }
 
   render() {
-    var {
+    const {
       notifEnabled, notifInterval, onToggleNotif, onChangeInterval,
       soundEnabled, onToggleSound,
       themeMode, onToggleTheme,
       fontSize, onChangeFontSize,
       onBack,
     } = this.props;
-    var c = getColors();
-    var isDark = getMode() === 'dark';
-    var fi = this.state.focusIndex;
+    const c = getColors();
+    const isDark = getMode() === 'dark';
+    const fi = this.state.focusIndex;
 
     // Reset render index counter - used by renderToggleRow/renderSelectList
     this._renderIdx = 0;
 
     // Inline rows need their own index tracking
-    var themeIdx, engTechnoIdx, websiteIdx, coffeeIdx, paypalIdx;
+    let themeIdx, engTechnoIdx, websiteIdx, coffeeIdx, paypalIdx;
 
     return (
       <View style={[styles.container, { backgroundColor: c.bg }]}>
@@ -294,7 +294,7 @@ export default class SettingsScreen extends Component {
   }
 }
 
-var styles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
   },

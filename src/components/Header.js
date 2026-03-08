@@ -6,8 +6,8 @@ import { getColors } from '../theme';
 
 export default class Header extends Component {
   render() {
-    var { title, subtitle, onBack, rightLabel, rightIcon, onRight } = this.props;
-    var c = getColors();
+    const { title, subtitle, onBack, rightLabel, rightIcon, onRight } = this.props;
+    const c = getColors();
     return (
       <View style={[styles.header, { backgroundColor: c.bgHeader, borderBottomColor: c.headerBorder }]}>
         <View style={styles.left}>
@@ -37,7 +37,7 @@ export default class Header extends Component {
   }
 }
 
-var styles = StyleSheet.create({
+const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',

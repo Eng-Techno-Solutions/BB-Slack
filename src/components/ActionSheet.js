@@ -11,8 +11,8 @@ import { getColors } from '../theme';
 
 export default class ActionSheet extends Component {
   render() {
-    var { visible, actions, onClose } = this.props;
-    var c = getColors();
+    const { visible, actions, onClose } = this.props;
+    const c = getColors();
 
     return (
       <Modal
@@ -53,7 +53,7 @@ export default class ActionSheet extends Component {
   }
 }
 
-var styles = StyleSheet.create({
+const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',

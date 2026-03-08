@@ -1,4 +1,4 @@
-export var EMOJI_MAP = {
+export const EMOJI_MAP = {
   // Smileys & Emotion
   'grinning': '😀', 'smiley': '😃', 'smile': '😄', 'grin': '😁',
   'laughing': '😆', 'satisfied': '😆', 'sweat_smile': '😅',
@@ -723,7 +723,7 @@ export function replaceEmojisInText(text) {
   // BB Q20 Android has no emoji font - keep shortcodes readable
   if (Platform.OS === 'android') return text;
   return text.replace(/:([a-zA-Z0-9_+-]+):/g, function (match, name) {
-    var emoji = EMOJI_MAP[name];
+    const emoji = EMOJI_MAP[name];
     return emoji || match;
   });
 }
@@ -731,9 +731,9 @@ export function replaceEmojisInText(text) {
 export function getTwemojiUrl(emoji) {
   try {
     if (!emoji || typeof emoji !== 'string') return null;
-    var codepoints = [];
-    for (var i = 0; i < emoji.length;) {
-      var cp = emoji.codePointAt(i);
+    const codepoints = [];
+    for (let i = 0; i < emoji.length;) {
+      const cp = emoji.codePointAt(i);
       if (cp === undefined) break;
       i += cp > 0xFFFF ? 2 : 1;
       if (cp !== 0xFE0F && cp !== 0xFE0E) {
@@ -748,7 +748,7 @@ export function getTwemojiUrl(emoji) {
 }
 
 export function getTwemojiUrlByName(name) {
-  var emoji = EMOJI_MAP[name];
+  const emoji = EMOJI_MAP[name];
   if (!emoji) return null;
   return getTwemojiUrl(emoji);
 }

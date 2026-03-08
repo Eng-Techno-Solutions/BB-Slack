@@ -4,22 +4,22 @@ import { replaceEmojisInText, EMOJI_MAP, getTwemojiUrl } from '../utils/emoji';
 import { getUserName } from '../utils/format';
 import { getColors } from '../theme';
 
-var IS_ANDROID = Platform.OS === 'android';
-var TOKEN_CHAR = '\x01';
+const IS_ANDROID = Platform.OS === 'android';
+const TOKEN_CHAR = '\x01';
 
 function replaceEmojisWithImages(text) {
   if (!text) return text;
   if (!IS_ANDROID) return replaceEmojisInText(text);
-  var parts = [];
-  var regex = /:([a-zA-Z0-9_+-]+):/g;
-  var lastIndex = 0;
-  var match;
-  var key = 0;
+  const parts = [];
+  const regex = /:([a-zA-Z0-9_+-]+):/g;
+  let lastIndex = 0;
+  let match;
+  let key = 0;
   while ((match = regex.exec(text)) !== null) {
     if (match.index > lastIndex) {
       parts.push(text.substring(lastIndex, match.index));
     }
-    var emoji = EMOJI_MAP[match[1]];
+    const emoji = EMOJI_MAP[match[1]];
     if (emoji) {
       parts.push(
         React.createElement(Image, {
@@ -48,23 +48,23 @@ function openUrl(url) {
 }
 
 function resolveToken(inner, usersMap) {
-  var pipeIndex = inner.indexOf('|');
-  var target = pipeIndex !== -1 ? inner.substring(0, pipeIndex) : inner;
-  var label = pipeIndex !== -1 ? inner.substring(pipeIndex + 1) : null;
+  const pipeIndex = inner.indexOf('|');
+  const target = pipeIndex !== -1 ? inner.substring(0, pipeIndex) : inner;
+  const label = pipeIndex !== -1 ? inner.substring(pipeIndex + 1) : null;
 
   if (target.indexOf('http://') === 0 || target.indexOf('https://') === 0 || target.indexOf('mailto:') === 0) {
     return { type: 'link', url: target, label: label || target.replace(/^https?:\/\//, '').replace(/\/$/, '') };
   }
   if (target.charAt(0) === '@') {
-    var userId = target.substring(1);
-    var name = usersMap ? getUserName(userId, usersMap) : userId;
+    const userId = target.substring(1);
+    const name = usersMap ? getUserName(userId, usersMap) : userId;
     return { type: 'mention', value: '@' + (label || name) };
   }
   if (target.charAt(0) === '#') {
     return { type: 'channel', value: '#' + (label || target.substring(1)) };
   }
   if (target.charAt(0) === '!') {
-    var cmd = target.substring(1);
+    const cmd = target.substring(1);
     if (cmd === 'here' || cmd === 'channel' || cmd === 'everyone') {
       return { type: 'mention', value: '@' + cmd };
     }
@@ -80,29 +80,29 @@ function resolveToken(inner, usersMap) {
 }
 
 function tokenizeLinks(text) {
-  var tokens = [];
-  var result = text.replace(/<([^>]+)>/g, function (match) {
-    var idx = tokens.length;
+  const tokens = [];
+  const result = text.replace(/<([^>]+)>/g, function (match) {
+    const idx = tokens.length;
     tokens.push(match);
     return TOKEN_CHAR + idx + TOKEN_CHAR;
   });
   return { text: result, tokens: tokens };
 }
 
-var TOKEN_REGEX = new RegExp(TOKEN_CHAR + '(\\d+)' + TOKEN_CHAR, 'g');
+const TOKEN_REGEX = new RegExp(TOKEN_CHAR + '(\\d+)' + TOKEN_CHAR, 'g');
 
 function expandTokens(text, tokens, usersMap) {
-  var parts = [];
-  var regex = new RegExp(TOKEN_CHAR + '(\\d+)' + TOKEN_CHAR, 'g');
-  var lastIndex = 0;
-  var match;
+  const parts = [];
+  const regex = new RegExp(TOKEN_CHAR + '(\\d+)' + TOKEN_CHAR, 'g');
+  let lastIndex = 0;
+  let match;
   while ((match = regex.exec(text)) !== null) {
     if (match.index > lastIndex) {
       parts.push({ type: 'text', value: text.substring(lastIndex, match.index) });
     }
-    var tokenIdx = parseInt(match[1]);
-    var raw = tokens[tokenIdx];
-    var inner = raw.substring(1, raw.length - 1);
+    const tokenIdx = parseInt(match[1]);
+    const raw = tokens[tokenIdx];
+    const inner = raw.substring(1, raw.length - 1);
     parts.push(resolveToken(inner, usersMap));
     lastIndex = match.index + match[0].length;
   }
@@ -119,15 +119,15 @@ function restoreTokensAsText(text, tokens) {
 }
 
 function parseFormatting(text) {
-  var result = [];
-  var remaining = text;
+  const result = [];
+  let remaining = text;
 
   while (remaining.length > 0) {
-    var codeBlockIdx = remaining.indexOf('```');
-    var inlineCodeIdx = remaining.indexOf('`');
+    const codeBlockIdx = remaining.indexOf('```');
+    const inlineCodeIdx = remaining.indexOf('`');
 
     if (inlineCodeIdx === codeBlockIdx && codeBlockIdx !== -1) {
-      var endBlock = remaining.indexOf('```', codeBlockIdx + 3);
+      const endBlock = remaining.indexOf('```', codeBlockIdx + 3);
       if (endBlock !== -1) {
         if (codeBlockIdx > 0) {
           result.push({ type: 'text', value: remaining.substring(0, codeBlockIdx) });
@@ -139,7 +139,7 @@ function parseFormatting(text) {
     }
 
     if (inlineCodeIdx !== -1 && inlineCodeIdx !== codeBlockIdx) {
-      var endInline = remaining.indexOf('`', inlineCodeIdx + 1);
+      const endInline = remaining.indexOf('`', inlineCodeIdx + 1);
       if (endInline !== -1) {
         if (inlineCodeIdx > 0) {
           result.push({ type: 'text', value: remaining.substring(0, inlineCodeIdx) });
@@ -158,10 +158,10 @@ function parseFormatting(text) {
 }
 
 function applyInlineFormatting(text) {
-  var parts = [];
-  var regex = /(\*([^*]+)\*)|(_([^_]+)_)|(~([^~]+)~)/g;
-  var lastIndex = 0;
-  var match;
+  const parts = [];
+  const regex = /(\*([^*]+)\*)|(_([^_]+)_)|(~([^~]+)~)/g;
+  let lastIndex = 0;
+  let match;
 
   while ((match = regex.exec(text)) !== null) {
     if (match.index > lastIndex) {
@@ -185,11 +185,11 @@ function applyInlineFormatting(text) {
 }
 
 function processTextSegment(text, tokens, usersMap) {
-  var inlineParts = applyInlineFormatting(text);
-  var result = [];
-  for (var i = 0; i < inlineParts.length; i++) {
-    var ip = inlineParts[i];
-    var expanded = expandTokens(ip.value, tokens, usersMap);
+  const inlineParts = applyInlineFormatting(text);
+  let result = [];
+  for (let i = 0; i < inlineParts.length; i++) {
+    const ip = inlineParts[i];
+    const expanded = expandTokens(ip.value, tokens, usersMap);
     if (ip.type === 'text') {
       result = result.concat(expanded);
     } else {
@@ -217,7 +217,7 @@ function renderPart(part, key, c) {
     return <Text key={key} style={[styles.inlineCode, { color: c.codeInlineColor, backgroundColor: c.codeInlineBg, borderColor: c.codeBorder }]}>{part.value}</Text>;
   }
   if (part.type === 'bold' || part.type === 'italic' || part.type === 'strike') {
-    var s = part.type === 'bold' ? styles.bold : part.type === 'italic' ? styles.italic : styles.strike;
+    const s = part.type === 'bold' ? styles.bold : part.type === 'italic' ? styles.italic : styles.strike;
     if (part.children) {
       return (
         <Text key={key} style={s}>
@@ -235,25 +235,25 @@ function renderPart(part, key, c) {
 function SlackText({ text, usersMap, style, numberOfLines }) {
   if (!text) return null;
 
-  var c = getColors();
+  const c = getColors();
 
-  var tokenized = tokenizeLinks(text);
-  var codeParts = parseFormatting(tokenized.text);
+  const tokenized = tokenizeLinks(text);
+  const codeParts = parseFormatting(tokenized.text);
 
-  var allParts = [];
-  for (var i = 0; i < codeParts.length; i++) {
-    var cp = codeParts[i];
+  let allParts = [];
+  for (let i = 0; i < codeParts.length; i++) {
+    const cp = codeParts[i];
     if (cp.type === 'codeblock' || cp.type === 'code') {
       cp.value = restoreTokensAsText(cp.value, tokenized.tokens);
       allParts.push(cp);
     } else {
-      var processed = processTextSegment(cp.value, tokenized.tokens, usersMap);
+      const processed = processTextSegment(cp.value, tokenized.tokens, usersMap);
       allParts = allParts.concat(processed);
     }
   }
 
-  var hasBlock = false;
-  for (var i = 0; i < allParts.length; i++) {
+  let hasBlock = false;
+  for (let i = 0; i < allParts.length; i++) {
     if (allParts[i].type === 'codeblock') { hasBlock = true; break; }
   }
 
@@ -283,7 +283,7 @@ function SlackText({ text, usersMap, style, numberOfLines }) {
   );
 }
 
-var styles = StyleSheet.create({
+const styles = StyleSheet.create({
   link: {
     textDecorationLine: 'underline',
   },

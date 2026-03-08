@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
 import { View, Text, Image, TouchableOpacity, TouchableHighlight, Linking, StyleSheet, Platform, Dimensions } from 'react-native';
-var IS_ANDROID = Platform.OS === 'android';
-var SCREEN_W = Dimensions.get('window').width;
-var CONTENT_MAX_W = SCREEN_W - 16 - 36 - 10 - 12 - 2;
+const IS_ANDROID = Platform.OS === 'android';
+const SCREEN_W = Dimensions.get('window').width;
+const CONTENT_MAX_W = SCREEN_W - 16 - 36 - 10 - 12 - 2;
 import { getTwemojiUrlByName } from '../utils/emoji';
 import { formatTime, getUserName } from '../utils/format';
 import { emojiFromName, replaceEmojisInText } from '../utils/emoji';
@@ -10,15 +10,15 @@ import Icon from './Icon';
 import SlackText from './SlackText';
 import { getColors, getMessageFontSize } from '../theme';
 
-var AVATAR_COLORS = [
+const AVATAR_COLORS = [
   '#E8912D', '#2BAC76', '#CD2553', '#1264A3',
   '#9B59B6', '#E74C3C', '#00BCD4', '#4A154B',
   '#3498DB', '#E67E22', '#1ABC9C', '#8E44AD',
 ];
 
 function hashCode(str) {
-  var hash = 0;
-  for (var i = 0; i < str.length; i++) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
     hash = ((hash << 5) - hash) + str.charCodeAt(i);
     hash = hash & hash;
   }
@@ -30,7 +30,7 @@ function getAvatarColor(userId) {
 }
 
 function getProfileImage(userId, usersMap) {
-  var u = usersMap[userId];
+  const u = usersMap[userId];
   if (u && u.profile) {
     return u.profile.image_72 || u.profile.image_48 || null;
   }
@@ -53,7 +53,7 @@ function imageSource(url, token) {
 
 function isImageFile(file) {
   if (file.mimetype && file.mimetype.indexOf('image/') === 0) return true;
-  var name = (file.name || file.title || '').toLowerCase();
+  const name = (file.name || file.title || '').toLowerCase();
   return name.match(/\.(png|jpg|jpeg|gif|webp|bmp|svg)$/) !== null;
 }
 
@@ -64,9 +64,9 @@ function isAudioFile(file) {
 }
 
 function formatDuration(ms) {
-  var secs = Math.round(ms / 1000);
-  var m = Math.floor(secs / 60);
-  var s = secs % 60;
+  const secs = Math.round(ms / 1000);
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
   return m + ':' + (s < 10 ? '0' : '') + s;
 }
 
@@ -86,35 +86,35 @@ export default class MessageItem extends Component {
   shouldComponentUpdate(nextProps, nextState) {
     if (this.state.showReactionUsers !== nextState.showReactionUsers) return true;
     if (this.props.focused !== nextProps.focused) return true;
-    var prev = this.props.message;
-    var next = nextProps.message;
+    const prev = this.props.message;
+    const next = nextProps.message;
     if (prev.ts !== next.ts) return true;
     if (prev.text !== next.text) return true;
     if ((prev.edited ? 'y' : 'n') !== (next.edited ? 'y' : 'n')) return true;
     if (prev.reply_count !== next.reply_count) return true;
-    var prevR = prev.reactions || [];
-    var nextR = next.reactions || [];
+    const prevR = prev.reactions || [];
+    const nextR = next.reactions || [];
     if (prevR.length !== nextR.length) return true;
-    for (var i = 0; i < prevR.length; i++) {
+    for (let i = 0; i < prevR.length; i++) {
       if (prevR[i].name !== nextR[i].name || prevR[i].count !== nextR[i].count) return true;
     }
-    var prevF = prev.files || [];
-    var nextF = next.files || [];
+    const prevF = prev.files || [];
+    const nextF = next.files || [];
     if (prevF.length !== nextF.length) return true;
     return false;
   }
 
   renderImageFile(f, i, token) {
-    var onImagePress = this.props.onImagePress;
-    var c = getColors();
-    var fullUrl = f.url_private || f.url_private_download || f.thumb_480 || f.thumb_360;
-    var thumbUrl = f.thumb_480 || f.thumb_360 || f.thumb_160 || fullUrl;
-    var proxiedThumb = proxyUrl(thumbUrl, token);
-    var proxiedFull = proxyUrl(fullUrl, token);
+    const onImagePress = this.props.onImagePress;
+    const c = getColors();
+    const fullUrl = f.url_private || f.url_private_download || f.thumb_480 || f.thumb_360;
+    const thumbUrl = f.thumb_480 || f.thumb_360 || f.thumb_160 || fullUrl;
+    const proxiedThumb = proxyUrl(thumbUrl, token);
+    const proxiedFull = proxyUrl(fullUrl, token);
 
-    var w = f.original_w || f.thumb_480_w || f.thumb_360_w || 300;
-    var h = f.original_h || f.thumb_480_h || f.thumb_360_h || 200;
-    var maxW = CONTENT_MAX_W;
+    let w = f.original_w || f.thumb_480_w || f.thumb_360_w || 300;
+    let h = f.original_h || f.thumb_480_h || f.thumb_360_h || 200;
+    const maxW = CONTENT_MAX_W;
     if (w > maxW) { h = Math.round(h * (maxW / w)); w = maxW; }
 
     return (
@@ -137,12 +137,12 @@ export default class MessageItem extends Component {
   }
 
   renderAudioFile(f, i, token) {
-    var onAudioPress = this.props.onAudioPress;
-    var c = getColors();
-    var audioUrl = f.aac || f.url_private || f.url_private_download || '';
-    var proxiedUrl = proxyUrl(audioUrl, token);
-    var duration = f.duration_ms ? formatDuration(f.duration_ms) : '';
-    var samples = f.audio_wave_samples || [];
+    const onAudioPress = this.props.onAudioPress;
+    const c = getColors();
+    const audioUrl = f.aac || f.url_private || f.url_private_download || '';
+    const proxiedUrl = proxyUrl(audioUrl, token);
+    const duration = f.duration_ms ? formatDuration(f.duration_ms) : '';
+    const samples = f.audio_wave_samples || [];
 
     return (
       <TouchableOpacity
@@ -160,7 +160,7 @@ export default class MessageItem extends Component {
         <View style={styles.audioContent}>
           <View style={styles.waveformRow}>
             {samples.filter(function (_, idx) { return idx % 2 === 0; }).slice(0, 40).map(function (val, idx) {
-              var barH = Math.max(2, Math.round((val / 100) * 24));
+              const barH = Math.max(2, Math.round((val / 100) * 24));
               return (
                 <View key={idx} style={[styles.waveBar, { height: barH, backgroundColor: c.accent }]} />
               );
@@ -173,10 +173,10 @@ export default class MessageItem extends Component {
   }
 
   renderFileCard(f, i) {
-    var c = getColors();
-    var permalink = f.permalink || f.permalink_public || '';
-    var ext = (f.filetype || '').toUpperCase();
-    var sizeKB = f.size ? (f.size > 1048576 ? (f.size / 1048576).toFixed(1) + ' MB' : Math.round(f.size / 1024) + ' KB') : '';
+    const c = getColors();
+    const permalink = f.permalink || f.permalink_public || '';
+    const ext = (f.filetype || '').toUpperCase();
+    const sizeKB = f.size ? (f.size > 1048576 ? (f.size / 1048576).toFixed(1) + ' MB' : Math.round(f.size / 1024) + ' KB') : '';
 
     return (
       <TouchableOpacity
@@ -205,8 +205,8 @@ export default class MessageItem extends Component {
   }
 
   render() {
-    var { message, usersMap, currentUserId, onLongPress, onThreadPress, token, focused } = this.props;
-    var c = getColors();
+    const { message, usersMap, currentUserId, onLongPress, onThreadPress, token, focused } = this.props;
+    const c = getColors();
 
     if (message.subtype === 'channel_join' || message.subtype === 'channel_leave' ||
         message.subtype === 'group_join' || message.subtype === 'group_leave') {
@@ -219,16 +219,16 @@ export default class MessageItem extends Component {
       );
     }
 
-    var userName = message.username || getUserName(message.user, usersMap);
-    var time = formatTime(message.ts);
-    var edited = message.edited ? ' (edited)' : '';
-    var threadCount = message.reply_count || 0;
-    var reactions = message.reactions || [];
-    var files = message.files || [];
-    var profileImg = getProfileImage(message.user, usersMap);
-    var initial = (userName || '?').charAt(0).toUpperCase();
-    var avatarBg = getAvatarColor(message.user);
-    var self = this;
+    const userName = message.username || getUserName(message.user, usersMap);
+    const time = formatTime(message.ts);
+    const edited = message.edited ? ' (edited)' : '';
+    const threadCount = message.reply_count || 0;
+    const reactions = message.reactions || [];
+    const files = message.files || [];
+    const profileImg = getProfileImage(message.user, usersMap);
+    const initial = (userName || '?').charAt(0).toUpperCase();
+    const avatarBg = getAvatarColor(message.user);
+    const self = this;
 
     return (
       <TouchableHighlight
@@ -270,9 +270,9 @@ export default class MessageItem extends Component {
           {reactions.length > 0 ? (
             <View style={styles.reactionsRow}>
               {reactions.map(function (r, i) {
-                var emoji = emojiFromName(r.name);
-                var reacted = r.users && r.users.indexOf(currentUserId) !== -1;
-                var isExpanded = self.state.showReactionUsers === i;
+                const emoji = emojiFromName(r.name);
+                const reacted = r.users && r.users.indexOf(currentUserId) !== -1;
+                const isExpanded = self.state.showReactionUsers === i;
                 return (
                   <View key={i} style={{ position: 'relative' }}>
                     <TouchableOpacity
@@ -330,7 +330,7 @@ export default class MessageItem extends Component {
   }
 }
 
-var styles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
     paddingVertical: 8,

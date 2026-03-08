@@ -34,7 +34,7 @@ export default class ChannelInfoScreen extends Component {
   componentDidMount() {
     this.loadMembers();
     this.loadPins();
-    var self = this;
+    const self = this;
     this._keySub = addKeyEventListener(function (e) {
       self.handleKeyEvent(e);
     });
@@ -45,17 +45,17 @@ export default class ChannelInfoScreen extends Component {
   }
 
   handleKeyEvent(e) {
-    var action = e.action;
-    var { showPins, members, pins, focusIndex } = this.state;
-    var data = showPins ? pins : members;
-    var idx = focusIndex;
+    const action = e.action;
+    const { showPins, members, pins, focusIndex } = this.state;
+    const data = showPins ? pins : members;
+    const idx = focusIndex;
 
     if (action === 'down') {
-      var next = Math.min(idx + 1, data.length - 1);
+      const next = Math.min(idx + 1, data.length - 1);
       this.setState({ focusIndex: next });
       if (this._list) this._list.scrollToIndex({ index: next, viewOffset: 80, animated: true });
     } else if (action === 'up') {
-      var prev = Math.max(idx - 1, 0);
+      const prev = Math.max(idx - 1, 0);
       this.setState({ focusIndex: prev });
       if (this._list) this._list.scrollToIndex({ index: prev, viewOffset: 80, animated: true });
     } else if (action === 'select' && idx >= 0 && idx < data.length) {
@@ -70,14 +70,14 @@ export default class ChannelInfoScreen extends Component {
   }
 
   async loadMembers() {
-    var { slack, channel, usersMap } = this.props;
+    const { slack, channel, usersMap } = this.props;
     try {
-      var res = await slack.conversationsMembers(channel.id);
-      var activeMembers = (res.members || []).filter(function (id) {
-        var u = usersMap[id];
+      const res = await slack.conversationsMembers(channel.id);
+      const activeMembers = (res.members || []).filter(function (id) {
+        const u = usersMap[id];
         if (!u) return true;
         if (u.deleted) return false;
-        var name = (u.profile && u.profile.display_name) || u.real_name || u.name || '';
+        const name = (u.profile && u.profile.display_name) || u.real_name || u.name || '';
         if (name.toLowerCase() === 'deactivateduser') return false;
         return true;
       });
@@ -88,9 +88,9 @@ export default class ChannelInfoScreen extends Component {
   }
 
   async loadPins() {
-    var { slack, channel } = this.props;
+    const { slack, channel } = this.props;
     try {
-      var res = await slack.pinsList(channel.id);
+      const res = await slack.pinsList(channel.id);
       this.setState({ pins: res.items || [], pinsLoading: false });
     } catch (err) {
       this.setState({ pinsLoading: false });
@@ -98,7 +98,7 @@ export default class ChannelInfoScreen extends Component {
   }
 
   getProfileImage(userId) {
-    var u = this.props.usersMap[userId];
+    const u = this.props.usersMap[userId];
     if (u && u.profile) {
       return u.profile.image_72 || u.profile.image_48 || null;
     }
@@ -106,10 +106,10 @@ export default class ChannelInfoScreen extends Component {
   }
 
   renderMember(userId, focused) {
-    var { usersMap, onProfile, slack } = this.props;
-    var c = getColors();
-    var name = getUserName(userId, usersMap);
-    var imageUrl = this.getProfileImage(userId);
+    const { usersMap, onProfile, slack } = this.props;
+    const c = getColors();
+    const name = getUserName(userId, usersMap);
+    let imageUrl = this.getProfileImage(userId);
     if (Platform.OS === 'web' && imageUrl && slack && slack.token) {
       imageUrl = '/slack-file?url=' + encodeURIComponent(imageUrl) + '&token=' + encodeURIComponent(slack.token);
     }
@@ -137,11 +137,11 @@ export default class ChannelInfoScreen extends Component {
   }
 
   renderPin(item) {
-    var { usersMap } = this.props;
-    var c = getColors();
-    var msg = item.message;
+    const { usersMap } = this.props;
+    const c = getColors();
+    const msg = item.message;
     if (!msg) return null;
-    var userName = getUserName(msg.user, usersMap);
+    const userName = getUserName(msg.user, usersMap);
 
     return (
       <View style={[styles.pinItem, { borderBottomColor: c.border }]}>
@@ -152,11 +152,11 @@ export default class ChannelInfoScreen extends Component {
   }
 
   render() {
-    var { channel, usersMap, currentUserId, onBack, onProfile } = this.props;
-    var { members, loading, pins, pinsLoading, showPins } = this.state;
-    var self = this;
-    var channelName = getChannelDisplayName(channel, usersMap, currentUserId);
-    var c = getColors();
+    const { channel, usersMap, currentUserId, onBack, onProfile } = this.props;
+    const { members, loading, pins, pinsLoading, showPins } = this.state;
+    const self = this;
+    const channelName = getChannelDisplayName(channel, usersMap, currentUserId);
+    const c = getColors();
 
     return (
       <View style={[styles.container, { backgroundColor: c.bg }]}>
@@ -231,7 +231,7 @@ export default class ChannelInfoScreen extends Component {
   }
 }
 
-var styles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
   },

@@ -1,6 +1,6 @@
-var _mediaRecorder = null;
-var _chunks = [];
-var _startTime = 0;
+let _mediaRecorder = null;
+let _chunks = [];
+let _startTime = 0;
 
 export function startRecording() {
   return navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
@@ -22,10 +22,10 @@ export function stopRecording() {
       return;
     }
     _mediaRecorder.onstop = function () {
-      var duration = Math.round((Date.now() - _startTime) / 1000);
-      var blob = new Blob(_chunks, { type: 'audio/webm' });
-      var tracks = _mediaRecorder.stream.getTracks();
-      for (var i = 0; i < tracks.length; i++) tracks[i].stop();
+      const duration = Math.round((Date.now() - _startTime) / 1000);
+      const blob = new Blob(_chunks, { type: 'audio/webm' });
+      const tracks = _mediaRecorder.stream.getTracks();
+      for (let i = 0; i < tracks.length; i++) tracks[i].stop();
       _mediaRecorder = null;
       _chunks = [];
       resolve({
@@ -42,8 +42,8 @@ export function stopRecording() {
 export function cancelRecording() {
   if (_mediaRecorder) {
     try {
-      var tracks = _mediaRecorder.stream.getTracks();
-      for (var i = 0; i < tracks.length; i++) tracks[i].stop();
+      const tracks = _mediaRecorder.stream.getTracks();
+      for (let i = 0; i < tracks.length; i++) tracks[i].stop();
       _mediaRecorder.stop();
     } catch (e) {}
     _mediaRecorder = null;

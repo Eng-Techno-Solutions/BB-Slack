@@ -29,7 +29,7 @@ export default class SearchScreen extends Component {
   }
 
   componentDidMount() {
-    var self = this;
+    const self = this;
     this._keySub = addKeyEventListener(function (e) {
       self.handleKeyEvent(e);
     });
@@ -40,16 +40,16 @@ export default class SearchScreen extends Component {
   }
 
   handleKeyEvent(e) {
-    var action = e.action;
-    var results = this.state.results;
-    var idx = this.state.focusIndex;
+    const action = e.action;
+    const results = this.state.results;
+    const idx = this.state.focusIndex;
 
     if (action === 'down') {
-      var next = Math.min(idx + 1, results.length - 1);
+      const next = Math.min(idx + 1, results.length - 1);
       this.setState({ focusIndex: next });
       if (this._list) this._list.scrollToIndex({ index: next, viewOffset: 80, animated: true });
     } else if (action === 'up') {
-      var prev = Math.max(idx - 1, 0);
+      const prev = Math.max(idx - 1, 0);
       this.setState({ focusIndex: prev });
       if (this._list) this._list.scrollToIndex({ index: prev, viewOffset: 80, animated: true });
     } else if (action === 'select' && idx >= 0 && idx < results.length) {
@@ -60,14 +60,14 @@ export default class SearchScreen extends Component {
   }
 
   async doSearch() {
-    var { slack } = this.props;
-    var { query } = this.state;
+    const { slack } = this.props;
+    const { query } = this.state;
     if (!query.trim()) return;
 
     this.setState({ loading: true, searched: true });
     try {
-      var res = await slack.searchMessages(query.trim());
-      var matches = res.messages && res.messages.matches ? res.messages.matches : [];
+      const res = await slack.searchMessages(query.trim());
+      const matches = res.messages && res.messages.matches ? res.messages.matches : [];
       this.setState({ results: matches, loading: false });
     } catch (err) {
       this.setState({ results: [], loading: false });
@@ -75,10 +75,10 @@ export default class SearchScreen extends Component {
   }
 
   renderItem(item, focused) {
-    var { usersMap, onSelectMessage } = this.props;
-    var c = getColors();
-    var userName = getUserName(item.user || item.username, usersMap);
-    var channelName = item.channel && item.channel.name ? '#' + item.channel.name : '';
+    const { usersMap, onSelectMessage } = this.props;
+    const c = getColors();
+    const userName = getUserName(item.user || item.username, usersMap);
+    const channelName = item.channel && item.channel.name ? '#' + item.channel.name : '';
 
     return (
       <TouchableHighlight
@@ -100,10 +100,10 @@ export default class SearchScreen extends Component {
   }
 
   render() {
-    var { onBack } = this.props;
-    var { query, results, loading, searched } = this.state;
-    var self = this;
-    var c = getColors();
+    const { onBack } = this.props;
+    const { query, results, loading, searched } = this.state;
+    const self = this;
+    const c = getColors();
 
     return (
       <View style={[styles.container, { backgroundColor: c.bg }]}>
@@ -153,7 +153,7 @@ export default class SearchScreen extends Component {
   }
 }
 
-var styles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
   },

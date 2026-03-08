@@ -1,11 +1,11 @@
 export function pickFile() {
   return new Promise(function (resolve) {
-    var input = document.createElement('input');
+    const input = document.createElement('input');
     input.type = 'file';
     input.style.display = 'none';
 
     input.onchange = function (e) {
-      var file = e.target.files[0];
+      const file = e.target.files[0];
       if (!file) {
         resolve(null);
         return;

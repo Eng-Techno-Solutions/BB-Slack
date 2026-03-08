@@ -52,7 +52,7 @@ export default class App extends Component {
 
   async loadTheme() {
     try {
-      var mode = await getTheme();
+      const mode = await getTheme();
       setMode(mode);
       this.setState({ themeMode: mode });
       this._applyThemeToDOM(mode);
@@ -70,7 +70,7 @@ export default class App extends Component {
   }
 
   toggleTheme() {
-    var newMode = getMode() === 'dark' ? 'light' : 'dark';
+    const newMode = getMode() === 'dark' ? 'light' : 'dark';
     setMode(newMode);
     this.setState({ themeMode: newMode });
     saveTheme(newMode);
@@ -79,7 +79,7 @@ export default class App extends Component {
 
   async tryAutoLogin() {
     try {
-      var token = await getToken();
+      const token = await getToken();
       if (token) {
         await this.doLogin(token);
       } else {
@@ -91,8 +91,8 @@ export default class App extends Component {
   }
 
   async doLogin(token) {
-    var slack = new SlackAPI(token);
-    var auth = await slack.authTest();
+    const slack = new SlackAPI(token);
+    const auth = await slack.authTest();
 
     this.setState({
       slack: slack,
@@ -112,8 +112,8 @@ export default class App extends Component {
   startChannelPolling(slack) {
     this.stopChannelPolling();
     if (!this.state.notifEnabled) return;
-    var self = this;
-    var interval = this.state.notifInterval || 120000;
+    const self = this;
+    const interval = this.state.notifInterval || 120000;
     this._channelPollTimer = setInterval(function () {
       self.loadChannels(slack);
     }, interval);
@@ -128,8 +128,8 @@ export default class App extends Component {
 
   async loadTeamInfo(slack) {
     try {
-      var res = await slack.teamInfo();
-      var icon = res.team && res.team.icon ? res.team.icon.image_68 || res.team.icon.image_44 || '' : '';
+      const res = await slack.teamInfo();
+      const icon = res.team && res.team.icon ? res.team.icon.image_68 || res.team.icon.image_44 || '' : '';
       this.setState({ teamIcon: icon });
     } catch (err) {
       console.warn('loadTeamInfo error:', err.message);
@@ -138,12 +138,12 @@ export default class App extends Component {
 
   async loadUsers(slack) {
     try {
-      var usersMap = {};
-      var cursor = '';
+      const usersMap = {};
+      let cursor = '';
       do {
-        var res = await slack.usersList(cursor || undefined, 200);
-        var members = res.members || [];
-        for (var i = 0; i < members.length; i++) {
+        const res = await slack.usersList(cursor || undefined, 200);
+        const members = res.members || [];
+        for (let i = 0; i < members.length; i++) {
           usersMap[members[i].id] = members[i];
         }
         cursor = res.response_metadata && res.response_metadata.next_cursor
@@ -160,14 +160,14 @@ export default class App extends Component {
   async loadChannels(slack) {
     if (this._loadingChannels) return;
     this._loadingChannels = true;
-    var isFirstLoad = this.state.channels.length === 0;
-    var oldChannels = this.state.channels;
+    const isFirstLoad = this.state.channels.length === 0;
+    const oldChannels = this.state.channels;
     if (isFirstLoad) this.setState({ channelsLoading: true });
     try {
-      var allChannels = [];
-      var cursor = '';
+      let allChannels = [];
+      let cursor = '';
       do {
-        var res = await slack.conversationsList(
+        const res = await slack.conversationsList(
           'public_channel,private_channel,mpim,im',
           cursor || undefined,
           200
@@ -180,22 +180,22 @@ export default class App extends Component {
 
       // Detect new unreads and play sound if not viewing that channel
       if (!isFirstLoad && oldChannels.length > 0) {
-        var oldUnreadMap = {};
-        for (var i = 0; i < oldChannels.length; i++) {
+        const oldUnreadMap = {};
+        for (let i = 0; i < oldChannels.length; i++) {
           oldUnreadMap[oldChannels[i].id] = oldChannels[i].unread_count_display || 0;
         }
 
-        var stack = this.state.stack;
-        var currentScreen = stack[stack.length - 1];
-        var activeChannelId = (currentScreen.screen === 'chat' && currentScreen.params.channel)
+        const stack = this.state.stack;
+        const currentScreen = stack[stack.length - 1];
+        const activeChannelId = (currentScreen.screen === 'chat' && currentScreen.params.channel)
           ? currentScreen.params.channel.id
           : null;
 
-        var hasNewUnread = false;
-        for (var j = 0; j < allChannels.length; j++) {
-          var ch = allChannels[j];
-          var oldCount = oldUnreadMap[ch.id] || 0;
-          var newCount = ch.unread_count_display || 0;
+        let hasNewUnread = false;
+        for (let j = 0; j < allChannels.length; j++) {
+          const ch = allChannels[j];
+          const oldCount = oldUnreadMap[ch.id] || 0;
+          const newCount = ch.unread_count_display || 0;
           if (newCount > oldCount && ch.id !== activeChannelId) {
             hasNewUnread = true;
             break;
@@ -222,10 +222,10 @@ export default class App extends Component {
 
   async loadNotifSettings() {
     try {
-      var interval = await getNotifInterval();
-      var enabled = await getNotifEnabled();
-      var sound = await getSoundEnabled();
-      var font = await getFontSize();
+      const interval = await getNotifInterval();
+      const enabled = await getNotifEnabled();
+      const sound = await getSoundEnabled();
+      const font = await getFontSize();
       setNotificationMuted(!sound);
       setFontSizeKey(font);
       this.setState({ notifInterval: interval, notifEnabled: enabled, soundEnabled: sound, fontSize: font });
@@ -235,7 +235,7 @@ export default class App extends Component {
   }
 
   async handleToggleNotif() {
-    var enabled = !this.state.notifEnabled;
+    const enabled = !this.state.notifEnabled;
     await saveNotifEnabled(enabled);
     this.setState({ notifEnabled: enabled });
     if (enabled) {
@@ -255,7 +255,7 @@ export default class App extends Component {
   }
 
   async handleToggleSound() {
-    var enabled = !this.state.soundEnabled;
+    const enabled = !this.state.soundEnabled;
     await saveSoundEnabled(enabled);
     setNotificationMuted(!enabled);
     this.setState({ soundEnabled: enabled });
@@ -298,18 +298,18 @@ export default class App extends Component {
 
   replaceTop(screen, params) {
     this.setState(function (prev) {
-      var newStack = prev.stack.slice(0, -1);
+      const newStack = prev.stack.slice(0, -1);
       newStack.push({ screen: screen, params: params || {} });
       return { stack: newStack };
     });
   }
 
   renderScreen() {
-    var { stack, slack, currentUser, usersMap, channels, channelsLoading, teamName, teamIcon, themeMode } = this.state;
-    var current = stack[stack.length - 1];
-    var screen = current.screen;
-    var params = current.params || {};
-    var self = this;
+    const { stack, slack, currentUser, usersMap, channels, channelsLoading, teamName, teamIcon, themeMode } = this.state;
+    const current = stack[stack.length - 1];
+    const screen = current.screen;
+    const params = current.params || {};
+    const self = this;
 
     switch (screen) {
       case 'login':
@@ -389,7 +389,7 @@ export default class App extends Component {
             onSelectMessage={function (msg) {
               // Try to navigate to the channel
               if (msg.channel && msg.channel.id) {
-                var ch = channels.find(function (c) { return c.id === msg.channel.id; });
+                const ch = channels.find(function (c) { return c.id === msg.channel.id; });
                 if (ch) {
                   self.navigate('chat', { channel: ch });
                 }
@@ -451,7 +451,7 @@ export default class App extends Component {
   }
 
   render() {
-    var colors = getColors();
+    const colors = getColors();
 
     if (this.state.initializing) {
       return (
@@ -470,7 +470,7 @@ export default class App extends Component {
   }
 }
 
-var styles = StyleSheet.create({
+const styles = StyleSheet.create({
   app: {
     flex: 1,
   },

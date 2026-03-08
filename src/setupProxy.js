@@ -15,8 +15,8 @@ module.exports = function (app) {
   );
 
   app.get('/slack-file', function (req, res) {
-    var fileUrl = req.query.url;
-    var token = req.query.token;
+    const fileUrl = req.query.url;
+    const token = req.query.token;
     if (!fileUrl || !token) {
       res.status(400).send('Missing url or token');
       return;
@@ -29,7 +29,7 @@ module.exports = function (app) {
       return;
     }
 
-    var { Readable } = require('stream');
+    const { Readable } = require('stream');
 
     fetch(fileUrl, {
       headers: { 'Authorization': 'Bearer ' + token },
@@ -40,14 +40,14 @@ module.exports = function (app) {
           res.status(proxyRes.status).send('Upstream error: ' + proxyRes.status);
           return;
         }
-        var ct = proxyRes.headers.get('content-type') || 'application/octet-stream';
-        var reqUrl = req.query.url || '';
+        let ct = proxyRes.headers.get('content-type') || 'application/octet-stream';
+        const reqUrl = req.query.url || '';
         if (reqUrl.match(/audio.*\.mp4/) || reqUrl.match(/\.m4a/)) {
           ct = 'audio/mp4';
         }
         res.set('Content-Type', ct);
         res.set('Cache-Control', 'public, max-age=3600');
-        var nodeStream = Readable.fromWeb(proxyRes.body);
+        const nodeStream = Readable.fromWeb(proxyRes.body);
         nodeStream.pipe(res);
       })
       .catch(function (err) {

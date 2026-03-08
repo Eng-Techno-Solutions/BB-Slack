@@ -1,9 +1,9 @@
-var audioCtx = null;
-var _muted = false;
+let audioCtx = null;
+let _muted = false;
 
 function getAudioContext() {
   if (!audioCtx) {
-    var AC = window.AudioContext || window.webkitAudioContext;
+    const AC = window.AudioContext || window.webkitAudioContext;
     if (AC) audioCtx = new AC();
   }
   return audioCtx;
@@ -15,7 +15,7 @@ export function setNotificationMuted(muted) {
 
 export function playNotification() {
   if (_muted) return;
-  var ctx = getAudioContext();
+  const ctx = getAudioContext();
   if (!ctx) return;
 
   // Resume if suspended (browsers require user gesture)
@@ -23,8 +23,8 @@ export function playNotification() {
     ctx.resume();
   }
 
-  var osc = ctx.createOscillator();
-  var gain = ctx.createGain();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
   osc.connect(gain);
   gain.connect(ctx.destination);
 
