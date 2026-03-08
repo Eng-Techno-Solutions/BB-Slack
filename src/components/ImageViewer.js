@@ -130,7 +130,7 @@ export default class ImageViewer extends Component {
             }}
             data-type="btn"
           >
-            <Icon name="plus" size={18} color="#FFFFFF" />
+            <Text style={styles.zoomBtnText}>+</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.zoomBtn, { borderColor: c.border }]}
@@ -145,7 +145,7 @@ export default class ImageViewer extends Component {
             }}
             data-type="btn"
           >
-            <Icon name="minus" size={18} color="#FFFFFF" />
+            <Text style={styles.zoomBtnText}>{'\u2212'}</Text>
           </TouchableOpacity>
           {s.scale !== 1 ? (
             <TouchableOpacity
@@ -153,7 +153,7 @@ export default class ImageViewer extends Component {
               onPress={function () { self.setState({ scale: 1, translateX: 0, translateY: 0 }); }}
               data-type="btn"
             >
-              <Icon name="rotate-ccw" size={18} color="#FFFFFF" />
+              <Text style={styles.zoomBtnText}>{'\u21BA'}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -265,7 +265,7 @@ export default class ImageViewer extends Component {
             }}
             data-type="btn"
           >
-            <Icon name="plus" size={18} color="#FFFFFF" />
+            <Text style={styles.zoomBtnText}>+</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.zoomBtn, { borderColor: c.border }]}
@@ -280,7 +280,7 @@ export default class ImageViewer extends Component {
             }}
             data-type="btn"
           >
-            <Icon name="minus" size={18} color="#FFFFFF" />
+            <Text style={styles.zoomBtnText}>{'\u2212'}</Text>
           </TouchableOpacity>
           {s.scale !== 1 ? (
             <TouchableOpacity
@@ -288,7 +288,7 @@ export default class ImageViewer extends Component {
               onPress={function () { self.setState({ scale: 1, translateX: 0, translateY: 0 }); }}
               data-type="btn"
             >
-              <Icon name="rotate-ccw" size={18} color="#FFFFFF" />
+              <Text style={styles.zoomBtnText}>{'\u21BA'}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -416,5 +416,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginHorizontal: 4,
+  },
+  zoomBtnText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 });

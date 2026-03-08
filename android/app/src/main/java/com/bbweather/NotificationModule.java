@@ -3,6 +3,7 @@ package com.bbweather;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.Context;
+import android.os.Build;
 
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
@@ -36,7 +37,11 @@ public class NotificationModule extends ReactContextBaseJavaModule {
         NotificationHelper.createChannel(context);
 
         Intent intent = new Intent(context, SlackPollingService.class);
-        context.startService(intent);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent);
+        } else {
+            context.startService(intent);
+        }
     }
 
     @ReactMethod

@@ -37,6 +37,7 @@ export default class App extends Component {
       slack: null,
       currentUser: null,
       teamName: '',
+      teamIcon: '',
       usersMap: {},
       channels: [],
       channelsLoading: false,
@@ -114,7 +115,18 @@ export default class App extends Component {
     await saveToken(token);
     this.loadUsers(slack);
     this.loadChannels(slack);
+    this.loadTeamInfo(slack);
     this._loadNotifSettings();
+  }
+
+  async loadTeamInfo(slack) {
+    try {
+      const res = await slack.teamInfo();
+      const icon = res.team && res.team.icon ? res.team.icon.image_68 || res.team.icon.image_44 || '' : '';
+      this.setState({ teamIcon: icon });
+    } catch (err) {
+      console.warn('loadTeamInfo error:', err.message);
+    }
   }
 
   async loadUsers(slack) {
@@ -173,6 +185,7 @@ export default class App extends Component {
       slack: null,
       currentUser: null,
       teamName: '',
+      teamIcon: '',
       usersMap: {},
       channels: [],
       stack: [{ screen: 'login', params: {} }],
@@ -405,7 +418,7 @@ export default class App extends Component {
   }
 
   renderScreen() {
-    const { stack, slack, currentUser, usersMap, channels, channelsLoading, teamName } = this.state;
+    const { stack, slack, currentUser, usersMap, channels, channelsLoading, teamName, teamIcon } = this.state;
     const current = stack[stack.length - 1];
     const screen = current.screen;
     const params = current.params || {};
@@ -428,6 +441,7 @@ export default class App extends Component {
             currentUserId={currentUser}
             loading={channelsLoading}
             teamName={teamName}
+            teamIcon={teamIcon}
             onSelect={function (ch) {
               self.navigate('chat', { channel: ch });
             }}

@@ -1,8 +1,12 @@
 package com.bbweather;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -21,6 +25,8 @@ import org.json.JSONObject;
 public class SlackPollingService extends Service {
     private static final long DEFAULT_POLL_INTERVAL = 120000;
     private static final String PREFS_NAME = "bb_notifications";
+    private static final String SERVICE_CHANNEL_ID = "bb_service";
+    private static final int FOREGROUND_NOTIF_ID = 99999;
 
     private Handler handler;
     private Runnable pollRunnable;
@@ -38,6 +44,37 @@ public class SlackPollingService extends Service {
         } catch (Exception e) {
             sslFactory = null;
         }
+        startAsForeground();
+    }
+
+    private void startAsForeground() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                SERVICE_CHANNEL_ID, "Background Service",
+                NotificationManager.IMPORTANCE_LOW
+            );
+            channel.setDescription("Keeps checking for new messages");
+            channel.setShowBadge(false);
+            NotificationManager mgr = getSystemService(NotificationManager.class);
+            mgr.createNotificationChannel(channel);
+        }
+
+        Notification.Builder builder;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            builder = new Notification.Builder(this, SERVICE_CHANNEL_ID);
+        } else {
+            builder = new Notification.Builder(this);
+            builder.setPriority(Notification.PRIORITY_LOW);
+        }
+
+        Notification notification = builder
+            .setContentTitle("BB Slack")
+            .setContentText("Checking for messages")
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setOngoing(true)
+            .build();
+
+        startForeground(FOREGROUND_NOTIF_ID, notification);
     }
 
     @Override
@@ -75,9 +112,7 @@ public class SlackPollingService extends Service {
                 handler.postDelayed(this, interval);
             }
         };
-        long initialInterval = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            .getInt("pollInterval", (int) DEFAULT_POLL_INTERVAL);
-        handler.postDelayed(pollRunnable, initialInterval);
+        handler.post(pollRunnable);
     }
 
     private void pollForMessages() {
