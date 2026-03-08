@@ -5,6 +5,7 @@ import {
   TouchableHighlight,
   StyleSheet,
   ScrollView,
+  Linking,
 } from 'react-native';
 import Header from '../components/Header';
 import Icon from '../components/Icon';
@@ -133,6 +134,80 @@ export default class SettingsScreen extends Component {
               <Text style={[styles.rowValue, { color: c.textPlaceholder }]}>1.0.0</Text>
             </View>
           </View>
+          <TouchableHighlight
+            style={[styles.row, { borderBottomColor: c.border }]}
+            underlayColor={c.listUnderlay}
+            onPress={function () { Linking.openURL('https://ammaryaser.com/'); }}
+            data-type="list-item"
+          >
+            <View style={styles.rowInner}>
+              <View style={styles.rowLeft}>
+                <Icon name="globe" size={18} color={c.textTertiary} />
+                <Text style={[styles.rowLabel, { color: c.textSecondary }]}>Powered by Eng Techno</Text>
+              </View>
+              <Icon name="external-link" size={14} color={c.textPlaceholder} />
+            </View>
+          </TouchableHighlight>
+
+          <Text style={[styles.sectionTitle, { color: c.textPlaceholder }]}>DEVELOPER</Text>
+          <View style={[styles.row, { borderBottomColor: c.border }]}>
+            <View style={styles.rowInner}>
+              <View style={styles.rowLeft}>
+                <Icon name="user" size={18} color={c.textTertiary} />
+                <Text style={[styles.rowLabel, { color: c.textSecondary }]}>Ammar Yaser</Text>
+              </View>
+            </View>
+          </View>
+          <View style={[styles.devBio, { borderBottomColor: c.border }]}>
+            <Text style={[styles.bioText, { color: c.textPlaceholder }]}>
+              Senior Software Engineer & Product Builder. Full-stack development across frontend, backend, mobile & desktop with over a decade of experience.
+            </Text>
+          </View>
+          <TouchableHighlight
+            style={[styles.row, { borderBottomColor: c.border }]}
+            underlayColor={c.listUnderlay}
+            onPress={function () { Linking.openURL('https://ammaryaser.com/'); }}
+            data-type="list-item"
+          >
+            <View style={styles.rowInner}>
+              <View style={styles.rowLeft}>
+                <Icon name="globe" size={18} color={c.textTertiary} />
+                <Text style={[styles.rowLabel, { color: c.textSecondary }]}>ammaryaser.com</Text>
+              </View>
+              <Icon name="external-link" size={14} color={c.textPlaceholder} />
+            </View>
+          </TouchableHighlight>
+
+          <Text style={[styles.sectionTitle, { color: c.textPlaceholder }]}>SUPPORT</Text>
+          <TouchableHighlight
+            style={[styles.row, { borderBottomColor: c.border }]}
+            underlayColor={c.listUnderlay}
+            onPress={function () { Linking.openURL('https://buymeacoffee.com/ammaryaserh'); }}
+            data-type="list-item"
+          >
+            <View style={styles.rowInner}>
+              <View style={styles.rowLeft}>
+                <Icon name="coffee" size={18} color={c.textTertiary} />
+                <Text style={[styles.rowLabel, { color: c.textSecondary }]}>Buy Me a Coffee</Text>
+              </View>
+              <Icon name="external-link" size={14} color={c.textPlaceholder} />
+            </View>
+          </TouchableHighlight>
+          <TouchableHighlight
+            style={[styles.row, { borderBottomColor: c.border }]}
+            underlayColor={c.listUnderlay}
+            onPress={function () { Linking.openURL('https://paypal.me/ammartechno?locale.x=en_US&country.x=EG'); }}
+            data-type="list-item"
+          >
+            <View style={styles.rowInner}>
+              <View style={styles.rowLeft}>
+                <Icon name="heart" size={18} color={c.textTertiary} />
+                <Text style={[styles.rowLabel, { color: c.textSecondary }]}>Donate via PayPal</Text>
+              </View>
+              <Icon name="external-link" size={14} color={c.textPlaceholder} />
+            </View>
+          </TouchableHighlight>
+
           <View style={styles.bottomPad} />
         </ScrollView>
       </View>
@@ -193,6 +268,15 @@ var styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
     lineHeight: 16,
+  },
+  devBio: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  bioText: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   bottomPad: {
     height: 40,

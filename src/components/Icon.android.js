@@ -28,6 +28,12 @@ var ICON_MAP = {
   'paperclip': 'paperclip',
   'mic': 'mic',
   'square': 'square',
+  'settings': 'settings',
+  'bell': 'bell',
+  'globe': 'globe',
+  'user': 'user',
+  'coffee': 'coffee',
+  'external-link': 'external-link',
 };
 
 function Icon({ name, size, color }) {

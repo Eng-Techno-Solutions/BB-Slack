@@ -27,6 +27,10 @@ import Mic from 'lucide-react/dist/esm/icons/mic';
 import Square from 'lucide-react/dist/esm/icons/square';
 import Settings from 'lucide-react/dist/esm/icons/settings';
 import Bell from 'lucide-react/dist/esm/icons/bell';
+import Globe from 'lucide-react/dist/esm/icons/globe';
+import User from 'lucide-react/dist/esm/icons/user';
+import Coffee from 'lucide-react/dist/esm/icons/coffee';
+import ExternalLink from 'lucide-react/dist/esm/icons/external-link';
 
 var ICON_MAP = {
   'chevron-down': ChevronDown,
@@ -57,6 +61,10 @@ var ICON_MAP = {
   'square': Square,
   'settings': Settings,
   'bell': Bell,
+  'globe': Globe,
+  'user': User,
+  'coffee': Coffee,
+  'external-link': ExternalLink,
 };
 
 function Icon({ name, size, color }) {
