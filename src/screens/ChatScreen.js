@@ -86,6 +86,10 @@ export default class ChatScreen extends Component {
     const msgs = this.state.messages;
     const idx = this.state.focusIndex;
 
+    if (this._mentionRef && this._mentionRef.isVisible()) {
+      if (this._mentionRef.handleKeyEvent(action)) return;
+    }
+
     if (action === 'down') {
       const next = Math.max(idx - 1, 0);
       this.setState({ focusIndex: next });
@@ -565,6 +569,7 @@ export default class ChatScreen extends Component {
         )}
 
         <MentionSuggest
+          ref={function (r) { self._mentionRef = r; }}
           text={inputText}
           usersMap={usersMap}
           onSelect={function (id, name) { self.onMentionSelect(id, name); }}

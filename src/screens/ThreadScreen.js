@@ -74,6 +74,10 @@ export default class ThreadScreen extends Component {
     const replies = this.state.replies;
     const idx = this.state.focusIndex;
 
+    if (this._mentionRef && this._mentionRef.isVisible()) {
+      if (this._mentionRef.handleKeyEvent(action)) return;
+    }
+
     if (action === 'down') {
       const next = Math.min(idx + 1, replies.length - 1);
       this.setState({ focusIndex: next });
@@ -322,6 +326,7 @@ export default class ThreadScreen extends Component {
         )}
 
         <MentionSuggest
+          ref={function (r) { self._mentionRef = r; }}
           text={inputText}
           usersMap={usersMap}
           onSelect={function (id, name) { self.onMentionSelect(id, name); }}
