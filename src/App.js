@@ -228,7 +228,12 @@ export default class App extends Component {
       const font = await getFontSize();
       setNotificationMuted(!sound);
       setFontSizeKey(font);
-      this.setState({ notifInterval: interval, notifEnabled: enabled, soundEnabled: sound, fontSize: font });
+      const self = this;
+      this.setState({ notifInterval: interval, notifEnabled: enabled, soundEnabled: sound, fontSize: font }, function () {
+        if (enabled && self.state.slack) {
+          self.startChannelPolling(self.state.slack);
+        }
+      });
     } catch (err) {
       // Defaults
     }

@@ -6,17 +6,9 @@ import {
   StatusBar,
   BackHandler,
   AppState,
-  DeviceEventEmitter,
 } from 'react-native';
 import SlackAPI from './src/api/slack';
 import { saveToken, getToken, clearToken, getNotifInterval, saveNotifInterval, getNotifEnabled, saveNotifEnabled, saveSoundEnabled, getSoundEnabled, saveFontSize, getFontSize } from './src/utils/storage';
-import {
-  startNotificationService,
-  stopNotificationService,
-  setAppForeground,
-  cancelAllNotifications,
-  clearUnreadTracking,
-} from './src/utils/notification';
 import { playNotification, setNotificationMuted } from './src/utils/notificationSound';
 import { setFontSizeKey, getMode, setMode } from './src/theme';
 import { saveTheme, getTheme } from './src/utils/storage';
@@ -48,7 +40,6 @@ export default class App extends Component {
       fontSize: 'medium',
       themeMode: 'dark',
     };
-    this._unreadState = {};
     this._notifPollTimer = null;
   }
 
@@ -69,9 +60,6 @@ export default class App extends Component {
     if (!this._appStateListener) {
       AppState.addEventListener('change', function (state) { self._handleAppState(state); });
     }
-    this._notifOpenListener = DeviceEventEmitter.addListener('onNotificationOpen', function (channelId) {
-      self._handleNotificationOpen(channelId);
-    });
   }
 
   componentWillUnmount() {
@@ -80,9 +68,6 @@ export default class App extends Component {
     }
     if (this._appStateListener && this._appStateListener.remove) {
       this._appStateListener.remove();
-    }
-    if (this._notifOpenListener) {
-      this._notifOpenListener.remove();
     }
     this._stopNotifPolling();
   }
@@ -168,8 +153,6 @@ export default class App extends Component {
       } while (cursor);
 
       this.setState({ channels: allChannels, channelsLoading: false });
-      this._updateUnreadState(allChannels);
-      this._startBackgroundService();
     } catch (err) {
       this.setState({ channelsLoading: false });
     }
@@ -177,9 +160,6 @@ export default class App extends Component {
 
   async handleLogout() {
     this._stopNotifPolling();
-    stopNotificationService();
-    clearUnreadTracking();
-    cancelAllNotifications();
     await clearToken();
     this.setState({
       slack: null,
@@ -194,43 +174,10 @@ export default class App extends Component {
 
   _handleAppState(state) {
     if (state === 'active') {
-      setAppForeground(true);
-      cancelAllNotifications();
       if (this.state.notifEnabled) this._startNotifPolling();
     } else if (state === 'background') {
-      setAppForeground(false);
       this._stopNotifPolling();
     }
-  }
-
-  _handleNotificationOpen(channelId) {
-    if (!channelId) return;
-    const ch = this.state.channels.find(function (c) { return c.id === channelId; });
-    if (ch) {
-      this.navigate('chat', { channel: ch });
-    }
-  }
-
-  _startBackgroundService() {
-    const { slack, currentUser, usersMap, notifEnabled, notifInterval } = this.state;
-    if (!slack || !currentUser || !notifEnabled) {
-      stopNotificationService();
-      return;
-    }
-    const minimalUsersMap = {};
-    const keys = Object.keys(usersMap);
-    for (let i = 0; i < keys.length; i++) {
-      const u = usersMap[keys[i]];
-      minimalUsersMap[keys[i]] = {
-        name: u.name || '',
-        real_name: u.real_name || '',
-        profile: {
-          display_name: (u.profile && u.profile.display_name) || '',
-          real_name: (u.profile && u.profile.real_name) || '',
-        },
-      };
-    }
-    startNotificationService(slack.token, currentUser, minimalUsersMap, notifInterval);
   }
 
   async _loadTheme() {
@@ -272,11 +219,8 @@ export default class App extends Component {
     this.setState({ notifEnabled: enabled });
     if (enabled) {
       this._startNotifPolling();
-      this._startBackgroundService();
     } else {
       this._stopNotifPolling();
-      stopNotificationService();
-      cancelAllNotifications();
     }
   }
 
@@ -284,7 +228,6 @@ export default class App extends Component {
     await saveNotifInterval(ms);
     this.setState({ notifInterval: ms });
     this._startNotifPolling();
-    this._startBackgroundService();
   }
 
   async _handleToggleSound() {
@@ -298,16 +241,6 @@ export default class App extends Component {
     await saveFontSize(size);
     setFontSizeKey(size);
     this.setState({ fontSize: size });
-  }
-
-  _updateUnreadState(channels) {
-    for (let i = 0; i < channels.length; i++) {
-      const ch = channels[i];
-      this._unreadState[ch.id] = {
-        unread: ch.unread_count_display || 0,
-        mentions: ch.mention_count_display || 0,
-      };
-    }
   }
 
   _startNotifPolling() {
@@ -337,7 +270,7 @@ export default class App extends Component {
   }
 
   async _pollUnreads() {
-    const { slack, currentUser } = this.state;
+    const { slack, currentUser, channels: oldChannels } = this.state;
     if (!slack || !currentUser) return;
     this._notifPolling = true;
     try {
@@ -355,39 +288,30 @@ export default class App extends Component {
           : '';
       } while (cursor);
 
+      // Build old unread map
+      const oldUnreadMap = {};
+      for (let i = 0; i < oldChannels.length; i++) {
+        oldUnreadMap[oldChannels[i].id] = oldChannels[i].unread_count_display || 0;
+      }
+
       const currentChId = this._getCurrentChannelId();
-      let hasNewNotif = false;
-      let hasAnyChange = false;
+      let hasNewUnread = false;
 
       for (let i = 0; i < allChannels.length; i++) {
         const ch = allChannels[i];
-        const prev = this._unreadState[ch.id];
-        const unread = ch.unread_count_display || 0;
-        const mentions = ch.mention_count_display || 0;
-
-        if (!prev || prev.unread !== unread || prev.mentions !== mentions) {
-          hasAnyChange = true;
-        }
-
-        if (ch.id !== currentChId && prev) {
-          const isDm = ch.is_im || ch.is_mpim;
-          if (isDm && unread > prev.unread && unread > 0) {
-            hasNewNotif = true;
-          } else if (!isDm && mentions > prev.mentions && mentions > 0) {
-            hasNewNotif = true;
-          }
+        const oldCount = oldUnreadMap[ch.id] || 0;
+        const newCount = ch.unread_count_display || 0;
+        if (newCount > oldCount && ch.id !== currentChId) {
+          hasNewUnread = true;
+          break;
         }
       }
 
-      if (hasNewNotif) {
+      if (hasNewUnread) {
         playNotification();
       }
 
-      this._updateUnreadState(allChannels);
-
-      if (hasAnyChange) {
-        this.setState({ channels: allChannels });
-      }
+      this.setState({ channels: allChannels });
     } catch (err) {
       // Silent fail
     }
