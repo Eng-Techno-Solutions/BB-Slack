@@ -92,18 +92,20 @@ export default class ChannelListScreen extends Component {
       // List zone
       const idx = this.state.focusIndex;
       if (action === 'down') {
-        let next = idx + 1;
+        if (data.length === 0) return;
+        let next = (idx < 0 ? 0 : idx + 1);
         while (next < data.length && data[next]._sectionHeader) next++;
         if (next < data.length) {
           this.setState({ focusIndex: next });
-          if (this._list) this._list.scrollToIndex({ index: next, viewOffset: 80, animated: true });
+          if (this._list) try { this._list.scrollToIndex({ index: next, viewOffset: 80, animated: true }); } catch (e) {}
         }
       } else if (action === 'up') {
-        let prev = idx - 1;
+        if (data.length === 0) return;
+        let prev = (idx < 0 ? 0 : idx - 1);
         while (prev >= 0 && data[prev]._sectionHeader) prev--;
         if (prev >= 0) {
           this.setState({ focusIndex: prev });
-          if (this._list) this._list.scrollToIndex({ index: prev, viewOffset: 80, animated: true });
+          if (this._list) try { this._list.scrollToIndex({ index: prev, viewOffset: 80, animated: true }); } catch (e) {}
         } else {
           // Enter header zone at bottom (logout)
           this.setState({ focusZone: 'header', headerIndex: 4, focusIndex: -1 });

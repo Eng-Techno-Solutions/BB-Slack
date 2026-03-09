@@ -51,13 +51,15 @@ export default class ChannelInfoScreen extends Component {
     const idx = focusIndex;
 
     if (action === 'down') {
-      const next = Math.min(idx + 1, data.length - 1);
+      if (data.length === 0) return;
+      const next = idx < 0 ? 0 : Math.min(idx + 1, data.length - 1);
       this.setState({ focusIndex: next });
-      if (this._list) this._list.scrollToIndex({ index: next, viewOffset: 80, animated: true });
+      if (this._list) try { this._list.scrollToIndex({ index: next, viewOffset: 80, animated: true }); } catch (e) {}
     } else if (action === 'up') {
-      const prev = Math.max(idx - 1, 0);
+      if (data.length === 0) return;
+      const prev = idx <= 0 ? 0 : idx - 1;
       this.setState({ focusIndex: prev });
-      if (this._list) this._list.scrollToIndex({ index: prev, viewOffset: 80, animated: true });
+      if (this._list) try { this._list.scrollToIndex({ index: prev, viewOffset: 80, animated: true }); } catch (e) {}
     } else if (action === 'select' && idx >= 0 && idx < data.length) {
       if (!showPins) {
         this.props.onProfile && this.props.onProfile(data[idx]);

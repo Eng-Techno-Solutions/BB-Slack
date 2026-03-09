@@ -45,13 +45,15 @@ export default class SearchScreen extends Component {
     const idx = this.state.focusIndex;
 
     if (action === 'down') {
-      const next = Math.min(idx + 1, results.length - 1);
+      if (results.length === 0) return;
+      const next = idx < 0 ? 0 : Math.min(idx + 1, results.length - 1);
       this.setState({ focusIndex: next });
-      if (this._list) this._list.scrollToIndex({ index: next, viewOffset: 80, animated: true });
+      if (this._list) try { this._list.scrollToIndex({ index: next, viewOffset: 80, animated: true }); } catch (e) {}
     } else if (action === 'up') {
-      const prev = Math.max(idx - 1, 0);
+      if (results.length === 0) return;
+      const prev = idx <= 0 ? 0 : idx - 1;
       this.setState({ focusIndex: prev });
-      if (this._list) this._list.scrollToIndex({ index: prev, viewOffset: 80, animated: true });
+      if (this._list) try { this._list.scrollToIndex({ index: prev, viewOffset: 80, animated: true }); } catch (e) {}
     } else if (action === 'select' && idx >= 0 && idx < results.length) {
       this.props.onSelectMessage && this.props.onSelectMessage(results[idx]);
     } else if (action === 'back') {

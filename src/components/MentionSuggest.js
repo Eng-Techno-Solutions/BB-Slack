@@ -87,13 +87,14 @@ export default class MentionSuggest extends Component {
     var idx = this.state.focusIndex;
 
     if (action === 'up') {
-      this.setState({ focusIndex: Math.max(idx - 1, 0) });
+      this.setState({ focusIndex: idx <= 0 ? 0 : idx - 1 });
       return true;
     } else if (action === 'down') {
-      this.setState({ focusIndex: Math.min(idx + 1, users.length - 1) });
+      this.setState({ focusIndex: idx < 0 ? 0 : Math.min(idx + 1, users.length - 1) });
       return true;
     } else if (action === 'select') {
-      var u = users[idx];
+      var safeIdx = idx < 0 ? 0 : idx;
+      var u = users[safeIdx];
       if (u) this.props.onSelect(u.id, u.name);
       return true;
     }
