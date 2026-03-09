@@ -242,6 +242,7 @@ export default class MessageItem extends Component {
       <TouchableHighlight
         style={[styles.container, focused && { backgroundColor: c.messageUnderlay }]}
         underlayColor={c.messageUnderlay}
+        onPress={function () { onThreadPress && onThreadPress(message); }}
         onLongPress={function () { onLongPress && onLongPress(message); }}
         data-type="message"
       >

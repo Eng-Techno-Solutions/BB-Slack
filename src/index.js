@@ -1,7 +1,7 @@
-import { AppRegistry } from 'react-native';
-import App from './App';
+import { AppRegistry } from "react-native";
+import App from "./App";
 
-AppRegistry.registerComponent('BBWeather', () => App);
-AppRegistry.runApplication('BBWeather', {
-  rootTag: document.getElementById('root'),
+AppRegistry.registerComponent("BBSlack", () => App);
+AppRegistry.runApplication("BBSlack", {
+  rootTag: document.getElementById("root"),
 });

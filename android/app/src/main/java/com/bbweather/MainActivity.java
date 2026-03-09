@@ -1,4 +1,4 @@
-package com.bbweather;
+package com.engtechnos.BBSlack;
 
 import android.view.KeyEvent;
 import com.facebook.react.ReactActivity;
@@ -8,7 +8,7 @@ import com.facebook.react.bridge.ReactContext;
 public class MainActivity extends ReactActivity {
     @Override
     protected String getMainComponentName() {
-        return "BBWeather";
+        return "BBSlack";
     }
 
     @Override

@@ -1,4 +1,4 @@
-package com.bbweather;
+package com.engtechnos.BBSlack;
 
 import com.facebook.react.ReactPackage;
 import com.facebook.react.bridge.NativeModule;

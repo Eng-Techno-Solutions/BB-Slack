@@ -11,7 +11,7 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
 
     defaultConfig {
-        applicationId "com.bbweather"
+        applicationId "com.engtechnos.BBSlack"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -23,10 +23,10 @@ android {
 
     signingConfigs {
         release {
-            storeFile file("bbweather.keystore")
-            storePassword "bbweather123"
-            keyAlias "bbweather"
-            keyPassword "bbweather123"
+            storeFile file("BBSlack.keystore")
+            storePassword "BBSlack123"
+            keyAlias "BBSlack"
+            keyPassword "BBSlack123"
         }
     }
 

@@ -16,6 +16,7 @@ import ActionSheet from '../components/ActionSheet';
 import ImageViewer from '../components/ImageViewer';
 import AudioPlayer from '../components/AudioPlayer';
 import EmojiPicker from '../components/EmojiPicker';
+import MentionSuggest from '../components/MentionSuggest';
 import { getChannelDisplayName } from '../utils/format';
 import { playNotification } from '../utils/notificationSound';
 import { pickFile } from '../utils/filePicker';
@@ -414,6 +415,16 @@ export default class ChatScreen extends Component {
     this.setState({ actionMessage: message, reactionTarget: message });
   }
 
+  onMentionSelect(userId, displayName) {
+    const self = this;
+    this.setState(function (prev) {
+      const text = prev.inputText;
+      const at = text.lastIndexOf('@');
+      const before = text.substring(0, at);
+      return { inputText: before + '<@' + userId + '> ' };
+    });
+  }
+
   onEmojiSelect(name, emoji) {
     const mode = this.state.emojiPickerMode;
     if (mode === 'reaction') {
@@ -553,6 +564,11 @@ export default class ChatScreen extends Component {
           </View>
         )}
 
+        <MentionSuggest
+          text={inputText}
+          usersMap={usersMap}
+          onSelect={function (id, name) { self.onMentionSelect(id, name); }}
+        />
         <View style={[styles.inputBar, { borderTopColor: c.border, backgroundColor: c.bg }]}>
           {editingMessage ? (
             <View style={[styles.editBanner, { backgroundColor: c.bgTertiary }]}>

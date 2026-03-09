@@ -1,4 +1,4 @@
-package com.bbweather;
+package com.engtechnos.BBSlack;
 
 import android.app.Application;
 

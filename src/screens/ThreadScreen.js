@@ -13,6 +13,7 @@ import Header from '../components/Header';
 import Icon from '../components/Icon';
 import MessageItem from '../components/MessageItem';
 import EmojiPicker from '../components/EmojiPicker';
+import MentionSuggest from '../components/MentionSuggest';
 import { getUserName } from '../utils/format';
 import { playNotification } from '../utils/notificationSound';
 import { pickFile } from '../utils/filePicker';
@@ -266,6 +267,15 @@ export default class ThreadScreen extends Component {
     );
   }
 
+  onMentionSelect(userId, displayName) {
+    this.setState(function (prev) {
+      const text = prev.inputText;
+      const at = text.lastIndexOf('@');
+      const before = text.substring(0, at);
+      return { inputText: before + '<@' + userId + '> ' };
+    });
+  }
+
   onEmojiSelect(name, emoji) {
     const mode = this.state.emojiPickerMode;
     if (mode === 'reaction') {
@@ -311,6 +321,11 @@ export default class ThreadScreen extends Component {
           />
         )}
 
+        <MentionSuggest
+          text={inputText}
+          usersMap={usersMap}
+          onSelect={function (id, name) { self.onMentionSelect(id, name); }}
+        />
         <View style={[styles.inputRow, { borderTopColor: c.border, backgroundColor: c.bg }]}>
           {self.state.recording ? (
             <View style={styles.innerRow}>
