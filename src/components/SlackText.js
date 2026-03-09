@@ -7,7 +7,7 @@ import { getColors } from '../theme';
 const IS_ANDROID = Platform.OS === 'android';
 const TOKEN_CHAR = '\x01';
 
-function replaceEmojisWithImages(text) {
+function replaceEmojisWithImages(text, emojiOnly) {
   if (!text) return text;
   if (!IS_ANDROID) return replaceEmojisInText(text);
   const parts = [];
@@ -25,7 +25,7 @@ function replaceEmojisWithImages(text) {
         React.createElement(Image, {
           key: 'e' + key++,
           source: { uri: getTwemojiUrl(emoji) },
-          style: styles.inlineEmoji,
+          style: emojiOnly ? styles.bigEmoji : styles.inlineEmoji,
         })
       );
     } else {
@@ -199,7 +199,7 @@ function processTextSegment(text, tokens, usersMap) {
   return result;
 }
 
-function renderPart(part, key, c) {
+function renderPart(part, key, c, emojiOnly) {
   if (part.type === 'link') {
     return (
       <Text key={key} style={[styles.link, { color: c.accentLight }]} onPress={function () { openUrl(part.url); }}>
@@ -222,17 +222,17 @@ function renderPart(part, key, c) {
       return (
         <Text key={key} style={s}>
           {part.children.map(function (child, j) {
-            return renderPart(child, key + '_' + j, c);
+            return renderPart(child, key + '_' + j, c, emojiOnly);
           })}
         </Text>
       );
     }
-    return <Text key={key} style={s}>{replaceEmojisWithImages(part.value)}</Text>;
+    return <Text key={key} style={s}>{replaceEmojisWithImages(part.value, emojiOnly)}</Text>;
   }
-  return replaceEmojisWithImages(part.value);
+  return replaceEmojisWithImages(part.value, emojiOnly);
 }
 
-function SlackText({ text, usersMap, style, numberOfLines }) {
+function SlackText({ text, usersMap, style, numberOfLines, emojiOnly }) {
   if (!text) return null;
 
   const c = getColors();
@@ -257,11 +257,13 @@ function SlackText({ text, usersMap, style, numberOfLines }) {
     if (allParts[i].type === 'codeblock') { hasBlock = true; break; }
   }
 
+  const textStyle = emojiOnly ? [style, styles.emojiOnlyText] : style;
+
   if (!hasBlock) {
     return (
-      <Text style={style} numberOfLines={numberOfLines}>
+      <Text style={textStyle} numberOfLines={numberOfLines}>
         {allParts.map(function (part, i) {
-          return renderPart(part, i, c);
+          return renderPart(part, i, c, emojiOnly);
         })}
       </Text>
     );
@@ -277,7 +279,7 @@ function SlackText({ text, usersMap, style, numberOfLines }) {
             </View>
           );
         }
-        return <Text key={i} style={style}>{renderPart(part, i, c)}</Text>;
+        return <Text key={i} style={textStyle}>{renderPart(part, i, c, emojiOnly)}</Text>;
       })}
     </View>
   );
@@ -325,6 +327,14 @@ const styles = StyleSheet.create({
   inlineEmoji: {
     width: 18,
     height: 18,
+  },
+  bigEmoji: {
+    width: 36,
+    height: 36,
+  },
+  emojiOnlyText: {
+    fontSize: 36,
+    lineHeight: 44,
   },
 });
 

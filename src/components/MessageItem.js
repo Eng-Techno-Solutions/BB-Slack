@@ -5,7 +5,7 @@ const SCREEN_W = Dimensions.get('window').width;
 const CONTENT_MAX_W = SCREEN_W - 16 - 36 - 10 - 12 - 2;
 import { getTwemojiUrlByName } from '../utils/emoji';
 import { formatTime, getUserName } from '../utils/format';
-import { emojiFromName, replaceEmojisInText } from '../utils/emoji';
+import { emojiFromName, replaceEmojisInText, EMOJI_MAP } from '../utils/emoji';
 import Icon from './Icon';
 import SlackText from './SlackText';
 import { getColors, getMessageFontSize } from '../theme';
@@ -68,6 +68,14 @@ function formatDuration(ms) {
   const m = Math.floor(secs / 60);
   const s = secs % 60;
   return m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+function isEmojiOnly(text) {
+  if (!text) return false;
+  const withoutEmojis = text.replace(/:([a-zA-Z0-9_+-]+):/g, function (match, name) {
+    return EMOJI_MAP[name] ? '' : match;
+  });
+  return withoutEmojis.trim().length === 0;
 }
 
 function getThumbDataUri(file) {
@@ -254,7 +262,7 @@ export default class MessageItem extends Component {
           </View>
 
           {message.text ? (
-            <SlackText text={message.text} usersMap={usersMap} style={[styles.text, { color: c.textSecondary, fontSize: getMessageFontSize() }]} />
+            <SlackText text={message.text} usersMap={usersMap} emojiOnly={isEmojiOnly(message.text)} style={[styles.text, { color: c.textSecondary, fontSize: getMessageFontSize() }]} />
           ) : null}
 
           {files.length > 0 ? (

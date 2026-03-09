@@ -311,7 +311,17 @@ export default class App extends Component {
         playNotification();
       }
 
-      this.setState({ channels: allChannels });
+      // Only update state if unread counts actually changed
+      let unreadChanged = allChannels.length !== oldChannels.length || hasNewUnread;
+      if (!unreadChanged) {
+        for (let u = 0; u < allChannels.length; u++) {
+          if ((allChannels[u].unread_count_display || 0) !== (oldUnreadMap[allChannels[u].id] || 0)) {
+            unreadChanged = true;
+            break;
+          }
+        }
+      }
+      if (unreadChanged) this.setState({ channels: allChannels });
     } catch (err) {
       // Silent fail
     }

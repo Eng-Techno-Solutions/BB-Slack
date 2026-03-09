@@ -36,6 +36,10 @@ export default class ChannelListScreen extends Component {
     };
     this._keySub = null;
     this._data = [];
+    const self = this;
+    this._keyExtractor = function (item) { return item._sectionHeader || item.id; };
+    this._renderItem = function (obj) { return self._renderListItem(obj); };
+    this._listRef = function (r) { self._list = r; };
   }
 
   componentDidMount() {
@@ -269,6 +273,18 @@ export default class ChannelListScreen extends Component {
     );
   }
 
+  _renderListItem(obj) {
+    const c = getColors();
+    if (obj.item._sectionHeader) {
+      return (
+        <View style={[styles.sectionHeader, { borderBottomColor: c.border }]}>
+          <Text style={[styles.sectionHeaderText, { color: c.textPlaceholder }]}>{obj.item._sectionHeader}</Text>
+        </View>
+      );
+    }
+    return this.renderItem(obj.item, obj.index === this.state.focusIndex);
+  }
+
   render() {
     const { tab, filter, focusZone, headerIndex } = this.state;
     const { loading, onSearch, onLogout, onToggleTheme, onSettings, teamName, teamIcon } = this.props;
@@ -351,19 +367,14 @@ export default class ChannelListScreen extends Component {
           </View>
         ) : (
           <FlatList
-            ref={function (r) { self._list = r; }}
+            ref={this._listRef}
             data={data}
-            keyExtractor={function (item) { return item._sectionHeader || item.id; }}
-            renderItem={function (obj) {
-              if (obj.item._sectionHeader) {
-                return (
-                  <View style={[styles.sectionHeader, { borderBottomColor: c.border }]}>
-                    <Text style={[styles.sectionHeaderText, { color: c.textPlaceholder }]}>{obj.item._sectionHeader}</Text>
-                  </View>
-                );
-              }
-              return self.renderItem(obj.item, obj.index === self.state.focusIndex);
-            }}
+            keyExtractor={this._keyExtractor}
+            renderItem={this._renderItem}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            windowSize={9}
+            initialNumToRender={15}
             ListEmptyComponent={
               <View style={styles.center}>
                 <Text style={[styles.emptyText, { color: c.textTertiary }]}>No channels found</Text>

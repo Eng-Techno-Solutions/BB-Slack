@@ -207,7 +207,23 @@ export default class App extends Component {
         }
       }
 
-      this.setState({ channels: allChannels, channelsLoading: false });
+      // Only update state if channel data actually changed
+      let channelDataChanged = isFirstLoad || allChannels.length !== oldChannels.length;
+      if (!channelDataChanged) {
+        const oldUnread = {};
+        for (let oi = 0; oi < oldChannels.length; oi++) {
+          oldUnread[oldChannels[oi].id] = oldChannels[oi].unread_count_display || 0;
+        }
+        for (let ni = 0; ni < allChannels.length; ni++) {
+          if ((allChannels[ni].unread_count_display || 0) !== (oldUnread[allChannels[ni].id] || 0)) {
+            channelDataChanged = true;
+            break;
+          }
+        }
+      }
+      if (channelDataChanged) {
+        this.setState({ channels: allChannels, channelsLoading: false });
+      }
     } catch (err) {
       if (err.message === 'ratelimited') {
         // Back off - skip this cycle, next interval will retry

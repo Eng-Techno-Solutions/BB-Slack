@@ -36,6 +36,14 @@ export default class ThreadScreen extends Component {
       recordingTime: 0,
       focusIndex: -1,
     };
+    const self = this;
+    this._keyExtractor = function (item) { return item.ts; };
+    this._renderItem = function (obj) { return self._renderMessageItem(obj); };
+    this._onReactionPress = function (m, name, reacted) { self.toggleReaction(m, name, reacted); };
+    this._onLongPress = function (m) {
+      self.setState({ reactionTarget: m, emojiPickerMode: 'reaction' });
+    };
+    this._listRef = function (r) { self._list = r; };
   }
 
   componentDidMount() {
@@ -84,7 +92,7 @@ export default class ThreadScreen extends Component {
     const self = this;
     this._pollTimer = setInterval(function () {
       if (self._mounted) self.pollReplies();
-    }, 5000);
+    }, 10000);
   }
 
   stopPolling() {
@@ -119,7 +127,18 @@ export default class ThreadScreen extends Component {
           playNotification();
         }
       }
-      this.setState({ replies: newReplies });
+      // Skip setState if nothing changed
+      let changed = newReplies.length !== replies.length;
+      if (!changed) {
+        for (let i = 0; i < newReplies.length; i++) {
+          if (newReplies[i].ts !== replies[i].ts || newReplies[i].text !== replies[i].text ||
+              (newReplies[i].reactions || []).length !== (replies[i].reactions || []).length) {
+            changed = true;
+            break;
+          }
+        }
+      }
+      if (changed) this.setState({ replies: newReplies });
     } catch (err) {
       // Silent
     }
@@ -135,6 +154,7 @@ export default class ThreadScreen extends Component {
     try {
       await slack.chatPostMessage(channel.id, text, parentMessage.ts);
       this.setState({ inputText: '', sending: false });
+      if (this._inputRef) this._inputRef.clear();
       this.loadReplies();
     } catch (err) {
       this.setState({ sending: false });
@@ -151,6 +171,7 @@ export default class ThreadScreen extends Component {
       const text = this.state.inputText.trim();
       await slack.filesUpload(channel.id, file, parentMessage.ts, text || null);
       this.setState({ uploading: false, inputText: '' });
+      if (this._inputRef) this._inputRef.clear();
       this.loadReplies();
     } catch (err) {
       this.setState({ uploading: false });
@@ -231,6 +252,20 @@ export default class ThreadScreen extends Component {
     }
   }
 
+  _renderMessageItem(obj) {
+    return (
+      <MessageItem
+        message={obj.item}
+        usersMap={this.props.usersMap}
+        currentUserId={this.props.currentUserId}
+        token={this.props.slack.token}
+        focused={obj.index === this.state.focusIndex}
+        onLongPress={this._onLongPress}
+        onReactionPress={this._onReactionPress}
+      />
+    );
+  }
+
   onEmojiSelect(name, emoji) {
     const mode = this.state.emojiPickerMode;
     if (mode === 'reaction') {
@@ -264,25 +299,15 @@ export default class ThreadScreen extends Component {
           </View>
         ) : (
           <FlatList
-            ref={function (r) { self._list = r; }}
+            ref={this._listRef}
             data={replies}
             inverted
-            keyExtractor={function (item) { return item.ts; }}
-            renderItem={function (obj) {
-              return (
-                <MessageItem
-                  message={obj.item}
-                  usersMap={usersMap}
-                  currentUserId={currentUserId}
-                  token={slack.token}
-                  focused={obj.index === self.state.focusIndex}
-                  onLongPress={function (m) {
-                    self.setState({ reactionTarget: m, emojiPickerMode: 'reaction' });
-                  }}
-                  onReactionPress={function (m, name, reacted) { self.toggleReaction(m, name, reacted); }}
-                />
-              );
-            }}
+            keyExtractor={this._keyExtractor}
+            renderItem={this._renderItem}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={8}
+            windowSize={7}
+            initialNumToRender={12}
           />
         )}
 
@@ -328,6 +353,7 @@ export default class ThreadScreen extends Component {
                 <Icon name="smile" size={22} color={c.textTertiary} />
               </TouchableOpacity>
               <TextInput
+                ref={function (r) { self._inputRef = r; }}
                 style={[styles.input, { backgroundColor: c.bgTertiary, color: c.textSecondary, borderColor: c.borderInput }]}
                 placeholder="Reply..."
                 placeholderTextColor={c.textPlaceholder}

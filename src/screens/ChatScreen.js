@@ -104,7 +104,7 @@ export default class ChatScreen extends Component {
     const self = this;
     this._pollTimer = setInterval(function () {
       if (self._mounted) self.pollNewMessages();
-    }, 5000);
+    }, 10000);
   }
 
   stopPolling() {
@@ -179,7 +179,19 @@ export default class ChatScreen extends Component {
 
       const self = this;
       const currentUserId = this.props.currentUserId;
-      this.setState({ messages: merged });
+      // Skip setState if nothing changed to avoid unnecessary re-renders
+      let changed = merged.length !== messages.length;
+      if (!changed) {
+        for (let c = 0; c < merged.length; c++) {
+          if (merged[c].ts !== messages[c].ts || merged[c].text !== messages[c].text ||
+              (merged[c].reactions || []).length !== (messages[c].reactions || []).length ||
+              merged[c].reply_count !== messages[c].reply_count) {
+            changed = true;
+            break;
+          }
+        }
+      }
+      if (changed) this.setState({ messages: merged });
       if (hasNew) {
         const newMsgs = fetched.filter(function (f) { return !existingMap[f.ts]; });
         const fromOthers = newMsgs.filter(function (msg) { return msg.user !== currentUserId; });
@@ -249,9 +261,11 @@ export default class ChatScreen extends Component {
           });
           return { messages: updated, inputText: '', sending: false, editingMessage: null };
         });
+        if (this._inputRef) this._inputRef.clear();
       } else {
         await slack.chatPostMessage(channel.id, text);
         this.setState({ inputText: '', sending: false });
+        if (this._inputRef) this._inputRef.clear();
         this.pollNewMessages();
       }
     } catch (err) {
@@ -270,6 +284,7 @@ export default class ChatScreen extends Component {
       const text = this.state.inputText.trim();
       await slack.filesUpload(channel.id, file, null, text || null);
       this.setState({ uploading: false, inputText: '' });
+      if (this._inputRef) this._inputRef.clear();
       this.pollNewMessages();
     } catch (err) {
       this.setState({ uploading: false });
@@ -492,6 +507,10 @@ export default class ChatScreen extends Component {
               renderItem={this._renderItem}
               onScroll={this._onScroll}
               scrollEventThrottle={100}
+              removeClippedSubviews={true}
+              maxToRenderPerBatch={8}
+              windowSize={7}
+              initialNumToRender={12}
               ListFooterComponent={
                 loadingMore ? (
                   <View style={styles.loadMore}>
