@@ -54,5 +54,15 @@ payload-types.ts
 **/*.fls
 **/*.toc
 
+# Android
 android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/captures/
+android/.idea/
+*.apk
+*.aab
+*.hprof
+
 **/.DS_Store
