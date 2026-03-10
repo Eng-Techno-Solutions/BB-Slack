@@ -283,7 +283,7 @@ export default class MessageItem extends Component {
                 const reacted = r.users && r.users.indexOf(currentUserId) !== -1;
                 const isExpanded = self.state.showReactionUsers === i;
                 return (
-                  <View key={i} style={{ position: 'relative' }}>
+                  <View key={i} style={styles.reactionWrapper}>
                     <TouchableOpacity
                       style={[styles.reactionBadge, { backgroundColor: c.bgTertiary, borderColor: c.border }, reacted && { backgroundColor: c.reactionActiveBg, borderColor: c.accent }]}
                       activeOpacity={0.7}
@@ -410,6 +410,7 @@ const styles = StyleSheet.create({
   fileMeta: { fontSize: 12, marginTop: 2 },
 
   reactionsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 6 },
+  reactionWrapper: { position: 'relative' },
   reactionBadge: {
     flexDirection: 'row', alignItems: 'center',
     borderRadius: 16,

@@ -92,7 +92,24 @@ export default class App extends Component {
 
   async doLogin(token) {
     const slack = new SlackAPI(token);
-    const auth = await slack.authTest();
+    let auth;
+    try {
+      auth = await slack.authTest();
+    } catch (err) {
+      this.setState({ initializing: false });
+      throw new Error(err.message || 'Authentication failed');
+    }
+
+    if (!auth || !auth.user_id) {
+      this.setState({ initializing: false });
+      throw new Error('Invalid authentication response');
+    }
+
+    try {
+      await saveToken(token);
+    } catch (err) {
+      // Token save failed but login can continue
+    }
 
     this.setState({
       slack: slack,
@@ -102,7 +119,6 @@ export default class App extends Component {
       initializing: false,
     });
 
-    await saveToken(token);
     this.loadTeamInfo(slack);
     this.loadUsers(slack);
     this.loadChannels(slack);
@@ -368,6 +384,7 @@ export default class App extends Component {
         );
 
       case 'chat':
+        if (!params.channel) { self.goBack(); return null; }
         return (
           <ChatScreen
             key={params.channel.id}
@@ -387,6 +404,7 @@ export default class App extends Component {
         );
 
       case 'thread':
+        if (!params.parentMessage || !params.channel) { self.goBack(); return null; }
         return (
           <ThreadScreen
             key={params.parentMessage.ts}

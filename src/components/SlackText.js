@@ -232,57 +232,67 @@ function renderPart(part, key, c, emojiOnly) {
   return replaceEmojisWithImages(part.value, emojiOnly);
 }
 
-function SlackText({ text, usersMap, style, numberOfLines, emojiOnly }) {
-  if (!text) return null;
+class SlackText extends React.Component {
+  shouldComponentUpdate(nextProps) {
+    return this.props.text !== nextProps.text ||
+      this.props.emojiOnly !== nextProps.emojiOnly ||
+      this.props.style !== nextProps.style ||
+      this.props.numberOfLines !== nextProps.numberOfLines;
+  }
 
-  const c = getColors();
+  render() {
+    const { text, usersMap, style, numberOfLines, emojiOnly } = this.props;
+    if (!text) return null;
 
-  const tokenized = tokenizeLinks(text);
-  const codeParts = parseFormatting(tokenized.text);
+    const c = getColors();
 
-  let allParts = [];
-  for (let i = 0; i < codeParts.length; i++) {
-    const cp = codeParts[i];
-    if (cp.type === 'codeblock' || cp.type === 'code') {
-      cp.value = restoreTokensAsText(cp.value, tokenized.tokens);
-      allParts.push(cp);
-    } else {
-      const processed = processTextSegment(cp.value, tokenized.tokens, usersMap);
-      allParts = allParts.concat(processed);
+    const tokenized = tokenizeLinks(text);
+    const codeParts = parseFormatting(tokenized.text);
+
+    let allParts = [];
+    for (let i = 0; i < codeParts.length; i++) {
+      const cp = codeParts[i];
+      if (cp.type === 'codeblock' || cp.type === 'code') {
+        cp.value = restoreTokensAsText(cp.value, tokenized.tokens);
+        allParts.push(cp);
+      } else {
+        const processed = processTextSegment(cp.value, tokenized.tokens, usersMap);
+        allParts = allParts.concat(processed);
+      }
     }
-  }
 
-  let hasBlock = false;
-  for (let i = 0; i < allParts.length; i++) {
-    if (allParts[i].type === 'codeblock') { hasBlock = true; break; }
-  }
+    let hasBlock = false;
+    for (let i = 0; i < allParts.length; i++) {
+      if (allParts[i].type === 'codeblock') { hasBlock = true; break; }
+    }
 
-  const textStyle = emojiOnly ? [style, styles.emojiOnlyText] : style;
+    const textStyle = emojiOnly ? [style, styles.emojiOnlyText] : style;
 
-  if (!hasBlock) {
+    if (!hasBlock) {
+      return (
+        <Text style={textStyle} numberOfLines={numberOfLines}>
+          {allParts.map(function (part, i) {
+            return renderPart(part, i, c, emojiOnly);
+          })}
+        </Text>
+      );
+    }
+
     return (
-      <Text style={textStyle} numberOfLines={numberOfLines}>
+      <View>
         {allParts.map(function (part, i) {
-          return renderPart(part, i, c, emojiOnly);
+          if (part.type === 'codeblock') {
+            return (
+              <View key={i} style={[styles.codeBlock, { backgroundColor: c.codeBlockBg, borderColor: c.codeBorder }]}>
+                <Text style={[styles.codeBlockText, { color: c.textSecondary }]}>{part.value}</Text>
+              </View>
+            );
+          }
+          return <Text key={i} style={textStyle}>{renderPart(part, i, c, emojiOnly)}</Text>;
         })}
-      </Text>
+      </View>
     );
   }
-
-  return (
-    <View>
-      {allParts.map(function (part, i) {
-        if (part.type === 'codeblock') {
-          return (
-            <View key={i} style={[styles.codeBlock, { backgroundColor: c.codeBlockBg, borderColor: c.codeBorder }]}>
-              <Text style={[styles.codeBlockText, { color: c.textSecondary }]}>{part.value}</Text>
-            </View>
-          );
-        }
-        return <Text key={i} style={textStyle}>{renderPart(part, i, c, emojiOnly)}</Text>;
-      })}
-    </View>
-  );
 }
 
 const styles = StyleSheet.create({

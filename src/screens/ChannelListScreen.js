@@ -36,10 +36,17 @@ export default class ChannelListScreen extends Component {
     };
     this._keySub = null;
     this._data = [];
+    this._cachedChannels = null;
+    this._cachedTab = null;
+    this._cachedFilter = null;
+    this._cachedFilteredResult = null;
+    this._cachedUnreadChannels = null;
+    this._cachedUnreadResult = null;
     const self = this;
     this._keyExtractor = function (item) { return item._sectionHeader || item.id; };
     this._renderItem = function (obj) { return self._renderListItem(obj); };
     this._listRef = function (r) { self._list = r; };
+    this._onFilterChange = function (t) { self.setState({ filter: t }); };
   }
 
   componentDidMount() {
@@ -131,6 +138,9 @@ export default class ChannelListScreen extends Component {
 
   getUnreadCounts() {
     const { channels } = this.props;
+    if (this._cachedUnreadChannels === channels) {
+      return this._cachedUnreadResult;
+    }
     let channelsUnread = 0;
     let dmsUnread = 0;
     for (let i = 0; i < channels.length; i++) {
@@ -144,12 +154,17 @@ export default class ChannelListScreen extends Component {
         }
       }
     }
-    return { channelsUnread: channelsUnread, dmsUnread: dmsUnread, total: channelsUnread + dmsUnread };
+    this._cachedUnreadChannels = channels;
+    this._cachedUnreadResult = { channelsUnread: channelsUnread, dmsUnread: dmsUnread, total: channelsUnread + dmsUnread };
+    return this._cachedUnreadResult;
   }
 
   getFilteredChannels() {
     const { channels, usersMap, currentUserId } = this.props;
     const { tab, filter } = this.state;
+    if (this._cachedChannels === channels && this._cachedTab === tab && this._cachedFilter === filter) {
+      return this._cachedFilteredResult;
+    }
     const lowerFilter = filter.toLowerCase();
     const self = this;
 
@@ -200,10 +215,18 @@ export default class ChannelListScreen extends Component {
       if (apps.length > 0) {
         result = result.concat([{ _sectionHeader: 'Apps' }], apps);
       }
+      this._cachedChannels = channels;
+      this._cachedTab = tab;
+      this._cachedFilter = filter;
+      this._cachedFilteredResult = result;
       return result;
     }
 
     filtered.sort(sortFn);
+    this._cachedChannels = channels;
+    this._cachedTab = tab;
+    this._cachedFilter = filter;
+    this._cachedFilteredResult = filtered;
     return filtered;
   }
 
@@ -360,7 +383,7 @@ export default class ChannelListScreen extends Component {
           placeholder="Filter..."
           placeholderTextColor={c.textPlaceholder}
           value={filter}
-          onChangeText={function (t) { self.setState({ filter: t }); }}
+          onChangeText={this._onFilterChange}
           autoCorrect={false}
         />
         {loading ? (

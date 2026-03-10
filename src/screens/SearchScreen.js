@@ -26,6 +26,12 @@ export default class SearchScreen extends Component {
       searched: false,
       focusIndex: -1,
     };
+    const self = this;
+    this._listRef = function (r) { self._list = r; };
+    this._keyExtractor = function (item) { return item.ts; };
+    this._renderItem = function (obj) { return self.renderItem(obj.item, obj.index === self.state.focusIndex); };
+    this._onChangeText = function (t) { self.setState({ query: t }); };
+    this._onSubmit = function () { self.doSearch(); };
   }
 
   componentDidMount() {
@@ -116,15 +122,15 @@ export default class SearchScreen extends Component {
             placeholder="Search messages..."
             placeholderTextColor={c.textPlaceholder}
             value={query}
-            onChangeText={function (t) { self.setState({ query: t }); }}
-            onSubmitEditing={function () { self.doSearch(); }}
+            onChangeText={this._onChangeText}
+            onSubmitEditing={this._onSubmit}
             returnKeyType="search"
             autoCorrect={false}
             autoFocus={true}
           />
           <TouchableOpacity
             style={[styles.searchBtn, { backgroundColor: c.green }]}
-            onPress={function () { self.doSearch(); }}
+            onPress={this._onSubmit}
             data-type="btn"
           >
             <Icon name="search" size={18} color="#ffffff" />
@@ -137,10 +143,14 @@ export default class SearchScreen extends Component {
           </View>
         ) : (
           <FlatList
-            ref={function (r) { self._list = r; }}
+            ref={this._listRef}
             data={results}
-            keyExtractor={function (item, i) { return item.ts + '_' + i; }}
-            renderItem={function (obj) { return self.renderItem(obj.item, obj.index === self.state.focusIndex); }}
+            keyExtractor={this._keyExtractor}
+            renderItem={this._renderItem}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            windowSize={9}
+            initialNumToRender={15}
             ListEmptyComponent={
               searched ? (
                 <View style={styles.center}>
