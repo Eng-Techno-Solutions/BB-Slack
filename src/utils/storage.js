@@ -6,6 +6,8 @@ const NOTIF_INTERVAL_KEY = '@BBSlack:notifInterval';
 const NOTIF_ENABLED_KEY = '@BBSlack:notifEnabled';
 const SOUND_ENABLED_KEY = '@BBSlack:soundEnabled';
 const FONT_SIZE_KEY = '@BBSlack:fontSize';
+const ACCOUNTS_KEY = '@BBSlack:accounts';
+const ACTIVE_ACCOUNT_KEY = '@BBSlack:activeAccount';
 
 function getAsyncStorage() {
   return require('react-native').AsyncStorage;
@@ -123,4 +125,46 @@ export async function getFontSize() {
     val = await getAsyncStorage().getItem(FONT_SIZE_KEY);
   }
   return val || 'medium';
+}
+
+// Multi-account storage
+// Account shape: { token, teamName, teamIcon, userId, userName, teamId }
+
+export async function getAccounts() {
+  let val;
+  if (Platform.OS === 'web') {
+    val = localStorage.getItem(ACCOUNTS_KEY);
+  } else {
+    val = await getAsyncStorage().getItem(ACCOUNTS_KEY);
+  }
+  if (!val) return [];
+  try {
+    return JSON.parse(val);
+  } catch (e) {
+    return [];
+  }
+}
+
+export async function saveAccounts(accounts) {
+  const val = JSON.stringify(accounts);
+  if (Platform.OS === 'web') {
+    localStorage.setItem(ACCOUNTS_KEY, val);
+  } else {
+    await getAsyncStorage().setItem(ACCOUNTS_KEY, val);
+  }
+}
+
+export async function getActiveAccountId() {
+  if (Platform.OS === 'web') {
+    return localStorage.getItem(ACTIVE_ACCOUNT_KEY) || null;
+  }
+  return await getAsyncStorage().getItem(ACTIVE_ACCOUNT_KEY) || null;
+}
+
+export async function saveActiveAccountId(id) {
+  if (Platform.OS === 'web') {
+    localStorage.setItem(ACTIVE_ACCOUNT_KEY, id);
+  } else {
+    await getAsyncStorage().setItem(ACTIVE_ACCOUNT_KEY, id);
+  }
 }

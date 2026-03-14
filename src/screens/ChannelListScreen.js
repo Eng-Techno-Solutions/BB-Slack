@@ -14,6 +14,7 @@ import {
 import Header from '../components/Header';
 import Icon from '../components/Icon';
 import SlackText from '../components/SlackText';
+import WorkspaceDrawer from '../components/WorkspaceDrawer';
 import { getChannelDisplayName } from '../utils/format';
 import { getColors, getMode } from '../theme';
 import { addKeyEventListener, removeKeyEventListener } from '../utils/keyEvents';
@@ -31,8 +32,9 @@ export default class ChannelListScreen extends Component {
       filter: '',
       focusIndex: -1,
       focusZone: 'list', // 'list' or 'header'
-      headerIndex: 0, // 0=search, 1=settings, 2=channels tab, 3=dms tab, 4=logout
+      headerIndex: 0, // 0=burger, 1=search, 2=settings, 3=channels tab, 4=dms tab, 5=logout
       teamIconError: false,
+      drawerOpen: false,
     };
     this._keySub = null;
     this._data = [];
@@ -74,7 +76,7 @@ export default class ChannelListScreen extends Component {
     if (this.state.focusZone === 'header') {
       const hi = this.state.headerIndex;
       if (action === 'down') {
-        if (hi < 4) {
+        if (hi < 5) {
           this.setState({ headerIndex: hi + 1 });
         } else {
           // Move from header to list
@@ -87,11 +89,12 @@ export default class ChannelListScreen extends Component {
           this.setState({ headerIndex: hi - 1 });
         }
       } else if (action === 'select') {
-        if (hi === 0) self.props.onSearch();
-        else if (hi === 1) self.props.onSettings();
-        else if (hi === 2) self.setState({ tab: 'channels', focusZone: 'list', focusIndex: -1 });
-        else if (hi === 3) self.setState({ tab: 'dms', focusZone: 'list', focusIndex: -1 });
-        else if (hi === 4) self.props.onLogout();
+        if (hi === 0) self.setState({ drawerOpen: true });
+        else if (hi === 1) self.props.onSearch();
+        else if (hi === 2) self.props.onSettings();
+        else if (hi === 3) self.setState({ tab: 'channels', focusZone: 'list', focusIndex: -1 });
+        else if (hi === 4) self.setState({ tab: 'dms', focusZone: 'list', focusIndex: -1 });
+        else if (hi === 5) self.props.onLogout();
       } else if (action === 'back') {
         this.setState({ focusZone: 'list', focusIndex: -1 });
       }
@@ -115,7 +118,7 @@ export default class ChannelListScreen extends Component {
           if (this._list) try { this._list.scrollToIndex({ index: prev, viewOffset: 80, animated: true }); } catch (e) {}
         } else {
           // Enter header zone at bottom (logout)
-          this.setState({ focusZone: 'header', headerIndex: 4, focusIndex: -1 });
+          this.setState({ focusZone: 'header', headerIndex: 5, focusIndex: -1 });
         }
       } else if (action === 'select') {
         if (idx >= 0 && idx < data.length && !data[idx]._sectionHeader) {
@@ -311,8 +314,8 @@ export default class ChannelListScreen extends Component {
   }
 
   render() {
-    const { tab, filter, focusZone, headerIndex } = this.state;
-    const { loading, onSearch, onLogout, onToggleTheme, onSettings, teamName, teamIcon } = this.props;
+    const { tab, filter, focusZone, headerIndex, drawerOpen } = this.state;
+    const { loading, onSearch, onLogout, onSettings, teamName, teamIcon, accounts, activeAccountId, onSwitchAccount, onAddAccount, onRemoveAccount } = this.props;
     const self = this;
     const data = this.getFilteredChannels();
     this._data = data;
@@ -324,6 +327,13 @@ export default class ChannelListScreen extends Component {
     return (
       <View style={[styles.container, { backgroundColor: c.bg }]}>
         <View style={[styles.header, { backgroundColor: c.bgHeader, borderBottomColor: c.headerBorder }]}>
+          <TouchableOpacity
+            style={[styles.burgerBtn, hf && headerIndex === 0 && styles.headerFocused]}
+            onPress={function () { self.setState({ drawerOpen: true }); }}
+            data-type="icon-btn"
+          >
+            <Icon name="menu" size={20} color={c.headerIcon} />
+          </TouchableOpacity>
           <View style={styles.headerLeft}>
             {teamIcon && !this.state.teamIconError ? (
               <Image
@@ -343,10 +353,10 @@ export default class ChannelListScreen extends Component {
               <Text style={styles.badgeText}>{unreadCounts.total > 99 ? '99+' : unreadCounts.total}</Text>
             </View>
           ) : null}
-          <TouchableOpacity style={[styles.searchBtn, hf && headerIndex === 0 && styles.headerFocused]} onPress={onSearch} data-type="icon-btn">
+          <TouchableOpacity style={[styles.searchBtn, hf && headerIndex === 1 && styles.headerFocused]} onPress={onSearch} data-type="icon-btn">
             <Icon name="search" size={18} color={c.headerIcon} />
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.searchBtn, hf && headerIndex === 1 && styles.headerFocused]} onPress={onSettings} data-type="icon-btn">
+          <TouchableOpacity style={[styles.searchBtn, hf && headerIndex === 2 && styles.headerFocused]} onPress={onSettings} data-type="icon-btn">
             <Icon name="settings" size={18} color={c.headerIcon} />
           </TouchableOpacity>
         </View>
@@ -356,7 +366,7 @@ export default class ChannelListScreen extends Component {
             return (
               <TouchableOpacity
                 key={t.key}
-                style={[styles.tab, active && [styles.tabActive, { borderBottomColor: c.tabTextActive }], hf && headerIndex === (t.key === 'channels' ? 2 : 3) && styles.headerFocused]}
+                style={[styles.tab, active && [styles.tabActive, { borderBottomColor: c.tabTextActive }], hf && headerIndex === (t.key === 'channels' ? 3 : 4) && styles.headerFocused]}
                 onPress={function () { self.setState({ tab: t.key }); }}
                 data-type="tab-btn"
               >
@@ -374,7 +384,7 @@ export default class ChannelListScreen extends Component {
               </TouchableOpacity>
             );
           })}
-          <TouchableOpacity style={[styles.logoutBtn, hf && headerIndex === 4 && styles.headerFocused]} onPress={onLogout} data-type="icon-btn">
+          <TouchableOpacity style={[styles.logoutBtn, hf && headerIndex === 5 && styles.headerFocused]} onPress={onLogout} data-type="icon-btn">
             <Icon name="log-out" size={16} color="rgba(255,255,255,0.6)" />
           </TouchableOpacity>
         </View>
@@ -407,6 +417,15 @@ export default class ChannelListScreen extends Component {
             }
           />
         )}
+        <WorkspaceDrawer
+          visible={drawerOpen}
+          accounts={accounts || []}
+          activeAccountId={activeAccountId}
+          onSwitch={onSwitchAccount}
+          onAddAccount={onAddAccount}
+          onRemoveAccount={onRemoveAccount}
+          onClose={function () { self.setState({ drawerOpen: false }); }}
+        />
       </View>
     );
   }
@@ -422,6 +441,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderBottomWidth: 1,
+  },
+  burgerBtn: {
+    padding: 8,
+    marginRight: 4,
   },
   headerLeft: {
     flex: 1,

@@ -32,6 +32,8 @@ import User from 'lucide-react/dist/esm/icons/user';
 import Coffee from 'lucide-react/dist/esm/icons/coffee';
 import Smartphone from 'lucide-react/dist/esm/icons/smartphone';
 import ExternalLink from 'lucide-react/dist/esm/icons/external-link';
+import Menu from 'lucide-react/dist/esm/icons/menu';
+import Plus from 'lucide-react/dist/esm/icons/plus';
 
 const ICON_MAP = {
   'chevron-down': ChevronDown,
@@ -67,6 +69,9 @@ const ICON_MAP = {
   'coffee': Coffee,
   'smartphone': Smartphone,
   'external-link': ExternalLink,
+  'menu': Menu,
+  'plus': Plus,
+  'x': X,
 };
 
 function Icon({ name, size, color }) {

@@ -35,6 +35,9 @@ const ICON_MAP = {
   'coffee': 'coffee',
   'smartphone': 'smartphone',
   'external-link': 'external-link',
+  'menu': 'menu',
+  'plus': 'plus',
+  'x': 'x',
 };
 
 function Icon({ name, size, color }) {

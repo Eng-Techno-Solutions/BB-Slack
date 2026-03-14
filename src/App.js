@@ -6,7 +6,7 @@ import {
   StatusBar,
 } from 'react-native';
 import SlackAPI from './api/slack';
-import { saveToken, getToken, clearToken, saveTheme, getTheme, saveSoundEnabled, getSoundEnabled, saveFontSize, getFontSize } from './utils/storage';
+import { saveToken, getToken, clearToken, saveTheme, getTheme, saveSoundEnabled, getSoundEnabled, saveFontSize, getFontSize, getAccounts, saveAccounts, getActiveAccountId, saveActiveAccountId } from './utils/storage';
 import { getColors, getMode, setMode, setFontSizeKey } from './theme';
 import LoginScreen from './screens/LoginScreen';
 import ChannelListScreen from './screens/ChannelListScreen';
@@ -37,6 +37,7 @@ export default class App extends Component {
       notifEnabled: true,
       soundEnabled: true,
       fontSize: 'medium',
+      accounts: [],
     };
   }
 
@@ -79,11 +80,26 @@ export default class App extends Component {
 
   async tryAutoLogin() {
     try {
-      const token = await getToken();
-      if (token) {
-        await this.doLogin(token);
+      const accounts = await getAccounts();
+      if (accounts.length > 0) {
+        this.setState({ accounts: accounts });
+        const activeId = await getActiveAccountId();
+        const active = activeId
+          ? accounts.find(function (a) { return a.userId === activeId; })
+          : accounts[0];
+        if (active) {
+          await this.doLogin(active.token);
+        } else {
+          await this.doLogin(accounts[0].token);
+        }
       } else {
-        this.setState({ initializing: false });
+        // Migrate from single-token storage
+        const token = await getToken();
+        if (token) {
+          await this.doLogin(token);
+        } else {
+          this.setState({ initializing: false });
+        }
       }
     } catch (err) {
       this.setState({ initializing: false });
@@ -111,12 +127,35 @@ export default class App extends Component {
       // Token save failed but login can continue
     }
 
+    // Save to accounts list
+    const accounts = this.state.accounts.slice();
+    const existingIdx = accounts.findIndex(function (a) { return a.userId === auth.user_id; });
+    const accountEntry = {
+      token: token,
+      teamName: auth.team || '',
+      teamId: auth.team_id || '',
+      userId: auth.user_id,
+      userName: auth.user || '',
+      teamIcon: '',
+    };
+    if (existingIdx >= 0) {
+      accounts[existingIdx] = Object.assign({}, accounts[existingIdx], accountEntry);
+    } else {
+      accounts.push(accountEntry);
+    }
+
+    try {
+      await saveAccounts(accounts);
+      await saveActiveAccountId(auth.user_id);
+    } catch (err) {}
+
     this.setState({
       slack: slack,
       currentUser: auth.user_id,
       teamName: auth.team || '',
       stack: [{ screen: 'channelList', params: {} }],
       initializing: false,
+      accounts: accounts,
     });
 
     this.loadTeamInfo(slack);
@@ -147,6 +186,15 @@ export default class App extends Component {
       const res = await slack.teamInfo();
       const icon = res.team && res.team.icon ? res.team.icon.image_68 || res.team.icon.image_44 || '' : '';
       this.setState({ teamIcon: icon });
+      // Update account's teamIcon
+      const self = this;
+      const accounts = this.state.accounts.slice();
+      const idx = accounts.findIndex(function (a) { return a.userId === self.state.currentUser; });
+      if (idx >= 0 && accounts[idx].teamIcon !== icon) {
+        accounts[idx] = Object.assign({}, accounts[idx], { teamIcon: icon });
+        this.setState({ accounts: accounts });
+        try { await saveAccounts(accounts); } catch (e) {}
+      }
     } catch (err) {
       console.warn('loadTeamInfo error:', err.message);
     }
@@ -306,7 +354,46 @@ export default class App extends Component {
 
   async handleLogout() {
     this.stopChannelPolling();
-    await clearToken();
+    const currentUserId = this.state.currentUser;
+    const accounts = this.state.accounts.filter(function (a) { return a.userId !== currentUserId; });
+    try {
+      await saveAccounts(accounts);
+    } catch (e) {}
+
+    if (accounts.length > 0) {
+      this.setState({ accounts: accounts });
+      try {
+        await this.switchAccount(accounts[0]);
+      } catch (err) {
+        await clearToken();
+        this.setState({
+          slack: null,
+          currentUser: null,
+          teamName: '',
+          teamIcon: '',
+          usersMap: {},
+          channels: [],
+          accounts: accounts,
+          stack: [{ screen: 'login', params: {} }],
+        });
+      }
+    } else {
+      await clearToken();
+      this.setState({
+        slack: null,
+        currentUser: null,
+        teamName: '',
+        teamIcon: '',
+        usersMap: {},
+        channels: [],
+        accounts: [],
+        stack: [{ screen: 'login', params: {} }],
+      });
+    }
+  }
+
+  async switchAccount(account) {
+    this.stopChannelPolling();
     this.setState({
       slack: null,
       currentUser: null,
@@ -314,8 +401,22 @@ export default class App extends Component {
       teamIcon: '',
       usersMap: {},
       channels: [],
-      stack: [{ screen: 'login', params: {} }],
+      channelsLoading: false,
+      initializing: true,
     });
+    await this.doLogin(account.token);
+  }
+
+  handleAddAccount() {
+    this.navigate('login', { addingAccount: true });
+  }
+
+  async handleRemoveAccount(account) {
+    const accounts = this.state.accounts.filter(function (a) { return a.userId !== account.userId; });
+    try {
+      await saveAccounts(accounts);
+    } catch (e) {}
+    this.setState({ accounts: accounts });
   }
 
   navigate(screen, params) {
@@ -354,6 +455,7 @@ export default class App extends Component {
           <LoginScreen
             themeMode={themeMode}
             onLogin={function (token) { return self.doLogin(token); }}
+            onBack={params.addingAccount ? function () { self.goBack(); } : null}
           />
         );
 
@@ -368,6 +470,8 @@ export default class App extends Component {
             loading={channelsLoading}
             teamName={teamName}
             teamIcon={teamIcon}
+            accounts={this.state.accounts}
+            activeAccountId={currentUser}
             onSelect={function (ch) {
               self.navigate('chat', { channel: ch });
             }}
@@ -379,6 +483,15 @@ export default class App extends Component {
             }}
             onSettings={function () {
               self.navigate('settings');
+            }}
+            onSwitchAccount={function (account) {
+              self.switchAccount(account);
+            }}
+            onAddAccount={function () {
+              self.handleAddAccount();
+            }}
+            onRemoveAccount={function (account) {
+              self.handleRemoveAccount(account);
             }}
           />
         );

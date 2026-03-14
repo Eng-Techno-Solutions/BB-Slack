@@ -13,6 +13,7 @@ import {
 import { getColors } from '../theme';
 import { request } from '../api/http';
 import { addKeyEventListener, removeKeyEventListener } from '../utils/keyEvents';
+import Icon from '../components/Icon';
 
 const SLACK_API = Platform.OS === 'web' ? '/slack-api/' : 'https://slack.com/api/';
 
@@ -243,6 +244,19 @@ export default class LoginScreen extends Component {
         onScroll={function (e) { self._scrollY = e.nativeEvent.contentOffset.y; }}
         scrollEventThrottle={16}
       >
+        {this.props.onBack ? (
+          <TouchableHighlight
+            style={styles.backBtn}
+            underlayColor={c.listUnderlay}
+            onPress={this.props.onBack}
+            data-type="icon-btn"
+          >
+            <View style={styles.backBtnInner}>
+              <Icon name="chevron-left" size={20} color={c.textTertiary} />
+              <Text style={[styles.backBtnText, { color: c.textTertiary }]}>Back</Text>
+            </View>
+          </TouchableHighlight>
+        ) : null}
         <Text style={[styles.logo, { color: c.textPrimary }]}>BB Slack</Text>
         <Text style={[styles.subtitle, { color: c.textTertiary }]}>Slack client for BlackBerry</Text>
 
@@ -478,6 +492,20 @@ const styles = StyleSheet.create({
     paddingTop: 40,
     paddingBottom: 40,
     minHeight: '100%',
+  },
+  backBtn: {
+    alignSelf: 'flex-start',
+    borderRadius: 6,
+    marginBottom: 12,
+  },
+  backBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 6,
+  },
+  backBtnText: {
+    fontSize: 15,
+    marginLeft: 4,
   },
   logo: {
     fontSize: 32,

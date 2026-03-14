@@ -8,7 +8,7 @@ import {
   AppState,
 } from 'react-native';
 import SlackAPI from './src/api/slack';
-import { saveToken, getToken, clearToken, getNotifInterval, saveNotifInterval, getNotifEnabled, saveNotifEnabled, saveSoundEnabled, getSoundEnabled, saveFontSize, getFontSize } from './src/utils/storage';
+import { saveToken, getToken, clearToken, getNotifInterval, saveNotifInterval, getNotifEnabled, saveNotifEnabled, saveSoundEnabled, getSoundEnabled, saveFontSize, getFontSize, getAccounts, saveAccounts, getActiveAccountId, saveActiveAccountId } from './src/utils/storage';
 import { playNotification, setNotificationMuted } from './src/utils/notificationSound';
 import { setFontSizeKey, getMode, setMode } from './src/theme';
 import { saveTheme, getTheme } from './src/utils/storage';
@@ -39,6 +39,7 @@ export default class App extends Component {
       soundEnabled: true,
       fontSize: 'medium',
       themeMode: 'dark',
+      accounts: [],
     };
     this._notifPollTimer = null;
   }
@@ -74,11 +75,26 @@ export default class App extends Component {
 
   async tryAutoLogin() {
     try {
-      const token = await getToken();
-      if (token) {
-        await this.doLogin(token);
+      const accounts = await getAccounts();
+      if (accounts.length > 0) {
+        this.setState({ accounts: accounts });
+        const activeId = await getActiveAccountId();
+        const active = activeId
+          ? accounts.find(function (a) { return a.userId === activeId; })
+          : accounts[0];
+        if (active) {
+          await this.doLogin(active.token);
+        } else {
+          await this.doLogin(accounts[0].token);
+        }
       } else {
-        this.setState({ initializing: false });
+        // Migrate from single-token storage
+        const token = await getToken();
+        if (token) {
+          await this.doLogin(token);
+        } else {
+          this.setState({ initializing: false });
+        }
       }
     } catch (err) {
       this.setState({ initializing: false });
@@ -106,12 +122,36 @@ export default class App extends Component {
       // Token save failed but login can continue
     }
 
+    // Save to accounts list
+    const self = this;
+    const accounts = this.state.accounts.slice();
+    const existingIdx = accounts.findIndex(function (a) { return a.userId === auth.user_id; });
+    const accountEntry = {
+      token: token,
+      teamName: auth.team || '',
+      teamId: auth.team_id || '',
+      userId: auth.user_id,
+      userName: auth.user || '',
+      teamIcon: '',
+    };
+    if (existingIdx >= 0) {
+      accounts[existingIdx] = Object.assign({}, accounts[existingIdx], accountEntry);
+    } else {
+      accounts.push(accountEntry);
+    }
+
+    try {
+      await saveAccounts(accounts);
+      await saveActiveAccountId(auth.user_id);
+    } catch (err) {}
+
     this.setState({
       slack: slack,
       currentUser: auth.user_id,
       teamName: auth.team || '',
       stack: [{ screen: 'channelList', params: {} }],
       initializing: false,
+      accounts: accounts,
     });
 
     this.loadUsers(slack);
@@ -125,6 +165,15 @@ export default class App extends Component {
       const res = await slack.teamInfo();
       const icon = res.team && res.team.icon ? res.team.icon.image_68 || res.team.icon.image_44 || '' : '';
       this.setState({ teamIcon: icon });
+      // Update account's teamIcon
+      const self = this;
+      const accounts = this.state.accounts.slice();
+      const idx = accounts.findIndex(function (a) { return a.userId === self.state.currentUser; });
+      if (idx >= 0 && accounts[idx].teamIcon !== icon) {
+        accounts[idx] = Object.assign({}, accounts[idx], { teamIcon: icon });
+        this.setState({ accounts: accounts });
+        try { await saveAccounts(accounts); } catch (e) {}
+      }
     } catch (err) {
       console.warn('loadTeamInfo error:', err.message);
     }
@@ -176,7 +225,47 @@ export default class App extends Component {
 
   async handleLogout() {
     this._stopNotifPolling();
-    await clearToken();
+    const currentUserId = this.state.currentUser;
+    const accounts = this.state.accounts.filter(function (a) { return a.userId !== currentUserId; });
+    try {
+      await saveAccounts(accounts);
+    } catch (e) {}
+
+    if (accounts.length > 0) {
+      // Switch to next account
+      this.setState({ accounts: accounts });
+      try {
+        await this.switchAccount(accounts[0]);
+      } catch (err) {
+        await clearToken();
+        this.setState({
+          slack: null,
+          currentUser: null,
+          teamName: '',
+          teamIcon: '',
+          usersMap: {},
+          channels: [],
+          accounts: accounts,
+          stack: [{ screen: 'login', params: {} }],
+        });
+      }
+    } else {
+      await clearToken();
+      this.setState({
+        slack: null,
+        currentUser: null,
+        teamName: '',
+        teamIcon: '',
+        usersMap: {},
+        channels: [],
+        accounts: [],
+        stack: [{ screen: 'login', params: {} }],
+      });
+    }
+  }
+
+  async switchAccount(account) {
+    this._stopNotifPolling();
     this.setState({
       slack: null,
       currentUser: null,
@@ -184,8 +273,22 @@ export default class App extends Component {
       teamIcon: '',
       usersMap: {},
       channels: [],
-      stack: [{ screen: 'login', params: {} }],
+      channelsLoading: false,
+      initializing: true,
     });
+    await this.doLogin(account.token);
+  }
+
+  handleAddAccount() {
+    this.navigate('login', { addingAccount: true });
+  }
+
+  async handleRemoveAccount(account) {
+    const accounts = this.state.accounts.filter(function (a) { return a.userId !== account.userId; });
+    try {
+      await saveAccounts(accounts);
+    } catch (e) {}
+    this.setState({ accounts: accounts });
   }
 
   _handleAppState(state) {
@@ -379,6 +482,7 @@ export default class App extends Component {
         return (
           <LoginScreen
             onLogin={function (token) { return self.doLogin(token); }}
+            onBack={params.addingAccount ? function () { self.goBack(); } : null}
           />
         );
 
@@ -392,6 +496,8 @@ export default class App extends Component {
             loading={channelsLoading}
             teamName={teamName}
             teamIcon={teamIcon}
+            accounts={this.state.accounts}
+            activeAccountId={currentUser}
             onSelect={function (ch) {
               self.navigate('chat', { channel: ch });
             }}
@@ -403,6 +509,15 @@ export default class App extends Component {
             }}
             onSettings={function () {
               self.navigate('settings');
+            }}
+            onSwitchAccount={function (account) {
+              self.switchAccount(account);
+            }}
+            onAddAccount={function () {
+              self.handleAddAccount();
+            }}
+            onRemoveAccount={function (account) {
+              self.handleRemoveAccount(account);
             }}
           />
         );
