@@ -2,21 +2,10 @@ import { Header } from "../components";
 import { getColors } from "../theme";
 import type { KeyEvent, KeySub } from "../types";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
-import type {
-	ProfileProps as Props,
-	ProfileState as State,
-	ProfileStyles as Styles
-} from "./types";
+import { styles } from "./ProfileScreen.styles";
+import type { ProfileProps as Props, ProfileState as State } from "./types";
 import React, { Component } from "react";
-import {
-	ActivityIndicator,
-	Alert,
-	ScrollView,
-	StyleSheet,
-	Text,
-	TouchableOpacity,
-	View
-} from "react-native";
+import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 export default class ProfileScreen extends Component<Props, State> {
 	_keySub: KeySub | null;
@@ -196,87 +185,3 @@ export default class ProfileScreen extends Component<Props, State> {
 		);
 	}
 }
-
-const styles = StyleSheet.create<Styles>({
-	container: {
-		flex: 1
-	},
-	center: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center"
-	},
-	errorText: {
-		color: "#E01E5A",
-		fontSize: 14
-	},
-	profileSection: {
-		alignItems: "center",
-		padding: 24,
-		borderBottomWidth: 1
-	},
-	avatar: {
-		width: 72,
-		height: 72,
-		borderRadius: 8,
-		justifyContent: "center",
-		alignItems: "center",
-		marginBottom: 12
-	},
-	avatarText: {
-		color: "#ffffff",
-		fontSize: 30,
-		fontWeight: "bold"
-	},
-	displayName: {
-		fontSize: 22,
-		fontWeight: "bold"
-	},
-	realName: {
-		fontSize: 15,
-		marginTop: 2
-	},
-	title: {
-		fontSize: 14,
-		marginTop: 4
-	},
-	status: {
-		fontSize: 14,
-		marginTop: 4
-	},
-	botBadge: {
-		fontSize: 11,
-		fontWeight: "bold",
-		marginTop: 6,
-		paddingHorizontal: 8,
-		paddingVertical: 2,
-		borderRadius: 4,
-		overflow: "hidden"
-	},
-	detailsSection: {
-		padding: 16
-	},
-	detailRow: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		paddingVertical: 12,
-		borderBottomWidth: 1
-	},
-	detailLabel: {
-		fontSize: 14
-	},
-	detailValue: {
-		fontSize: 14
-	},
-	dmButton: {
-		margin: 16,
-		paddingVertical: 14,
-		borderRadius: 4,
-		alignItems: "center"
-	},
-	dmButtonText: {
-		color: "#ffffff",
-		fontSize: 16,
-		fontWeight: "bold"
-	}
-});

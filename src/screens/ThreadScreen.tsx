@@ -1,4 +1,4 @@
-import { EmojiPicker, Header, Icon, MentionSuggest, MessageItem } from "../components";
+import { EmojiPicker, Header, InputBar, MentionSuggest, MessageItem } from "../components";
 import { getColors } from "../theme";
 import type { KeyEvent, KeySub, SlackMessage } from "../types";
 import { cancelRecording, startRecording, stopRecording } from "../utils/audioRecorder";
@@ -6,18 +6,11 @@ import { pickFile } from "../utils/filePicker";
 import { getUserName } from "../utils/format";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
 import { playNotification } from "../utils/notificationSound";
-import type { ThreadProps as Props, ThreadState as State, ThreadStyles as Styles } from "./types";
+import { styles } from "./ThreadScreen.styles";
+import type { ThreadProps as Props, ThreadState as State } from "./types";
 import React, { Component } from "react";
-import {
-	ActivityIndicator,
-	Alert,
-	FlatList,
-	StyleSheet,
-	Text,
-	TextInput,
-	TouchableOpacity,
-	View
-} from "react-native";
+import type { TextInput} from "react-native";
+import { ActivityIndicator, Alert, FlatList, View } from "react-native";
 
 export default class ThreadScreen extends Component<Props, State> {
 	_mounted: boolean;
@@ -382,144 +375,39 @@ export default class ThreadScreen extends Component<Props, State> {
 						self.onMentionSelect(id, name);
 					}}
 				/>
-				<View style={[styles.inputRow, { borderTopColor: c.border, backgroundColor: c.bg }]}>
-					{self.state.recording ? (
-						<View style={styles.innerRow}>
-							<View style={styles.recordingRow}>
-								<View style={[styles.recordingDot, { backgroundColor: "#E01E5A" }]} />
-								<Text style={[styles.recordingText, { color: c.textSecondary }]}>
-									{Math.floor(self.state.recordingTime / 60) +
-										":" +
-										(self.state.recordingTime % 60 < 10 ? "0" : "") +
-										(self.state.recordingTime % 60)}
-								</Text>
-							</View>
-							<TouchableOpacity
-								style={styles.actionBtn}
-								onPress={function () {
-									self.handleCancelRecording();
-								}}
-								data-type="icon-btn">
-								<Icon
-									name="close"
-									size={20}
-									color="#E01E5A"
-								/>
-							</TouchableOpacity>
-							<TouchableOpacity
-								style={[styles.sendBtn, { backgroundColor: c.green }]}
-								onPress={function () {
-									self.handleStopRecording();
-								}}
-								data-type="btn">
-								<Icon
-									name="send"
-									size={18}
-									color="#ffffff"
-								/>
-							</TouchableOpacity>
-						</View>
-					) : (
-						<View style={styles.innerRow}>
-							<TouchableOpacity
-								style={styles.actionBtn}
-								onPress={function () {
-									self.handleAttachment();
-								}}
-								disabled={self.state.uploading || sending}
-								data-type="icon-btn">
-								<Icon
-									name="paperclip"
-									size={22}
-									color={c.textTertiary}
-								/>
-							</TouchableOpacity>
-							<TouchableOpacity
-								style={styles.actionBtn}
-								onPress={function () {
-									self.setState({ emojiPickerMode: "input" });
-								}}
-								data-type="icon-btn">
-								<Icon
-									name="smile"
-									size={22}
-									color={c.textTertiary}
-								/>
-							</TouchableOpacity>
-							<TextInput
-								ref={function (r: TextInput | null) {
-									self._inputRef = r;
-								}}
-								style={[
-									styles.input,
-									{ backgroundColor: c.bgTertiary, color: c.textSecondary, borderColor: c.borderInput }
-								]}
-								placeholder="Reply..."
-								placeholderTextColor={c.textPlaceholder}
-								value={inputText}
-								onChangeText={function (t: string) {
-									self.setState({ inputText: t });
-								}}
-								onSubmitEditing={function () {
-									self.sendReply();
-								}}
-								returnKeyType="send"
-								autoFocus={true}
-							/>
-							{inputText.trim() ? (
-								<TouchableOpacity
-									style={[
-										styles.sendBtn,
-										{ backgroundColor: c.green },
-										(sending || self.state.uploading) && styles.sendDisabled
-									]}
-									onPress={function () {
-										self.sendReply();
-									}}
-									disabled={sending || self.state.uploading}
-									data-type="btn">
-									{sending || self.state.uploading ? (
-										<ActivityIndicator
-											size="small"
-											color="#ffffff"
-										/>
-									) : (
-										<Icon
-											name="send"
-											size={18}
-											color="#ffffff"
-										/>
-									)}
-								</TouchableOpacity>
-							) : (
-								<TouchableOpacity
-									style={[
-										styles.micBtn,
-										{ backgroundColor: c.green },
-										self.state.uploading && styles.sendDisabled
-									]}
-									onPress={function () {
-										self.handleStartRecording();
-									}}
-									disabled={self.state.uploading}
-									data-type="btn">
-									{self.state.uploading ? (
-										<ActivityIndicator
-											size="small"
-											color="#ffffff"
-										/>
-									) : (
-										<Icon
-											name="mic"
-											size={18}
-											color="#ffffff"
-										/>
-									)}
-								</TouchableOpacity>
-							)}
-						</View>
-					)}
-				</View>
+				<InputBar
+					inputText={inputText}
+					onChangeText={function (t: string) {
+						self.setState({ inputText: t });
+					}}
+					onSubmit={function () {
+						self.sendReply();
+					}}
+					onAttachment={function () {
+						self.handleAttachment();
+					}}
+					onEmojiPress={function () {
+						self.setState({ emojiPickerMode: "input" });
+					}}
+					sending={sending}
+					uploading={self.state.uploading}
+					recording={self.state.recording}
+					recordingTime={self.state.recordingTime}
+					onStartRecording={function () {
+						self.handleStartRecording();
+					}}
+					onStopRecording={function () {
+						self.handleStopRecording();
+					}}
+					onCancelRecording={function () {
+						self.handleCancelRecording();
+					}}
+					placeholder="Reply..."
+					autoFocus={true}
+					inputRef={function (r: any) {
+						self._inputRef = r;
+					}}
+				/>
 
 				<EmojiPicker
 					visible={!!self.state.emojiPickerMode}
@@ -534,64 +422,3 @@ export default class ThreadScreen extends Component<Props, State> {
 		);
 	}
 }
-
-const styles = StyleSheet.create<Styles>({
-	container: {
-		flex: 1
-	},
-	center: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center"
-	},
-	inputRow: {
-		padding: 8,
-		borderTopWidth: 1
-	},
-	innerRow: {
-		flexDirection: "row",
-		alignItems: "center"
-	},
-	input: {
-		flex: 1,
-		fontSize: 15,
-		paddingHorizontal: 12,
-		paddingVertical: 9,
-		borderRadius: 4,
-		borderWidth: 1,
-		marginRight: 8
-	},
-	sendBtn: {
-		paddingHorizontal: 16,
-		paddingVertical: 9,
-		borderRadius: 4
-	},
-	sendDisabled: {
-		opacity: 0.4
-	},
-	actionBtn: {
-		paddingHorizontal: 6,
-		paddingVertical: 9,
-		marginRight: 4
-	},
-	micBtn: {
-		paddingHorizontal: 16,
-		paddingVertical: 9,
-		borderRadius: 4
-	},
-	recordingRow: {
-		flex: 1,
-		flexDirection: "row",
-		alignItems: "center"
-	},
-	recordingDot: {
-		width: 10,
-		height: 10,
-		borderRadius: 5,
-		marginRight: 8
-	},
-	recordingText: {
-		fontSize: 15,
-		fontWeight: "600"
-	}
-});

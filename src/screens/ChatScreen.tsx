@@ -5,6 +5,7 @@ import {
 	Header,
 	Icon,
 	ImageViewer,
+	InputBar,
 	MentionSuggest,
 	MessageItem
 } from "../components";
@@ -15,11 +16,11 @@ import { pickFile } from "../utils/filePicker";
 import { getChannelDisplayName } from "../utils/format";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
 import { playNotification } from "../utils/notificationSound";
+import { styles } from "./ChatScreen.styles";
 import type {
 	ChatActionItem as ActionItem,
 	ChatProps as Props,
 	ChatState as State,
-	ChatStyles as Styles,
 	ViewerAudio,
 	ViewerImage
 } from "./types";
@@ -28,13 +29,12 @@ import {
 	ActivityIndicator,
 	Alert,
 	FlatList,
-	StyleSheet,
 	Text,
-	TextInput,
 	TouchableOpacity,
 	View
 } from "react-native";
-import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
+import type { NativeScrollEvent, NativeSyntheticEvent ,
+	TextInput} from "react-native";
 
 export default class ChatScreen extends Component<Props, State> {
 	_mounted: boolean;
@@ -703,153 +703,43 @@ export default class ChatScreen extends Component<Props, State> {
 						self.onMentionSelect(id, name);
 					}}
 				/>
-				<View style={[styles.inputBar, { borderTopColor: c.border, backgroundColor: c.bg }]}>
-					{editingMessage ? (
-						<View style={[styles.editBanner, { backgroundColor: c.bgTertiary }]}>
-							<Text style={[styles.editBannerText, { color: c.accentLight }]}>Editing message</Text>
-							<TouchableOpacity
-								onPress={function () {
-									self.setState({ editingMessage: null, inputText: "" });
-								}}
-								data-type="text-btn">
-								<Text style={styles.editCancel}>Cancel</Text>
-							</TouchableOpacity>
-						</View>
-					) : null}
-					{recording ? (
-						<View style={styles.inputRow}>
-							<View style={styles.recordingRow}>
-								<View style={[styles.recordingDot, { backgroundColor: "#E01E5A" }]} />
-								<Text style={[styles.recordingText, { color: c.textSecondary }]}>
-									{Math.floor(recordingTime / 60) +
-										":" +
-										(recordingTime % 60 < 10 ? "0" : "") +
-										(recordingTime % 60)}
-								</Text>
-							</View>
-							<TouchableOpacity
-								style={[styles.actionBtn]}
-								onPress={function () {
-									self.handleCancelRecording();
-								}}
-								data-type="icon-btn">
-								<Icon
-									name="close"
-									size={20}
-									color="#E01E5A"
-								/>
-							</TouchableOpacity>
-							<TouchableOpacity
-								style={[styles.sendBtn, { backgroundColor: c.green }]}
-								onPress={function () {
-									self.handleStopRecording();
-								}}
-								data-type="btn">
-								<Icon
-									name="send"
-									size={18}
-									color="#ffffff"
-								/>
-							</TouchableOpacity>
-						</View>
-					) : (
-						<View style={styles.inputRow}>
-							<TouchableOpacity
-								style={styles.actionBtn}
-								onPress={function () {
-									self.handleAttachment();
-								}}
-								disabled={uploading || sending}
-								data-type="icon-btn">
-								<Icon
-									name="paperclip"
-									size={22}
-									color={c.textTertiary}
-								/>
-							</TouchableOpacity>
-							<TouchableOpacity
-								style={styles.actionBtn}
-								onPress={function () {
-									self.setState({ emojiPickerMode: "input" });
-								}}
-								data-type="icon-btn">
-								<Icon
-									name="smile"
-									size={22}
-									color={c.textTertiary}
-								/>
-							</TouchableOpacity>
-							<TextInput
-								ref={function (r: TextInput | null) {
-									self._inputRef = r;
-								}}
-								style={[
-									styles.input,
-									{ backgroundColor: c.bgTertiary, color: c.textSecondary, borderColor: c.borderInput }
-								]}
-								placeholder="Message..."
-								placeholderTextColor={c.textPlaceholder}
-								value={inputText}
-								onChangeText={function (t: string) {
-									self.setState({ inputText: t });
-								}}
-								onSubmitEditing={function () {
-									self.sendMessage();
-								}}
-								returnKeyType="send"
-								multiline={false}
-								autoFocus={true}
-							/>
-							{inputText.trim() ? (
-								<TouchableOpacity
-									style={[
-										styles.sendBtn,
-										{ backgroundColor: c.green },
-										(sending || uploading) && styles.sendDisabled
-									]}
-									onPress={function () {
-										self.sendMessage();
-									}}
-									disabled={sending || uploading}
-									data-type="btn">
-									{sending || uploading ? (
-										<ActivityIndicator
-											size="small"
-											color="#ffffff"
-										/>
-									) : (
-										<Icon
-											name="send"
-											size={18}
-											color="#ffffff"
-										/>
-									)}
-								</TouchableOpacity>
-							) : (
-								<TouchableOpacity
-									style={[styles.micBtn, { backgroundColor: c.green }, uploading && styles.sendDisabled]}
-									onPress={function () {
-										self.handleStartRecording();
-									}}
-									disabled={uploading}
-									data-type="btn">
-									{uploading ? (
-										<ActivityIndicator
-											size="small"
-											color="#ffffff"
-										/>
-									) : (
-										<Icon
-											name="mic"
-											size={18}
-											color="#ffffff"
-										/>
-									)}
-								</TouchableOpacity>
-							)}
-						</View>
-					)}
-				</View>
+				<InputBar
+					inputText={inputText}
+					onChangeText={function (t: string) {
+						self.setState({ inputText: t });
+					}}
+					onSubmit={function () {
+						self.sendMessage();
+					}}
+					onAttachment={function () {
+						self.handleAttachment();
+					}}
+					onEmojiPress={function () {
+						self.setState({ emojiPickerMode: "input" });
+					}}
+					sending={sending}
+					uploading={uploading}
+					recording={recording}
+					recordingTime={recordingTime}
+					onStartRecording={function () {
+						self.handleStartRecording();
+					}}
+					onStopRecording={function () {
+						self.handleStopRecording();
+					}}
+					onCancelRecording={function () {
+						self.handleCancelRecording();
+					}}
+					editingMessage={editingMessage}
+					onCancelEdit={function () {
+						self.setState({ editingMessage: null, inputText: "" });
+					}}
+					placeholder="Message..."
+					autoFocus={true}
+					inputRef={function (r: any) {
+						self._inputRef = r;
+					}}
+				/>
 
 				<ActionSheet
 					visible={!!actionMessage}
@@ -892,120 +782,3 @@ export default class ChatScreen extends Component<Props, State> {
 		);
 	}
 }
-
-const styles = StyleSheet.create<Styles>({
-	container: {
-		flex: 1
-	},
-	listWrapper: {
-		flex: 1
-	},
-	center: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 40
-	},
-	emptyText: {
-		fontSize: 14
-	},
-	loadMore: {
-		padding: 12,
-		alignItems: "center"
-	},
-	loadMoreText: {
-		fontSize: 14
-	},
-	inputBar: {
-		borderTopWidth: 1
-	},
-	editBanner: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		paddingHorizontal: 12,
-		paddingVertical: 6
-	},
-	editBannerText: {
-		fontSize: 13
-	},
-	editCancel: {
-		color: "#E01E5A",
-		fontSize: 13
-	},
-	inputRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		padding: 8
-	},
-	input: {
-		flex: 1,
-		fontSize: 15,
-		paddingHorizontal: 12,
-		paddingVertical: 9,
-		borderRadius: 4,
-		borderWidth: 1,
-		marginRight: 8
-	},
-	sendBtn: {
-		paddingHorizontal: 16,
-		paddingVertical: 9,
-		borderRadius: 4
-	},
-	sendDisabled: {
-		opacity: 0.4
-	},
-	actionBtn: {
-		paddingHorizontal: 6,
-		paddingVertical: 9,
-		marginRight: 4
-	},
-	micBtn: {
-		paddingHorizontal: 16,
-		paddingVertical: 9,
-		borderRadius: 4
-	},
-	recordingRow: {
-		flex: 1,
-		flexDirection: "row",
-		alignItems: "center"
-	},
-	recordingDot: {
-		width: 10,
-		height: 10,
-		borderRadius: 5,
-		marginRight: 8
-	},
-	recordingText: {
-		fontSize: 15,
-		fontWeight: "600"
-	},
-	scrollBtn: {
-		position: "absolute",
-		right: 16,
-		bottom: 12,
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-		justifyContent: "center",
-		alignItems: "center",
-		zIndex: 10,
-		elevation: 5
-	},
-	unseenBadge: {
-		position: "absolute",
-		top: -8,
-		right: -4,
-		borderRadius: 10,
-		minWidth: 20,
-		paddingHorizontal: 5,
-		paddingVertical: 2,
-		alignItems: "center",
-		zIndex: 11
-	},
-	unseenBadgeText: {
-		color: "#FFFFFF",
-		fontSize: 10,
-		fontWeight: "bold"
-	}
-});

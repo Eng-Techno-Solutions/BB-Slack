@@ -2,16 +2,16 @@ import { Header, Icon } from "../components";
 import { getColors, getMode } from "../theme";
 import type { KeyEvent, KeySub } from "../types";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
+import { styles } from "./SettingsScreen.styles";
 import type {
 	SettingsActionItem as ActionItem,
 	FontSizeOption,
 	IntervalOption,
 	SettingsProps as Props,
-	SettingsState as State,
-	SettingsStyles as Styles
+	SettingsState as State
 } from "./types";
 import React, { Component } from "react";
-import { Linking, ScrollView, StyleSheet, Text, TouchableHighlight, View } from "react-native";
+import { Linking, ScrollView, Text, TouchableHighlight, View } from "react-native";
 import type { LayoutChangeEvent } from "react-native";
 
 const INTERVAL_OPTIONS: IntervalOption[] = [
@@ -526,71 +526,3 @@ export default class SettingsScreen extends Component<Props, State> {
 		);
 	}
 }
-
-const styles = StyleSheet.create<Styles>({
-	container: {
-		flex: 1
-	},
-	sectionTitle: {
-		fontSize: 12,
-		fontWeight: "bold",
-		paddingHorizontal: 16,
-		paddingTop: 20,
-		paddingBottom: 8
-	},
-	row: {
-		paddingHorizontal: 16,
-		paddingVertical: 14,
-		borderBottomWidth: 1
-	},
-	rowInner: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between"
-	},
-	rowLeft: {
-		flexDirection: "row",
-		alignItems: "center"
-	},
-	rowLabel: {
-		fontSize: 15,
-		marginLeft: 12
-	},
-	rowValue: {
-		fontSize: 14
-	},
-	toggle: {
-		width: 44,
-		height: 24,
-		borderRadius: 12,
-		padding: 2,
-		justifyContent: "center"
-	},
-	toggleKnob: {
-		width: 20,
-		height: 20,
-		borderRadius: 10,
-		backgroundColor: "#FFFFFF"
-	},
-	toggleKnobOn: {
-		alignSelf: "flex-end"
-	},
-	hint: {
-		fontSize: 12,
-		paddingHorizontal: 16,
-		paddingTop: 8,
-		lineHeight: 16
-	},
-	devBio: {
-		paddingHorizontal: 16,
-		paddingVertical: 10,
-		borderBottomWidth: 1
-	},
-	bioText: {
-		fontSize: 13,
-		lineHeight: 18
-	},
-	bottomPad: {
-		height: 40
-	}
-});
