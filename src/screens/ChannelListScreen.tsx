@@ -1,9 +1,15 @@
-import Icon from "../components/Icon";
-import SlackText from "../components/SlackText";
-import WorkspaceDrawer from "../components/WorkspaceDrawer";
+import { Icon, SlackText, WorkspaceDrawer } from "../components";
 import { getColors, getMode } from "../theme";
+import type { KeyEvent, KeySub, SlackChannel } from "../types";
 import { getChannelDisplayName } from "../utils/format";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
+import type {
+	ChannelListProps as Props,
+	ChannelListState as State,
+	ChannelListStyles as Styles,
+	TabItem,
+	UnreadCounts
+} from "./types";
 import React, { Component } from "react";
 import {
 	ActivityIndicator,
@@ -17,106 +23,11 @@ import {
 	TouchableOpacity,
 	View
 } from "react-native";
-import type { ImageStyle, TextStyle, ViewStyle } from "react-native";
-
-interface SlackUserProfile {
-	display_name?: string;
-	image_72?: string;
-	image_48?: string;
-	[key: string]: unknown;
-}
-
-interface SlackUser {
-	id: string;
-	name?: string;
-	real_name?: string;
-	deleted?: boolean;
-	is_bot?: boolean;
-	profile?: SlackUserProfile;
-	[key: string]: unknown;
-}
-
-interface SlackChannel {
-	id: string;
-	is_im?: boolean;
-	is_mpim?: boolean;
-	is_private?: boolean;
-	user?: string;
-	unread_count_display?: number;
-	topic?: { value: string };
-	_sectionHeader?: string;
-	[key: string]: unknown;
-}
-
-interface SlackAPI {
-	token: string;
-	[key: string]: unknown;
-}
-
-interface AccountEntry {
-	token: string;
-	teamName: string;
-	teamId: string;
-	userId: string;
-	userName: string;
-	teamIcon: string;
-}
-
-interface KeyEvent {
-	action: string;
-	[key: string]: unknown;
-}
-
-interface KeySub {
-	remove(): void;
-}
-
-interface TabItem {
-	key: string;
-	label: string;
-	icon: string;
-}
-
-interface UnreadCounts {
-	channelsUnread: number;
-	dmsUnread: number;
-	total: number;
-}
 
 const TABS: TabItem[] = [
 	{ key: "channels", label: "Channels", icon: "hash" },
 	{ key: "dms", label: "DMs", icon: "message-square" }
 ];
-
-interface Props {
-	slack: SlackAPI;
-	channels: SlackChannel[];
-	usersMap: Record<string, SlackUser>;
-	currentUserId: string;
-	loading: boolean;
-	teamName: string;
-	teamIcon: string;
-	accounts?: AccountEntry[];
-	activeAccountId?: string | null;
-	onSelect: (channel: SlackChannel) => void;
-	onSearch: () => void;
-	onLogout: () => void;
-	onSettings: () => void;
-	onSwitchAccount?: (account: AccountEntry) => void;
-	onAddAccount?: () => void;
-	onRemoveAccount?: (account: AccountEntry) => void;
-	themeMode?: string;
-}
-
-interface State {
-	tab: string;
-	filter: string;
-	focusIndex: number;
-	focusZone: "list" | "header";
-	headerIndex: number;
-	teamIconError: boolean;
-	drawerOpen: boolean;
-}
 
 export default class ChannelListScreen extends Component<Props, State> {
 	_keySub: KeySub | null;
@@ -658,46 +569,6 @@ export default class ChannelListScreen extends Component<Props, State> {
 			</View>
 		);
 	}
-}
-
-interface Styles {
-	container: ViewStyle;
-	header: ViewStyle;
-	burgerBtn: ViewStyle;
-	headerLeft: ViewStyle;
-	teamIcon: ImageStyle;
-	teamIconPlaceholder: ViewStyle;
-	teamIconText: TextStyle;
-	headerTitle: TextStyle;
-	themeBtn: ViewStyle;
-	searchBtn: ViewStyle;
-	headerBadge: ViewStyle;
-	tabs: ViewStyle;
-	tab: ViewStyle;
-	tabActive: ViewStyle;
-	tabContent: ViewStyle;
-	tabText: TextStyle;
-	tabBadge: ViewStyle;
-	tabBadgeText: TextStyle;
-	logoutBtn: ViewStyle;
-	headerFocused: ViewStyle;
-	filter: TextStyle;
-	item: ViewStyle;
-	itemInner: ViewStyle;
-	itemAvatar: ImageStyle;
-	itemAvatarPlaceholder: ViewStyle;
-	itemAvatarText: TextStyle;
-	channelAvatarHash: TextStyle;
-	itemLeft: ViewStyle;
-	itemNameRow: ViewStyle;
-	itemName: TextStyle;
-	itemTopic: TextStyle;
-	badge: ViewStyle;
-	badgeText: TextStyle;
-	center: ViewStyle;
-	sectionHeader: ViewStyle;
-	sectionHeaderText: TextStyle;
-	emptyText: TextStyle;
 }
 
 const styles = StyleSheet.create<Styles>({

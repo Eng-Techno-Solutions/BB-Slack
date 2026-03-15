@@ -1,34 +1,7 @@
+import type { FileData, HttpModuleInterface, HttpResponse } from "./types";
 import { NativeModules } from "react-native";
 
-interface HttpModuleInterface {
-	request(method: string, url: string, headers: string, body: string): Promise<string>;
-	uploadMultipart(
-		url: string,
-		token: string,
-		fields: string,
-		name: string,
-		type: string,
-		base64: string
-	): Promise<string>;
-	uploadBinary(url: string, fileBase64: string, contentType: string): Promise<string>;
-	downloadFile(url: string, token: string, destPath: string): Promise<void>;
-}
-
 const HttpModule = NativeModules.HttpModule as HttpModuleInterface | undefined;
-
-interface HttpResponse {
-	status: number;
-	body: string;
-}
-
-interface FileData {
-	name: string;
-	type: string;
-	size?: number;
-	base64?: string;
-	file?: File;
-	blob?: Blob;
-}
 
 export function request(
 	method: string,

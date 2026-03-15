@@ -1,25 +1,13 @@
+import type {
+	AudioDownloadCallback,
+	AudioDownloadHttpModule as HttpModuleInterface,
+	RNFSDownloadResult,
+	RNFSModule
+} from "./types";
 import { NativeModules } from "react-native";
-
-interface HttpModuleInterface {
-	downloadFile(url: string, token: string, destPath: string): Promise<void>;
-}
-
-interface RNFSDownloadResult {
-	statusCode: number;
-}
-
-interface RNFSModule {
-	CachesDirectoryPath: string;
-	downloadFile(options: { fromUrl: string; toFile: string; headers: Record<string, string> }): {
-		promise: Promise<RNFSDownloadResult>;
-	};
-	unlink(path: string): Promise<void>;
-}
 
 const HttpModule = NativeModules.HttpModule as HttpModuleInterface | undefined;
 const RNFS: RNFSModule = require("react-native-fs");
-
-type AudioDownloadCallback = (error: string | null, path: string | null) => void;
 
 function downloadAudio(url: string, token: string, callback: AudioDownloadCallback): void {
 	const destPath = RNFS.CachesDirectoryPath + "/bb_audio_" + Date.now() + ".mp4";

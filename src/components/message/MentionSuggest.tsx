@@ -1,7 +1,14 @@
-import { getColors } from "../theme";
+import { getColors } from "../../theme";
+import type { UsersMap } from "../../types";
+import type {
+	FilteredUser,
+	MentionSuggestProps,
+	MentionSuggestState,
+	MentionSuggestStyles
+} from "./types";
 import React, { Component } from "react";
 import { Image, ScrollView, StyleSheet, Text, TouchableHighlight, View } from "react-native";
-import type { ImageStyle, TextStyle, ViewStyle } from "react-native";
+import type { ViewStyle } from "react-native";
 
 const AVATAR_COLORS: string[] = [
 	"#E8912D",
@@ -17,51 +24,6 @@ const AVATAR_COLORS: string[] = [
 	"#1ABC9C",
 	"#8E44AD"
 ];
-
-interface SlackUserProfile {
-	display_name?: string;
-	image_72?: string;
-	image_48?: string;
-}
-
-interface SlackUser {
-	deleted?: boolean;
-	is_bot?: boolean;
-	real_name?: string;
-	name?: string;
-	profile?: SlackUserProfile;
-}
-
-interface UsersMap {
-	[userId: string]: SlackUser;
-}
-
-interface FilteredUser {
-	id: string;
-	name: string;
-	display: string;
-}
-
-interface MentionSuggestProps {
-	text: string;
-	usersMap: UsersMap;
-	onSelect: (userId: string, userName: string) => void;
-}
-
-interface MentionSuggestState {
-	focusIndex: number;
-}
-
-interface MentionSuggestStyles {
-	container: ViewStyle;
-	item: ViewStyle;
-	itemInner: ViewStyle;
-	avatar: ImageStyle;
-	avatarFallback: ViewStyle;
-	avatarInitial: TextStyle;
-	name: TextStyle;
-	display: TextStyle;
-}
 
 function hashCode(str: string): number {
 	let hash = 0;

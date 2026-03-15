@@ -1,31 +1,10 @@
+import type { FontSizeKey, ThemeMode } from "../theme";
+import type { AccountEntry } from "../types";
+import { STORAGE_KEYS } from "./constants";
+import type { AsyncStorageInterface } from "./types";
 import { Platform } from "react-native";
 
-interface AsyncStorageInterface {
-	setItem(key: string, value: string): Promise<void>;
-	getItem(key: string): Promise<string | null>;
-	removeItem(key: string): Promise<void>;
-}
-
-export interface Account {
-	token: string;
-	teamName: string;
-	teamIcon: string;
-	userId: string;
-	userName: string;
-	teamId: string;
-}
-
-type ThemeMode = "dark" | "light";
-type FontSizeKey = "small" | "medium" | "large";
-
-const TOKEN_KEY = "@BBSlack:token";
-const THEME_KEY = "@BBSlack:theme";
-const NOTIF_INTERVAL_KEY = "@BBSlack:notifInterval";
-const NOTIF_ENABLED_KEY = "@BBSlack:notifEnabled";
-const SOUND_ENABLED_KEY = "@BBSlack:soundEnabled";
-const FONT_SIZE_KEY = "@BBSlack:fontSize";
-const ACCOUNTS_KEY = "@BBSlack:accounts";
-const ACTIVE_ACCOUNT_KEY = "@BBSlack:activeAccount";
+export type { AccountEntry as Account };
 
 function getAsyncStorage(): AsyncStorageInterface {
 	return require("react-native").AsyncStorage;
@@ -33,58 +12,58 @@ function getAsyncStorage(): AsyncStorageInterface {
 
 export async function saveToken(token: string): Promise<void> {
 	if (Platform.OS === "web") {
-		localStorage.setItem(TOKEN_KEY, token);
+		localStorage.setItem(STORAGE_KEYS.TOKEN, token);
 	} else {
-		await getAsyncStorage().setItem(TOKEN_KEY, token);
+		await getAsyncStorage().setItem(STORAGE_KEYS.TOKEN, token);
 	}
 }
 
 export async function getToken(): Promise<string | null> {
 	if (Platform.OS === "web") {
-		return localStorage.getItem(TOKEN_KEY);
+		return localStorage.getItem(STORAGE_KEYS.TOKEN);
 	}
-	return await getAsyncStorage().getItem(TOKEN_KEY);
+	return await getAsyncStorage().getItem(STORAGE_KEYS.TOKEN);
 }
 
 export async function clearToken(): Promise<void> {
 	if (Platform.OS === "web") {
-		localStorage.removeItem(TOKEN_KEY);
+		localStorage.removeItem(STORAGE_KEYS.TOKEN);
 	} else {
-		await getAsyncStorage().removeItem(TOKEN_KEY);
+		await getAsyncStorage().removeItem(STORAGE_KEYS.TOKEN);
 	}
 }
 
 export async function saveTheme(mode: ThemeMode): Promise<void> {
 	if (Platform.OS === "web") {
-		localStorage.setItem(THEME_KEY, mode);
+		localStorage.setItem(STORAGE_KEYS.THEME, mode);
 	} else {
-		await getAsyncStorage().setItem(THEME_KEY, mode);
+		await getAsyncStorage().setItem(STORAGE_KEYS.THEME, mode);
 	}
 }
 
 export async function getTheme(): Promise<ThemeMode> {
 	if (Platform.OS === "web") {
-		return (localStorage.getItem(THEME_KEY) as ThemeMode) || "dark";
+		return (localStorage.getItem(STORAGE_KEYS.THEME) as ThemeMode) || "dark";
 	}
-	const val = await getAsyncStorage().getItem(THEME_KEY);
+	const val = await getAsyncStorage().getItem(STORAGE_KEYS.THEME);
 	return (val as ThemeMode) || "dark";
 }
 
 export async function saveNotifInterval(ms: number): Promise<void> {
 	const val = String(ms);
 	if (Platform.OS === "web") {
-		localStorage.setItem(NOTIF_INTERVAL_KEY, val);
+		localStorage.setItem(STORAGE_KEYS.NOTIF_INTERVAL, val);
 	} else {
-		await getAsyncStorage().setItem(NOTIF_INTERVAL_KEY, val);
+		await getAsyncStorage().setItem(STORAGE_KEYS.NOTIF_INTERVAL, val);
 	}
 }
 
 export async function getNotifInterval(): Promise<number> {
 	let val: string | null;
 	if (Platform.OS === "web") {
-		val = localStorage.getItem(NOTIF_INTERVAL_KEY);
+		val = localStorage.getItem(STORAGE_KEYS.NOTIF_INTERVAL);
 	} else {
-		val = await getAsyncStorage().getItem(NOTIF_INTERVAL_KEY);
+		val = await getAsyncStorage().getItem(STORAGE_KEYS.NOTIF_INTERVAL);
 	}
 	return val ? parseInt(val, 10) : 120000;
 }
@@ -92,18 +71,18 @@ export async function getNotifInterval(): Promise<number> {
 export async function saveNotifEnabled(enabled: boolean): Promise<void> {
 	const val = enabled ? "1" : "0";
 	if (Platform.OS === "web") {
-		localStorage.setItem(NOTIF_ENABLED_KEY, val);
+		localStorage.setItem(STORAGE_KEYS.NOTIF_ENABLED, val);
 	} else {
-		await getAsyncStorage().setItem(NOTIF_ENABLED_KEY, val);
+		await getAsyncStorage().setItem(STORAGE_KEYS.NOTIF_ENABLED, val);
 	}
 }
 
 export async function getNotifEnabled(): Promise<boolean> {
 	let val: string | null;
 	if (Platform.OS === "web") {
-		val = localStorage.getItem(NOTIF_ENABLED_KEY);
+		val = localStorage.getItem(STORAGE_KEYS.NOTIF_ENABLED);
 	} else {
-		val = await getAsyncStorage().getItem(NOTIF_ENABLED_KEY);
+		val = await getAsyncStorage().getItem(STORAGE_KEYS.NOTIF_ENABLED);
 	}
 	return val !== "0";
 }
@@ -111,78 +90,75 @@ export async function getNotifEnabled(): Promise<boolean> {
 export async function saveSoundEnabled(enabled: boolean): Promise<void> {
 	const val = enabled ? "1" : "0";
 	if (Platform.OS === "web") {
-		localStorage.setItem(SOUND_ENABLED_KEY, val);
+		localStorage.setItem(STORAGE_KEYS.SOUND_ENABLED, val);
 	} else {
-		await getAsyncStorage().setItem(SOUND_ENABLED_KEY, val);
+		await getAsyncStorage().setItem(STORAGE_KEYS.SOUND_ENABLED, val);
 	}
 }
 
 export async function getSoundEnabled(): Promise<boolean> {
 	let val: string | null;
 	if (Platform.OS === "web") {
-		val = localStorage.getItem(SOUND_ENABLED_KEY);
+		val = localStorage.getItem(STORAGE_KEYS.SOUND_ENABLED);
 	} else {
-		val = await getAsyncStorage().getItem(SOUND_ENABLED_KEY);
+		val = await getAsyncStorage().getItem(STORAGE_KEYS.SOUND_ENABLED);
 	}
 	return val !== "0";
 }
 
 export async function saveFontSize(size: FontSizeKey): Promise<void> {
 	if (Platform.OS === "web") {
-		localStorage.setItem(FONT_SIZE_KEY, size);
+		localStorage.setItem(STORAGE_KEYS.FONT_SIZE, size);
 	} else {
-		await getAsyncStorage().setItem(FONT_SIZE_KEY, size);
+		await getAsyncStorage().setItem(STORAGE_KEYS.FONT_SIZE, size);
 	}
 }
 
 export async function getFontSize(): Promise<FontSizeKey> {
 	let val: string | null;
 	if (Platform.OS === "web") {
-		val = localStorage.getItem(FONT_SIZE_KEY);
+		val = localStorage.getItem(STORAGE_KEYS.FONT_SIZE);
 	} else {
-		val = await getAsyncStorage().getItem(FONT_SIZE_KEY);
+		val = await getAsyncStorage().getItem(STORAGE_KEYS.FONT_SIZE);
 	}
 	return (val as FontSizeKey) || "medium";
 }
 
-// Multi-account storage
-// Account shape: { token, teamName, teamIcon, userId, userName, teamId }
-
-export async function getAccounts(): Promise<Account[]> {
+export async function getAccounts(): Promise<AccountEntry[]> {
 	let val: string | null;
 	if (Platform.OS === "web") {
-		val = localStorage.getItem(ACCOUNTS_KEY);
+		val = localStorage.getItem(STORAGE_KEYS.ACCOUNTS);
 	} else {
-		val = await getAsyncStorage().getItem(ACCOUNTS_KEY);
+		val = await getAsyncStorage().getItem(STORAGE_KEYS.ACCOUNTS);
 	}
 	if (!val) return [];
 	try {
-		return JSON.parse(val) as Account[];
+		return JSON.parse(val) as AccountEntry[];
 	} catch (e) {
 		return [];
 	}
 }
 
-export async function saveAccounts(accounts: Account[]): Promise<void> {
+export async function saveAccounts(accounts: AccountEntry[]): Promise<void> {
 	const val = JSON.stringify(accounts);
 	if (Platform.OS === "web") {
-		localStorage.setItem(ACCOUNTS_KEY, val);
+		localStorage.setItem(STORAGE_KEYS.ACCOUNTS, val);
 	} else {
-		await getAsyncStorage().setItem(ACCOUNTS_KEY, val);
+		await getAsyncStorage().setItem(STORAGE_KEYS.ACCOUNTS, val);
 	}
 }
 
 export async function getActiveAccountId(): Promise<string | null> {
 	if (Platform.OS === "web") {
-		return localStorage.getItem(ACTIVE_ACCOUNT_KEY) || null;
+		return localStorage.getItem(STORAGE_KEYS.ACTIVE_ACCOUNT) || null;
 	}
-	return (await getAsyncStorage().getItem(ACTIVE_ACCOUNT_KEY)) || null;
+	return (await getAsyncStorage().getItem(STORAGE_KEYS.ACTIVE_ACCOUNT)) || null;
 }
 
 export async function saveActiveAccountId(id: string): Promise<void> {
 	if (Platform.OS === "web") {
-		localStorage.setItem(ACTIVE_ACCOUNT_KEY, id);
+		localStorage.setItem(STORAGE_KEYS.ACTIVE_ACCOUNT, id);
 	} else {
-		await getAsyncStorage().setItem(ACTIVE_ACCOUNT_KEY, id);
+		await getAsyncStorage().setItem(STORAGE_KEYS.ACTIVE_ACCOUNT, id);
 	}
 }

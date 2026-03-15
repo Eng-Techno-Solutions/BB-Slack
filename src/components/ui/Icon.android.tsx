@@ -1,11 +1,6 @@
+import type { IconProps } from "./types";
 import React from "react";
 import FeatherIcon from "react-native-vector-icons/Feather";
-
-interface IconProps {
-	name: string;
-	size?: number;
-	color?: string;
-}
 
 const ICON_MAP: Record<string, string> = {
 	"chevron-down": "chevron-down",

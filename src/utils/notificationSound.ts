@@ -1,13 +1,4 @@
-interface SoundInstance {
-	play(onEnd?: (success: boolean) => void): void;
-	stop(onStop?: () => void): void;
-}
-
-interface SoundConstructor {
-	new (filename: string, basePath: string, onError?: (error: Error | null) => void): SoundInstance;
-	MAIN_BUNDLE: string;
-	setCategory(category: string): void;
-}
+import type { SoundConstructor, SoundInstance } from "./types";
 
 const Sound: SoundConstructor = require("react-native-sound");
 Sound.setCategory("Playback");

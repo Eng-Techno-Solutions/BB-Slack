@@ -1,52 +1,13 @@
-import { getColors } from "../theme";
-import { EMOJI_MAP, getTwemojiUrl, replaceEmojisInText } from "../utils/emoji";
-import { getUserName } from "../utils/format";
+import { getColors } from "../../theme";
+import type { UsersMap } from "../../types";
+import { EMOJI_MAP, getTwemojiUrl, replaceEmojisInText } from "../../utils/emoji";
+import { getUserName } from "../../utils/format";
+import type { SlackTextProps, SlackTextStyles, TextPart, TokenizedResult } from "./types";
 import React from "react";
 import { Image, Linking, Platform, StyleSheet, Text, View } from "react-native";
-import type { ImageStyle, StyleProp, TextStyle, ViewStyle } from "react-native";
 
 const IS_ANDROID: boolean = Platform.OS === "android";
 const TOKEN_CHAR: string = "\x01";
-
-interface UsersMap {
-	[userId: string]: any;
-}
-
-interface TextPart {
-	type: string;
-	value?: string;
-	url?: string;
-	label?: string;
-	children?: TextPart[];
-}
-
-interface TokenizedResult {
-	text: string;
-	tokens: string[];
-}
-
-interface SlackTextProps {
-	text: string;
-	usersMap?: UsersMap;
-	style?: StyleProp<TextStyle>;
-	numberOfLines?: number;
-	emojiOnly?: boolean;
-}
-
-interface SlackTextStyles {
-	link: TextStyle;
-	mention: TextStyle;
-	channel: TextStyle;
-	inlineCode: TextStyle;
-	codeBlock: ViewStyle;
-	codeBlockText: TextStyle;
-	bold: TextStyle;
-	italic: TextStyle;
-	strike: TextStyle;
-	inlineEmoji: ImageStyle;
-	bigEmoji: ImageStyle;
-	emojiOnlyText: TextStyle;
-}
 
 function replaceEmojisWithImages(
 	text: string,

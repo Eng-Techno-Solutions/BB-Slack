@@ -1,9 +1,14 @@
-import Header from "../components/Header";
-import Icon from "../components/Icon";
-import SlackText from "../components/SlackText";
+import { Header, Icon, SlackText } from "../components";
 import { getColors } from "../theme";
+import type { KeyEvent, KeySub } from "../types";
 import { getChannelDisplayName, getUserName } from "../utils/format";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
+import type {
+	PinItem,
+	ChannelInfoProps as Props,
+	ChannelInfoState as State,
+	ChannelInfoStyles as Styles
+} from "./types";
 import React, { Component } from "react";
 import {
 	ActivityIndicator,
@@ -16,81 +21,6 @@ import {
 	TouchableOpacity,
 	View
 } from "react-native";
-import type { ImageStyle, TextStyle, ViewStyle } from "react-native";
-
-interface SlackUserProfile {
-	display_name?: string;
-	image_72?: string;
-	image_48?: string;
-	[key: string]: unknown;
-}
-
-interface SlackUser {
-	id: string;
-	name?: string;
-	real_name?: string;
-	deleted?: boolean;
-	is_bot?: boolean;
-	profile?: SlackUserProfile;
-	[key: string]: unknown;
-}
-
-interface SlackChannel {
-	id: string;
-	is_im?: boolean;
-	is_mpim?: boolean;
-	is_private?: boolean;
-	purpose?: { value: string };
-	topic?: { value: string };
-	[key: string]: unknown;
-}
-
-interface SlackAPI {
-	token: string;
-	conversationsMembers(channelId: string): Promise<{ members?: string[] }>;
-	pinsList(channelId: string): Promise<{ items?: PinItem[] }>;
-	[key: string]: unknown;
-}
-
-interface PinMessage {
-	user: string;
-	text: string;
-	ts: string;
-	[key: string]: unknown;
-}
-
-interface PinItem {
-	message?: PinMessage;
-	[key: string]: unknown;
-}
-
-interface KeyEvent {
-	action: string;
-	[key: string]: unknown;
-}
-
-interface KeySub {
-	remove(): void;
-}
-
-interface Props {
-	slack: SlackAPI;
-	channel: SlackChannel;
-	usersMap: Record<string, SlackUser>;
-	currentUserId: string;
-	onBack?: () => void;
-	onProfile?: (userId: string) => void;
-	themeMode?: string;
-}
-
-interface State {
-	members: string[];
-	loading: boolean;
-	pins: PinItem[];
-	pinsLoading: boolean;
-	showPins: boolean;
-	focusIndex: number;
-}
 
 export default class ChannelInfoScreen extends Component<Props, State> {
 	_keySub: KeySub | null;
@@ -380,30 +310,6 @@ export default class ChannelInfoScreen extends Component<Props, State> {
 			</View>
 		);
 	}
-}
-
-interface Styles {
-	container: ViewStyle;
-	infoSection: ViewStyle;
-	channelName: TextStyle;
-	purpose: TextStyle;
-	topic: TextStyle;
-	memberCount: TextStyle;
-	tabRow: ViewStyle;
-	tabBtn: ViewStyle;
-	tabBtnActive: ViewStyle;
-	tabBtnText: TextStyle;
-	center: ViewStyle;
-	emptyText: TextStyle;
-	memberItem: ViewStyle;
-	memberInner: ViewStyle;
-	memberAvatar: ImageStyle;
-	memberAvatarPlaceholder: ViewStyle;
-	memberAvatarText: TextStyle;
-	memberName: TextStyle;
-	pinItem: ViewStyle;
-	pinUser: TextStyle;
-	pinText: TextStyle;
 }
 
 const styles = StyleSheet.create<Styles>({

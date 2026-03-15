@@ -1,4 +1,4 @@
-type AudioDownloadCallback = (error: string | null, url: string | null) => void;
+import type { AudioDownloadCallback } from "./types";
 
 function downloadAudio(url: string, token: string, callback: AudioDownloadCallback): void {
 	callback(null, url);

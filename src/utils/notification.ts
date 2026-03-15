@@ -1,13 +1,6 @@
-const { NativeModules } = require("react-native");
+import type { NotificationModuleInterface } from "./types";
 
-interface NotificationModuleInterface {
-	startService(token: string, userId: string, usersJson: string, intervalMs: number): void;
-	stopService(): void;
-	setAppForeground(foreground: boolean): void;
-	showNotification(title: string, body: string, channelId: string | null): void;
-	cancelAll(): void;
-	clearUnreadTracking(): void;
-}
+const { NativeModules } = require("react-native");
 
 const NotificationModule = NativeModules.NotificationModule as
 	| NotificationModuleInterface

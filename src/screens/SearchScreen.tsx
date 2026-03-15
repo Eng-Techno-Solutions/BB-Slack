@@ -1,9 +1,14 @@
-import Header from "../components/Header";
-import Icon from "../components/Icon";
-import SlackText from "../components/SlackText";
+import { Header, Icon, SlackText } from "../components";
 import { getColors } from "../theme";
+import type { KeyEvent, KeySub } from "../types";
 import { formatDateFull, getUserName } from "../utils/format";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
+import type {
+	SearchProps as Props,
+	SearchMatch,
+	SearchState as State,
+	SearchStyles as Styles
+} from "./types";
 import React, { Component } from "react";
 import {
 	ActivityIndicator,
@@ -15,54 +20,6 @@ import {
 	TouchableOpacity,
 	View
 } from "react-native";
-import type { TextStyle, ViewStyle } from "react-native";
-
-interface SlackUser {
-	id: string;
-	name?: string;
-	real_name?: string;
-	profile?: Record<string, unknown>;
-	[key: string]: unknown;
-}
-
-interface SearchMatch {
-	ts: string;
-	text: string;
-	user?: string;
-	username?: string;
-	channel?: { id: string; name: string };
-	[key: string]: unknown;
-}
-
-interface SlackAPI {
-	searchMessages(query: string): Promise<{ messages?: { matches?: SearchMatch[] } }>;
-	[key: string]: unknown;
-}
-
-interface KeyEvent {
-	action: string;
-	[key: string]: unknown;
-}
-
-interface KeySub {
-	remove(): void;
-}
-
-interface Props {
-	slack: SlackAPI;
-	usersMap: Record<string, SlackUser>;
-	onBack?: () => void;
-	onSelectMessage?: (msg: SearchMatch) => void;
-	themeMode?: string;
-}
-
-interface State {
-	query: string;
-	results: SearchMatch[];
-	loading: boolean;
-	searched: boolean;
-	focusIndex: number;
-}
 
 export default class SearchScreen extends Component<Props, State> {
 	_keySub: KeySub | null;
@@ -258,21 +215,6 @@ export default class SearchScreen extends Component<Props, State> {
 			</View>
 		);
 	}
-}
-
-interface Styles {
-	container: ViewStyle;
-	searchRow: ViewStyle;
-	input: TextStyle;
-	searchBtn: ViewStyle;
-	center: ViewStyle;
-	emptyText: TextStyle;
-	item: ViewStyle;
-	itemHeader: ViewStyle;
-	itemUser: TextStyle;
-	itemChannel: TextStyle;
-	itemText: TextStyle;
-	itemTime: TextStyle;
 }
 
 const styles = StyleSheet.create<Styles>({

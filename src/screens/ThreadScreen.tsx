@@ -1,14 +1,12 @@
-import EmojiPicker from "../components/EmojiPicker";
-import Header from "../components/Header";
-import Icon from "../components/Icon";
-import MentionSuggest from "../components/MentionSuggest";
-import MessageItem from "../components/MessageItem";
+import { EmojiPicker, Header, Icon, MentionSuggest, MessageItem } from "../components";
 import { getColors } from "../theme";
+import type { KeyEvent, KeySub, SlackMessage } from "../types";
 import { cancelRecording, startRecording, stopRecording } from "../utils/audioRecorder";
 import { pickFile } from "../utils/filePicker";
 import { getUserName } from "../utils/format";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
 import { playNotification } from "../utils/notificationSound";
+import type { ThreadProps as Props, ThreadState as State, ThreadStyles as Styles } from "./types";
 import React, { Component } from "react";
 import {
 	ActivityIndicator,
@@ -20,82 +18,6 @@ import {
 	TouchableOpacity,
 	View
 } from "react-native";
-import type { TextStyle, ViewStyle } from "react-native";
-
-interface SlackReaction {
-	name: string;
-	users?: string[];
-	count: number;
-}
-
-interface SlackMessage {
-	ts: string;
-	text?: string;
-	user: string;
-	reactions?: SlackReaction[];
-	[key: string]: unknown;
-}
-
-interface SlackUser {
-	id: string;
-	name?: string;
-	real_name?: string;
-	profile?: Record<string, unknown>;
-	[key: string]: unknown;
-}
-
-interface SlackChannel {
-	id: string;
-	[key: string]: unknown;
-}
-
-interface SlackAPI {
-	token: string;
-	conversationsReplies(channelId: string, threadTs: string): Promise<{ messages?: SlackMessage[] }>;
-	chatPostMessage(channelId: string, text: string, threadTs?: string): Promise<unknown>;
-	reactionsAdd(channelId: string, name: string, ts: string): Promise<unknown>;
-	reactionsRemove(channelId: string, name: string, ts: string): Promise<unknown>;
-	filesUpload(
-		channelId: string,
-		file: any,
-		threadTs?: string | null,
-		text?: string | null
-	): Promise<unknown>;
-	[key: string]: unknown;
-}
-
-interface KeyEvent {
-	action: string;
-	[key: string]: unknown;
-}
-
-interface KeySub {
-	remove(): void;
-}
-
-interface Props {
-	slack: SlackAPI;
-	channel: SlackChannel;
-	parentMessage: SlackMessage;
-	usersMap: Record<string, SlackUser>;
-	currentUserId: string;
-	onBack?: () => void;
-	themeMode?: string;
-}
-
-interface State {
-	replies: SlackMessage[];
-	loading: boolean;
-	inputText: string;
-	sending: boolean;
-	emojiPickerMode: string | null;
-	actionMessage: SlackMessage | null;
-	reactionTarget: SlackMessage | null;
-	uploading: boolean;
-	recording: boolean;
-	recordingTime: number;
-	focusIndex: number;
-}
 
 export default class ThreadScreen extends Component<Props, State> {
 	_mounted: boolean;
@@ -611,21 +533,6 @@ export default class ThreadScreen extends Component<Props, State> {
 			</View>
 		);
 	}
-}
-
-interface Styles {
-	container: ViewStyle;
-	center: ViewStyle;
-	inputRow: ViewStyle;
-	innerRow: ViewStyle;
-	input: TextStyle;
-	sendBtn: ViewStyle;
-	sendDisabled: ViewStyle;
-	actionBtn: ViewStyle;
-	micBtn: ViewStyle;
-	recordingRow: ViewStyle;
-	recordingDot: ViewStyle;
-	recordingText: TextStyle;
 }
 
 const styles = StyleSheet.create<Styles>({

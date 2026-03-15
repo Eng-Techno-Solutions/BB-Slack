@@ -1,37 +1,8 @@
 import { request, uploadBinary, uploadFile } from "./http";
+import type { FileData, SlackResponse, UploadCompleteBody, UploadFields } from "./types";
 import { Platform } from "react-native";
 
 const BASE: string = Platform.OS === "web" ? "/slack-api/" : "https://slack.com/api/";
-
-interface SlackResponse {
-	ok: boolean;
-	error?: string;
-	[key: string]: unknown;
-}
-
-interface FileData {
-	name?: string;
-	type?: string;
-	size?: number;
-	base64?: string;
-	file?: File;
-	blob?: Blob;
-}
-
-interface UploadCompleteBody {
-	files: Array<{ id: string; title: string }>;
-	channel_id?: string;
-	thread_ts?: string;
-	initial_comment?: string;
-}
-
-interface UploadFields {
-	channels: string;
-	filename?: string;
-	thread_ts?: string;
-	initial_comment?: string;
-	[key: string]: string | undefined;
-}
 
 export default class SlackAPI {
 	token: string;

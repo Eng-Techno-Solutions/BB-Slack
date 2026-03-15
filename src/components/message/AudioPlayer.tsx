@@ -1,57 +1,15 @@
-import { getColors } from "../theme";
-import audioDownload from "../utils/audioDownload";
-import Icon from "./Icon";
+import { getColors } from "../../theme";
+import audioDownload from "../../utils/audioDownload";
+import Icon from "../ui/Icon";
+import type {
+	AudioPlayerProps,
+	AudioPlayerState,
+	AudioPlayerStyles,
+	NativeSoundConstructor,
+	NativeSoundInstance
+} from "./types";
 import React, { Component } from "react";
 import { Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import type { TextStyle, ViewStyle } from "react-native";
-
-interface NativeSoundInstance {
-	getDuration(): number;
-	getCurrentTime(cb: (sec: number) => void): void;
-	setCurrentTime(val: number): void;
-	play(cb: (success: boolean) => void): void;
-	pause(): void;
-	stop(): void;
-	release(): void;
-}
-
-interface NativeSoundConstructor {
-	new (url: string, basePath: string | null, cb: (err: any) => void): NativeSoundInstance;
-}
-
-interface AudioPlayerProps {
-	visible: boolean;
-	source: string;
-	fileName?: string;
-	token?: string;
-	onClose?: () => void;
-}
-
-interface AudioPlayerState {
-	playing: boolean;
-	duration: number;
-	position: number;
-	error: string | null;
-}
-
-interface AudioPlayerStyles {
-	overlay: ViewStyle;
-	card: ViewStyle;
-	header: ViewStyle;
-	title: TextStyle;
-	closeBtn: ViewStyle;
-	playerArea: ViewStyle;
-	controlsRow: ViewStyle;
-	playBtn: ViewStyle;
-	sliderArea: ViewStyle;
-	progressTrack: ViewStyle;
-	progressFill: ViewStyle;
-	timeRow: ViewStyle;
-	timeText: TextStyle;
-	errorText: TextStyle;
-	retryBtn: ViewStyle;
-	retryText: TextStyle;
-}
 
 function formatSecs(s: number): string {
 	const m = Math.floor(s / 60);

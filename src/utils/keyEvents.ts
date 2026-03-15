@@ -1,13 +1,6 @@
+import type { KeyEventCallback } from "../types/events";
 import { DeviceEventEmitter, Platform } from "react-native";
 import type { EmitterSubscription } from "react-native";
-
-interface KeyEvent {
-	keyCode: number;
-	action: string;
-	[key: string]: unknown;
-}
-
-type KeyEventCallback = (event: KeyEvent) => void;
 
 const listeners: EmitterSubscription[] = [];
 

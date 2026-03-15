@@ -1,5 +1,6 @@
-import { getColors } from "../theme";
-import Icon from "./Icon";
+import { getColors } from "../../theme";
+import Icon from "../ui/Icon";
+import type { WorkspaceAccount, WorkspaceDrawerProps, WorkspaceDrawerStyles } from "./types";
 import React, { Component } from "react";
 import {
 	Animated,
@@ -13,49 +14,9 @@ import {
 	TouchableOpacity,
 	View
 } from "react-native";
-import type { ImageStyle, TextStyle, ViewStyle } from "react-native";
+import type { ViewStyle } from "react-native";
 
 const DRAWER_WIDTH: number = Math.min(280, Dimensions.get("window").width * 0.8);
-
-interface WorkspaceAccount {
-	userId: string;
-	teamName?: string;
-	teamIcon?: string;
-	userName?: string;
-}
-
-interface WorkspaceDrawerProps {
-	visible: boolean;
-	accounts: WorkspaceAccount[];
-	activeAccountId: string;
-	onSwitch: (account: WorkspaceAccount) => void;
-	onAddAccount: () => void;
-	onRemoveAccount: (account: WorkspaceAccount) => void;
-	onClose: () => void;
-}
-
-interface WorkspaceDrawerStyles {
-	container: ViewStyle;
-	overlay: ViewStyle;
-	overlayTouch: ViewStyle;
-	drawer: ViewStyle;
-	drawerHeader: ViewStyle;
-	drawerTitle: TextStyle;
-	accountsList: ViewStyle;
-	accountItem: ViewStyle;
-	accountInner: ViewStyle;
-	accountIcon: ImageStyle;
-	accountIconPlaceholder: ViewStyle;
-	accountIconText: TextStyle;
-	accountInfo: ViewStyle;
-	accountTeam: TextStyle;
-	accountUser: TextStyle;
-	removeBtn: ViewStyle;
-	addBtn: ViewStyle;
-	addBtnInner: ViewStyle;
-	addIconWrap: ViewStyle;
-	addBtnText: TextStyle;
-}
 
 export default class WorkspaceDrawer extends Component<WorkspaceDrawerProps> {
 	_slideAnim: Animated.Value;

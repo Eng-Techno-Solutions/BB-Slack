@@ -1,17 +1,5 @@
+import type { AudioRecorderModuleInterface, RecordingResult } from "./types";
 import { NativeModules } from "react-native";
-
-interface AudioRecorderModuleInterface {
-	startRecording(): Promise<string>;
-	stopRecording(): Promise<string>;
-	cancelRecording(): Promise<void>;
-}
-
-export interface RecordingResult {
-	base64: string;
-	duration: number;
-	name: string;
-	type: string;
-}
 
 const AudioRecorderModule = NativeModules.AudioRecorderModule as
 	| AudioRecorderModuleInterface

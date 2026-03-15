@@ -1,27 +1,4 @@
-export interface SlackUser {
-	profile?: {
-		display_name?: string;
-		[key: string]: unknown;
-	};
-	real_name?: string;
-	name?: string;
-	[key: string]: unknown;
-}
-
-export interface SlackChannel {
-	is_im?: boolean;
-	is_mpim?: boolean;
-	user?: string;
-	name?: string;
-	name_normalized?: string;
-	purpose?: {
-		value?: string;
-		[key: string]: unknown;
-	};
-	[key: string]: unknown;
-}
-
-export type UsersMap = Record<string, SlackUser>;
+import type { SlackChannel, UsersMap } from "../types";
 
 export function formatTime(ts: string): string {
 	const date = new Date(parseFloat(ts) * 1000);

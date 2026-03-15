@@ -1,17 +1,28 @@
-import ActionSheet from "../components/ActionSheet";
-import AudioPlayer from "../components/AudioPlayer";
-import EmojiPicker from "../components/EmojiPicker";
-import Header from "../components/Header";
-import Icon from "../components/Icon";
-import ImageViewer from "../components/ImageViewer";
-import MentionSuggest from "../components/MentionSuggest";
-import MessageItem from "../components/MessageItem";
+import {
+	ActionSheet,
+	AudioPlayer,
+	EmojiPicker,
+	Header,
+	Icon,
+	ImageViewer,
+	MentionSuggest,
+	MessageItem
+} from "../components";
 import { getColors } from "../theme";
+import type { KeyEvent, KeySub, SlackMessage } from "../types";
 import { cancelRecording, startRecording, stopRecording } from "../utils/audioRecorder";
 import { pickFile } from "../utils/filePicker";
 import { getChannelDisplayName } from "../utils/format";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
 import { playNotification } from "../utils/notificationSound";
+import type {
+	ChatActionItem as ActionItem,
+	ChatProps as Props,
+	ChatState as State,
+	ChatStyles as Styles,
+	ViewerAudio,
+	ViewerImage
+} from "./types";
 import React, { Component } from "react";
 import {
 	ActivityIndicator,
@@ -23,122 +34,7 @@ import {
 	TouchableOpacity,
 	View
 } from "react-native";
-import type { NativeScrollEvent, NativeSyntheticEvent, TextStyle, ViewStyle } from "react-native";
-
-interface SlackReaction {
-	name: string;
-	users?: string[];
-	count: number;
-}
-
-interface SlackMessage {
-	ts: string;
-	text?: string;
-	user: string;
-	username?: string;
-	reply_count?: number;
-	reactions?: SlackReaction[];
-	edited?: Record<string, unknown>;
-	[key: string]: unknown;
-}
-
-interface SlackUser {
-	id: string;
-	name?: string;
-	real_name?: string;
-	profile?: Record<string, unknown>;
-	[key: string]: unknown;
-}
-
-interface SlackChannel {
-	id: string;
-	is_im?: boolean;
-	topic?: { value: string };
-	[key: string]: unknown;
-}
-
-interface SlackAPI {
-	token: string;
-	conversationsHistory(
-		channelId: string,
-		cursor: string | null,
-		limit: number
-	): Promise<{ messages?: SlackMessage[]; response_metadata?: { next_cursor?: string } }>;
-	conversationsMark(channelId: string, ts: string): Promise<unknown>;
-	chatPostMessage(channelId: string, text: string, threadTs?: string): Promise<unknown>;
-	chatUpdate(channelId: string, ts: string, text: string): Promise<unknown>;
-	chatDelete(channelId: string, ts: string): Promise<unknown>;
-	reactionsAdd(channelId: string, name: string, ts: string): Promise<unknown>;
-	reactionsRemove(channelId: string, name: string, ts: string): Promise<unknown>;
-	filesUpload(
-		channelId: string,
-		file: any,
-		threadTs?: string | null,
-		text?: string | null
-	): Promise<unknown>;
-	[key: string]: unknown;
-}
-
-interface ViewerImage {
-	uri: string;
-	name: string;
-	token?: string;
-}
-
-interface ViewerAudio {
-	uri: string;
-	name: string;
-	duration?: number;
-	token?: string;
-}
-
-interface ActionItem {
-	label: string;
-	destructive?: boolean;
-	onPress: () => void;
-}
-
-interface KeyEvent {
-	action: string;
-	[key: string]: unknown;
-}
-
-interface KeySub {
-	remove(): void;
-}
-
-interface Props {
-	slack: SlackAPI;
-	channel: SlackChannel;
-	usersMap: Record<string, SlackUser>;
-	currentUserId: string;
-	onBack?: () => void;
-	onThread: (msg: SlackMessage) => void;
-	onMembers?: () => void;
-	themeMode?: string;
-}
-
-interface State {
-	messages: SlackMessage[];
-	loading: boolean;
-	loadingMore: boolean;
-	inputText: string;
-	sending: boolean;
-	cursor: string | null;
-	hasMore: boolean;
-	actionMessage: SlackMessage | null;
-	editingMessage: SlackMessage | null;
-	viewerImage: ViewerImage | null;
-	viewerAudio: ViewerAudio | null;
-	emojiPickerMode: string | null;
-	reactionTarget: SlackMessage | null;
-	showScrollBtn: boolean;
-	uploading: boolean;
-	recording: boolean;
-	recordingTime: number;
-	focusIndex: number;
-	_unseenTick?: number;
-}
+import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 
 export default class ChatScreen extends Component<Props, State> {
 	_mounted: boolean;
@@ -995,31 +891,6 @@ export default class ChatScreen extends Component<Props, State> {
 			</View>
 		);
 	}
-}
-
-interface Styles {
-	container: ViewStyle;
-	listWrapper: ViewStyle;
-	center: ViewStyle;
-	emptyText: TextStyle;
-	loadMore: ViewStyle;
-	loadMoreText: TextStyle;
-	inputBar: ViewStyle;
-	editBanner: ViewStyle;
-	editBannerText: TextStyle;
-	editCancel: TextStyle;
-	inputRow: ViewStyle;
-	input: TextStyle;
-	sendBtn: ViewStyle;
-	sendDisabled: ViewStyle;
-	actionBtn: ViewStyle;
-	micBtn: ViewStyle;
-	recordingRow: ViewStyle;
-	recordingDot: ViewStyle;
-	recordingText: TextStyle;
-	scrollBtn: ViewStyle;
-	unseenBadge: ViewStyle;
-	unseenBadgeText: TextStyle;
 }
 
 const styles = StyleSheet.create<Styles>({

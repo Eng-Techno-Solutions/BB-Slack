@@ -1,3 +1,4 @@
+import type { IconProps } from "./types";
 import React from "react";
 
 import Bell from "lucide-react/dist/esm/icons/bell";
@@ -37,12 +38,6 @@ import User from "lucide-react/dist/esm/icons/user";
 import X from "lucide-react/dist/esm/icons/x";
 
 type LucideIcon = React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
-
-interface IconProps {
-	name: string;
-	size?: number;
-	color?: string;
-}
 
 const ICON_MAP: Record<string, LucideIcon> = {
 	"chevron-down": ChevronDown,

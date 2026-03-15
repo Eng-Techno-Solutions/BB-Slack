@@ -1,20 +1,18 @@
-import Header from "../components/Header";
-import Icon from "../components/Icon";
+import { Header, Icon } from "../components";
 import { getColors, getMode } from "../theme";
+import type { KeyEvent, KeySub } from "../types";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
+import type {
+	SettingsActionItem as ActionItem,
+	FontSizeOption,
+	IntervalOption,
+	SettingsProps as Props,
+	SettingsState as State,
+	SettingsStyles as Styles
+} from "./types";
 import React, { Component } from "react";
 import { Linking, ScrollView, StyleSheet, Text, TouchableHighlight, View } from "react-native";
-import type { LayoutChangeEvent, TextStyle, ViewStyle } from "react-native";
-
-interface IntervalOption {
-	label: string;
-	value: number;
-}
-
-interface FontSizeOption {
-	label: string;
-	value: string;
-}
+import type { LayoutChangeEvent } from "react-native";
 
 const INTERVAL_OPTIONS: IntervalOption[] = [
 	{ label: "1 minute", value: 60000 },
@@ -29,38 +27,6 @@ const FONT_SIZE_OPTIONS: FontSizeOption[] = [
 	{ label: "Medium", value: "medium" },
 	{ label: "Large", value: "large" }
 ];
-
-interface KeyEvent {
-	action: string;
-	[key: string]: unknown;
-}
-
-interface KeySub {
-	remove(): void;
-}
-
-interface ActionItem {
-	type: string;
-	action: () => void;
-}
-
-interface Props {
-	notifEnabled: boolean;
-	notifInterval: number;
-	soundEnabled: boolean;
-	fontSize: string;
-	onToggleNotif: () => void;
-	onChangeInterval: (value: number) => void;
-	onToggleSound: () => void;
-	onToggleTheme: () => void;
-	onChangeFontSize: (value: string) => void;
-	onBack: () => void;
-	themeMode?: string;
-}
-
-interface State {
-	focusIndex: number;
-}
 
 export default class SettingsScreen extends Component<Props, State> {
 	_keySub: KeySub | null;
@@ -559,23 +525,6 @@ export default class SettingsScreen extends Component<Props, State> {
 			</View>
 		);
 	}
-}
-
-interface Styles {
-	container: ViewStyle;
-	sectionTitle: TextStyle;
-	row: ViewStyle;
-	rowInner: ViewStyle;
-	rowLeft: ViewStyle;
-	rowLabel: TextStyle;
-	rowValue: TextStyle;
-	toggle: ViewStyle;
-	toggleKnob: ViewStyle;
-	toggleKnobOn: ViewStyle;
-	hint: TextStyle;
-	devBio: ViewStyle;
-	bioText: TextStyle;
-	bottomPad: ViewStyle;
 }
 
 const styles = StyleSheet.create<Styles>({

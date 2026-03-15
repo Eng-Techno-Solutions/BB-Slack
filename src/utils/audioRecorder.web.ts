@@ -1,9 +1,4 @@
-export interface WebRecordingResult {
-	blob: Blob;
-	duration: number;
-	name: string;
-	type: string;
-}
+import type { WebRecordingResult } from "./types";
 
 let _mediaRecorder: MediaRecorder | null = null;
 let _chunks: Blob[] = [];

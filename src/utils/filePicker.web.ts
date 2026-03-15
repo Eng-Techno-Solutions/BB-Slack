@@ -1,9 +1,4 @@
-export interface PickedWebFile {
-	name: string;
-	type: string;
-	size: number;
-	file: File;
-}
+import type { PickedWebFile } from "./types";
 
 export function pickFile(): Promise<PickedWebFile | null> {
 	return new Promise(function (resolve: (value: PickedWebFile | null) => void) {

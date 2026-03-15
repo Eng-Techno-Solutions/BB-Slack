@@ -1,5 +1,6 @@
-import { getColors } from "../theme";
-import { EMOJI_MAP, getTwemojiUrl } from "../utils/emoji";
+import { getColors } from "../../theme";
+import { EMOJI_MAP, getTwemojiUrl } from "../../utils/emoji";
+import type { EmojiEntry, EmojiPickerProps, EmojiPickerState, EmojiPickerStyles } from "./types";
 import React, { Component } from "react";
 import {
 	FlatList,
@@ -12,15 +13,9 @@ import {
 	TouchableOpacity,
 	View
 } from "react-native";
-import type { ImageStyle, ListRenderItemInfo, TextStyle, ViewStyle } from "react-native";
+import type { ListRenderItemInfo } from "react-native";
 
 const IS_ANDROID: boolean = Platform.OS === "android";
-
-interface EmojiEntry {
-	name: string;
-	emoji: string;
-	url: string | null;
-}
 
 const ALL_EMOJIS: EmojiEntry[] = Object.keys(EMOJI_MAP).reduce(
 	function (acc: { list: EmojiEntry[]; seen: Record<string, boolean> }, name: string) {
@@ -34,29 +29,6 @@ const ALL_EMOJIS: EmojiEntry[] = Object.keys(EMOJI_MAP).reduce(
 	},
 	{ list: [], seen: {} }
 ).list;
-
-interface EmojiPickerProps {
-	visible: boolean;
-	onSelect: (name: string, emoji: string) => void;
-	onClose: () => void;
-}
-
-interface EmojiPickerState {
-	search: string;
-}
-
-interface EmojiPickerStyles {
-	overlay: ViewStyle;
-	backdrop: ViewStyle;
-	container: ViewStyle;
-	header: ViewStyle;
-	title: TextStyle;
-	closeBtn: TextStyle;
-	search: TextStyle;
-	emojiBtn: ViewStyle;
-	emojiText: TextStyle;
-	emojiImg: ImageStyle;
-}
 
 export default class EmojiPicker extends Component<EmojiPickerProps, EmojiPickerState> {
 	constructor(props: EmojiPickerProps) {

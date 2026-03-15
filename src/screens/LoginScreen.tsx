@@ -1,7 +1,15 @@
 import { request } from "../api/http";
-import Icon from "../components/Icon";
+import { Icon } from "../components";
 import { getColors } from "../theme";
+import type { KeyEvent, KeySub } from "../types";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
+import type {
+	FieldName,
+	LoginProps as Props,
+	SigninResponse,
+	LoginState as State,
+	LoginStyles as Styles
+} from "./types";
 import React, { Component } from "react";
 import {
 	ActivityIndicator,
@@ -14,57 +22,9 @@ import {
 	TouchableHighlight,
 	View
 } from "react-native";
-import type { NativeScrollEvent, NativeSyntheticEvent, TextStyle, ViewStyle } from "react-native";
+import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 
 const SLACK_API: string = Platform.OS === "web" ? "/slack-api/" : "https://slack.com/api/";
-
-interface KeyEvent {
-	action: string;
-	[key: string]: unknown;
-}
-
-interface KeySub {
-	remove(): void;
-}
-
-interface SigninResponse {
-	ok: boolean;
-	token?: string;
-	error?: string;
-}
-
-interface Props {
-	onLogin: (token: string) => Promise<void>;
-	onBack?: (() => void) | null;
-	themeMode?: string;
-}
-
-interface State {
-	mode: "email" | "token";
-	workspace: string;
-	email: string;
-	password: string;
-	needsPin: boolean;
-	pin: string;
-	_teamId: string;
-	token: string;
-	loading: boolean;
-	error: string | null;
-	focusIndex: number;
-}
-
-type FieldName =
-	| "emailTab"
-	| "tokenTab"
-	| "workspace"
-	| "email"
-	| "password"
-	| "signin"
-	| "pin"
-	| "verify"
-	| "pinBack"
-	| "token"
-	| "openApps";
 
 export default class LoginScreen extends Component<Props, State> {
 	_keySub: KeySub | null;
@@ -692,36 +652,6 @@ export default class LoginScreen extends Component<Props, State> {
 			</ScrollView>
 		);
 	}
-}
-
-interface Styles {
-	container: ViewStyle;
-	backBtn: ViewStyle;
-	backBtnInner: ViewStyle;
-	backBtnText: TextStyle;
-	logo: TextStyle;
-	subtitle: TextStyle;
-	tabs: ViewStyle;
-	tab: ViewStyle;
-	tabText: TextStyle;
-	form: ViewStyle;
-	label: TextStyle;
-	workspaceRow: ViewStyle;
-	workspaceInput: ViewStyle;
-	workspaceSuffix: TextStyle;
-	input: TextStyle;
-	button: ViewStyle;
-	buttonDisabled: ViewStyle;
-	buttonFocused: ViewStyle;
-	buttonText: TextStyle;
-	hint: TextStyle;
-	instructions: ViewStyle;
-	instructionsTitle: TextStyle;
-	step: TextStyle;
-	linkButton: ViewStyle;
-	linkButtonText: TextStyle;
-	error: TextStyle;
-	footer: TextStyle;
 }
 
 const styles = StyleSheet.create<Styles>({

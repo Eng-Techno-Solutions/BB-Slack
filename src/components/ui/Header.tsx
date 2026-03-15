@@ -1,30 +1,9 @@
-import { getColors } from "../theme";
+import { getColors } from "../../theme";
+import SlackText from "../message/SlackText";
 import Icon from "./Icon";
-import SlackText from "./SlackText";
+import type { HeaderProps, HeaderStyles } from "./types";
 import React, { Component } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import type { TextStyle, ViewStyle } from "react-native";
-
-interface HeaderProps {
-	title: string;
-	subtitle?: string;
-	onBack?: () => void;
-	rightLabel?: string;
-	rightIcon?: string;
-	onRight?: () => void;
-}
-
-interface HeaderStyles {
-	header: ViewStyle;
-	left: ViewStyle;
-	center: ViewStyle;
-	right: ViewStyle;
-	backBtn: ViewStyle;
-	title: TextStyle;
-	subtitle: TextStyle;
-	rightBtn: ViewStyle;
-	rightText: TextStyle;
-}
 
 export default class Header extends Component<HeaderProps> {
 	render(): React.ReactNode {

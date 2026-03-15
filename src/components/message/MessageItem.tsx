@@ -1,9 +1,11 @@
-import { getColors, getMessageFontSize } from "../theme";
-import { getTwemojiUrlByName } from "../utils/emoji";
-import { EMOJI_MAP, emojiFromName } from "../utils/emoji";
-import { formatTime, getUserName } from "../utils/format";
-import Icon from "./Icon";
+import { getColors, getMessageFontSize } from "../../theme";
+import type { SlackFile, SlackReaction, UsersMap } from "../../types";
+import { getTwemojiUrlByName } from "../../utils/emoji";
+import { EMOJI_MAP, emojiFromName } from "../../utils/emoji";
+import { formatTime, getUserName } from "../../utils/format";
+import Icon from "../ui/Icon";
 import SlackText from "./SlackText";
+import type { MessageItemProps, MessageItemState } from "./types";
 import React, { Component } from "react";
 import {
 	Dimensions,
@@ -36,96 +38,6 @@ const AVATAR_COLORS: string[] = [
 	"#1ABC9C",
 	"#8E44AD"
 ];
-
-interface SlackUserProfile {
-	image_72?: string;
-	image_48?: string;
-	[key: string]: unknown;
-}
-
-interface SlackUser {
-	profile?: SlackUserProfile;
-	[key: string]: unknown;
-}
-
-interface UsersMap {
-	[userId: string]: SlackUser;
-}
-
-interface SlackReaction {
-	name: string;
-	count: number;
-	users?: string[];
-}
-
-interface SlackFile {
-	mimetype?: string;
-	name?: string;
-	title?: string;
-	subtype?: string;
-	url_private?: string;
-	url_private_download?: string;
-	thumb_480?: string;
-	thumb_480_w?: number;
-	thumb_480_h?: number;
-	thumb_360?: string;
-	thumb_360_w?: number;
-	thumb_360_h?: number;
-	thumb_160?: string;
-	thumb_tiny?: string;
-	original_w?: number;
-	original_h?: number;
-	permalink?: string;
-	permalink_public?: string;
-	filetype?: string;
-	size?: number;
-	aac?: string;
-	duration_ms?: number;
-	audio_wave_samples?: number[];
-}
-
-interface SlackMessage {
-	ts: string;
-	text?: string;
-	user: string;
-	username?: string;
-	subtype?: string;
-	edited?: Record<string, unknown>;
-	reply_count?: number;
-	reactions?: SlackReaction[];
-	files?: SlackFile[];
-	[key: string]: unknown;
-}
-
-interface ImagePressData {
-	uri: string;
-	name: string;
-	token?: string;
-}
-
-interface AudioPressData {
-	uri: string;
-	name: string;
-	duration?: number;
-	token?: string;
-}
-
-interface MessageItemProps {
-	message: SlackMessage;
-	usersMap: UsersMap;
-	currentUserId: string;
-	token?: string;
-	focused?: boolean;
-	onLongPress?: (message: SlackMessage) => void;
-	onThreadPress?: (message: SlackMessage) => void;
-	onImagePress?: (data: ImagePressData) => void;
-	onAudioPress?: (data: AudioPressData) => void;
-	onReactionPress?: (message: SlackMessage, reactionName: string, reacted: boolean) => void;
-}
-
-interface MessageItemState {
-	showReactionUsers: number | null;
-}
 
 function hashCode(str: string): number {
 	let hash = 0;

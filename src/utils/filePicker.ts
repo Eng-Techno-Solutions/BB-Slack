@@ -1,15 +1,5 @@
+import type { FilePickerModuleInterface, PickedFile } from "./types";
 import { NativeModules } from "react-native";
-
-interface FilePickerModuleInterface {
-	pickFile(): Promise<string>;
-}
-
-export interface PickedFile {
-	name: string;
-	type: string;
-	size: number;
-	base64: string;
-}
 
 const FilePickerModule = NativeModules.FilePickerModule as FilePickerModuleInterface | undefined;
 

@@ -1,5 +1,12 @@
-import { getColors } from "../theme";
-import Icon from "./Icon";
+import { getColors } from "../../theme";
+import Icon from "../ui/Icon";
+import type {
+	ImageViewerProps,
+	ImageViewerState,
+	ImageViewerStyles,
+	MousePosition,
+	WindowDimensions
+} from "./types";
 import React, { Component } from "react";
 import {
 	ActivityIndicator,
@@ -16,55 +23,8 @@ import {
 import type {
 	GestureResponderEvent,
 	ImageSourcePropType,
-	PanResponderInstance,
-	TextStyle,
-	ViewStyle
+	PanResponderInstance
 } from "react-native";
-
-interface ImageViewerProps {
-	visible: boolean;
-	source: string;
-	fileName?: string;
-	token?: string;
-	onClose: () => void;
-}
-
-interface ImageViewerState {
-	loading: boolean;
-	error: boolean;
-	scale: number;
-	translateX: number;
-	translateY: number;
-	dragging: boolean;
-}
-
-interface MousePosition {
-	x: number;
-	y: number;
-}
-
-interface WindowDimensions {
-	width: number;
-	height: number;
-}
-
-interface ImageViewerStyles {
-	overlay: ViewStyle;
-	topBar: ViewStyle;
-	titleArea: ViewStyle;
-	fileName: TextStyle;
-	closeBtn: ViewStyle;
-	imageArea: ViewStyle;
-	imageContainer: ViewStyle;
-	loader: ViewStyle;
-	errorBox: ViewStyle;
-	errorText: TextStyle;
-	retryBtn: ViewStyle;
-	retryText: TextStyle;
-	zoomControls: ViewStyle;
-	zoomBtn: ViewStyle;
-	zoomBtnText: TextStyle;
-}
 
 function imageSource(url: string, token?: string): ImageSourcePropType {
 	if (Platform.OS !== "web" && url && token) {

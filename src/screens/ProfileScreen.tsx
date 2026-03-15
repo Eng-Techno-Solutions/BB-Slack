@@ -1,6 +1,12 @@
-import Header from "../components/Header";
+import { Header } from "../components";
 import { getColors } from "../theme";
+import type { KeyEvent, KeySub } from "../types";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
+import type {
+	ProfileProps as Props,
+	ProfileState as State,
+	ProfileStyles as Styles
+} from "./types";
 import React, { Component } from "react";
 import {
 	ActivityIndicator,
@@ -11,62 +17,6 @@ import {
 	TouchableOpacity,
 	View
 } from "react-native";
-import type { TextStyle, ViewStyle } from "react-native";
-
-interface SlackUserProfile {
-	display_name?: string;
-	title?: string;
-	status_text?: string;
-	email?: string;
-	phone?: string;
-	[key: string]: unknown;
-}
-
-interface SlackUser {
-	id: string;
-	name?: string;
-	real_name?: string;
-	is_bot?: boolean;
-	tz_label?: string;
-	tz?: string;
-	profile?: SlackUserProfile;
-	[key: string]: unknown;
-}
-
-interface SlackChannel {
-	id: string;
-	[key: string]: unknown;
-}
-
-interface SlackAPI {
-	usersInfo(userId: string): Promise<{ user: SlackUser }>;
-	conversationsOpen(userId: string): Promise<{ channel: SlackChannel }>;
-	[key: string]: unknown;
-}
-
-interface KeyEvent {
-	action: string;
-	[key: string]: unknown;
-}
-
-interface KeySub {
-	remove(): void;
-}
-
-interface Props {
-	slack: SlackAPI;
-	userId: string;
-	usersMap: Record<string, SlackUser>;
-	currentUserId: string;
-	onBack?: () => void;
-	onOpenDM?: (channel: SlackChannel) => void;
-	themeMode?: string;
-}
-
-interface State {
-	user: SlackUser | null;
-	loading: boolean;
-}
 
 export default class ProfileScreen extends Component<Props, State> {
 	_keySub: KeySub | null;
@@ -245,26 +195,6 @@ export default class ProfileScreen extends Component<Props, State> {
 			</View>
 		);
 	}
-}
-
-interface Styles {
-	container: ViewStyle;
-	center: ViewStyle;
-	errorText: TextStyle;
-	profileSection: ViewStyle;
-	avatar: ViewStyle;
-	avatarText: TextStyle;
-	displayName: TextStyle;
-	realName: TextStyle;
-	title: TextStyle;
-	status: TextStyle;
-	botBadge: TextStyle;
-	detailsSection: ViewStyle;
-	detailRow: ViewStyle;
-	detailLabel: TextStyle;
-	detailValue: TextStyle;
-	dmButton: ViewStyle;
-	dmButtonText: TextStyle;
 }
 
 const styles = StyleSheet.create<Styles>({

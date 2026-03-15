@@ -1,95 +1,41 @@
-import SlackAPI from "./api/slack";
-import ChannelInfoScreen from "./screens/ChannelInfoScreen";
-import ChannelListScreen from "./screens/ChannelListScreen";
-import ChatScreen from "./screens/ChatScreen";
-import LoginScreen from "./screens/LoginScreen";
-import ProfileScreen from "./screens/ProfileScreen";
-import SearchScreen from "./screens/SearchScreen";
-import SettingsScreen from "./screens/SettingsScreen";
-import ThreadScreen from "./screens/ThreadScreen";
+import { SlackAPI } from "./api";
+import {
+	ChannelInfoScreen,
+	ChannelListScreen,
+	ChatScreen,
+	LoginScreen,
+	ProfileScreen,
+	SearchScreen,
+	SettingsScreen,
+	ThreadScreen
+} from "./screens";
 import { getColors, getMode, setFontSizeKey, setMode } from "./theme";
 import type { FontSizeKey } from "./theme";
-import { playNotification, setNotificationMuted } from "./utils/notificationSound";
+import type { AccountEntry, SlackChannel, SlackMessage, SlackUser } from "./types";
+import type { AppProps as Props, AppState as State, AppStyles as Styles } from "./types";
 import {
 	clearToken,
 	getAccounts,
 	getActiveAccountId,
 	getFontSize,
+	getNotifEnabled,
+	getNotifInterval,
 	getSoundEnabled,
 	getTheme,
 	getToken,
+	playNotification,
 	saveAccounts,
 	saveActiveAccountId,
 	saveFontSize,
+	saveNotifEnabled,
+	saveNotifInterval,
 	saveSoundEnabled,
 	saveTheme,
-	saveToken
-} from "./utils/storage";
-import {
-	getNotifEnabled,
-	getNotifInterval,
-	saveNotifEnabled,
-	saveNotifInterval
-} from "./utils/storage";
+	saveToken,
+	setNotificationMuted
+} from "./utils";
 import React, { Component } from "react";
 import { ActivityIndicator, StatusBar, StyleSheet, View } from "react-native";
-import type { ViewStyle } from "react-native";
-
-interface SlackChannel {
-	id: string;
-	is_im?: boolean;
-	unread_count_display?: number;
-	[key: string]: unknown;
-}
-
-interface SlackUser {
-	id: string;
-	name?: string;
-	real_name?: string;
-	profile?: Record<string, unknown>;
-	[key: string]: unknown;
-}
-
-interface SlackMessage {
-	ts: string;
-	text?: string;
-	user: string;
-	[key: string]: unknown;
-}
-
-interface AccountEntry {
-	token: string;
-	teamName: string;
-	teamId: string;
-	userId: string;
-	userName: string;
-	teamIcon: string;
-}
-
-interface StackEntry {
-	screen: string;
-	params: Record<string, any>;
-}
-
-interface Props {}
-
-interface State {
-	initializing: boolean;
-	slack: any;
-	currentUser: string | null;
-	teamName: string;
-	teamIcon: string;
-	usersMap: Record<string, SlackUser>;
-	channels: SlackChannel[];
-	channelsLoading: boolean;
-	stack: StackEntry[];
-	themeMode: string;
-	notifInterval: number;
-	notifEnabled: boolean;
-	soundEnabled: boolean;
-	fontSize: string;
-	accounts: AccountEntry[];
-}
 
 export default class App extends Component<Props, State> {
 	_channelPollTimer: ReturnType<typeof setInterval> | null;
@@ -763,11 +709,6 @@ export default class App extends Component<Props, State> {
 			</View>
 		);
 	}
-}
-
-interface Styles {
-	app: ViewStyle;
-	splash: ViewStyle;
 }
 
 const styles = StyleSheet.create<Styles>({

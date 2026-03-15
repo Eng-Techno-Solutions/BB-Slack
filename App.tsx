@@ -1,15 +1,18 @@
-import SlackAPI from "./src/api/slack";
-import ChannelInfoScreen from "./src/screens/ChannelInfoScreen";
-import ChannelListScreen from "./src/screens/ChannelListScreen";
-import ChatScreen from "./src/screens/ChatScreen";
-import LoginScreen from "./src/screens/LoginScreen";
-import ProfileScreen from "./src/screens/ProfileScreen";
-import SearchScreen from "./src/screens/SearchScreen";
-import SettingsScreen from "./src/screens/SettingsScreen";
-import ThreadScreen from "./src/screens/ThreadScreen";
+import { SlackAPI } from "./src/api";
+import {
+	ChannelInfoScreen,
+	ChannelListScreen,
+	ChatScreen,
+	LoginScreen,
+	ProfileScreen,
+	SearchScreen,
+	SettingsScreen,
+	ThreadScreen
+} from "./src/screens";
 import { getMode, setFontSizeKey, setMode } from "./src/theme";
 import type { FontSizeKey } from "./src/theme";
-import { playNotification, setNotificationMuted } from "./src/utils/notificationSound";
+import type { AccountEntry, SlackChannel, SlackMessage, SlackUser } from "./src/types";
+import type { AppProps as Props, AppState as State, AppStyles as Styles } from "./src/types";
 import {
 	clearToken,
 	getAccounts,
@@ -18,16 +21,19 @@ import {
 	getNotifEnabled,
 	getNotifInterval,
 	getSoundEnabled,
+	getTheme,
 	getToken,
+	playNotification,
 	saveAccounts,
 	saveActiveAccountId,
 	saveFontSize,
 	saveNotifEnabled,
 	saveNotifInterval,
 	saveSoundEnabled,
-	saveToken
-} from "./src/utils/storage";
-import { getTheme, saveTheme } from "./src/utils/storage";
+	saveTheme,
+	saveToken,
+	setNotificationMuted
+} from "./src/utils";
 import React, { Component } from "react";
 import {
 	ActivityIndicator,
@@ -37,63 +43,7 @@ import {
 	StyleSheet,
 	View
 } from "react-native";
-import type { NativeEventSubscription, ViewStyle } from "react-native";
-
-interface SlackChannel {
-	id: string;
-	is_im?: boolean;
-	unread_count_display?: number;
-	[key: string]: unknown;
-}
-
-interface SlackUser {
-	id: string;
-	name?: string;
-	real_name?: string;
-	profile?: Record<string, unknown>;
-	[key: string]: unknown;
-}
-
-interface SlackMessage {
-	ts: string;
-	text?: string;
-	user: string;
-	[key: string]: unknown;
-}
-
-interface AccountEntry {
-	token: string;
-	teamName: string;
-	teamId: string;
-	userId: string;
-	userName: string;
-	teamIcon: string;
-}
-
-interface StackEntry {
-	screen: string;
-	params: Record<string, any>;
-}
-
-interface Props {}
-
-interface State {
-	initializing: boolean;
-	slack: any;
-	currentUser: string | null;
-	teamName: string;
-	teamIcon: string;
-	usersMap: Record<string, SlackUser>;
-	channels: SlackChannel[];
-	channelsLoading: boolean;
-	stack: StackEntry[];
-	notifInterval: number;
-	notifEnabled: boolean;
-	soundEnabled: boolean;
-	fontSize: string;
-	themeMode: string;
-	accounts: AccountEntry[];
-}
+import type { NativeEventSubscription } from "react-native";
 
 export default class App extends Component<Props, State> {
 	_notifPollTimer: ReturnType<typeof setInterval> | null;
@@ -781,11 +731,6 @@ export default class App extends Component<Props, State> {
 			</View>
 		);
 	}
-}
-
-interface Styles {
-	app: ViewStyle;
-	splash: ViewStyle;
 }
 
 const styles = StyleSheet.create<Styles>({

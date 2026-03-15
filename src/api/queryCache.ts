@@ -12,21 +12,7 @@
  *   const cache = new QueryCache();
  *   const data = await cache.query('users-list', () => api.usersList(), { staleTime: 60000 });
  */
-
-interface CacheEntry<T = unknown> {
-	data: T | undefined;
-	error: Error | null;
-	updatedAt: number;
-	timeout: ReturnType<typeof setTimeout> | null;
-}
-
-interface QueryOptions {
-	staleTime?: number;
-	cacheTime?: number;
-	forceRefresh?: boolean;
-}
-
-type CacheListener<T = unknown> = (data: T | undefined, error: Error | null) => void;
+import type { CacheEntry, CacheListener, QueryOptions } from "./types";
 
 const DEFAULT_STALE_TIME: number = 30000; // 30s — data considered fresh
 const DEFAULT_CACHE_TIME: number = 300000; // 5min — evict unused entries
@@ -242,4 +228,4 @@ class QueryCache {
 // Singleton instance — shared across the app
 const queryCache = new QueryCache();
 
-module.exports = queryCache;
+export default queryCache;

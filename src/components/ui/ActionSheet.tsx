@@ -1,28 +1,7 @@
-import { getColors } from "../theme";
+import { getColors } from "../../theme";
+import type { ActionSheetAction, ActionSheetProps, ActionSheetStyles } from "./types";
 import React, { Component } from "react";
 import { Modal, StyleSheet, Text, TouchableHighlight, TouchableOpacity, View } from "react-native";
-import type { TextStyle, ViewStyle } from "react-native";
-
-interface ActionSheetAction {
-	label: string;
-	onPress: () => void;
-	destructive?: boolean;
-}
-
-interface ActionSheetProps {
-	visible: boolean;
-	actions: ActionSheetAction[];
-	onClose: () => void;
-}
-
-interface ActionSheetStyles {
-	overlay: ViewStyle;
-	sheet: ViewStyle;
-	action: ViewStyle;
-	actionText: TextStyle;
-	cancelBtn: ViewStyle;
-	cancelText: TextStyle;
-}
 
 export default class ActionSheet extends Component<ActionSheetProps> {
 	render(): React.ReactNode {
