@@ -18,6 +18,17 @@ export {
 	saveActiveAccountId
 } from "./storage";
 
+export { getAvatarColor, getProfileImage } from "./avatar";
+
+export {
+	proxyUrl,
+	imageSource,
+	isImageFile,
+	isAudioFile,
+	formatDuration,
+	isEmojiOnly
+} from "./fileHelpers";
+
 export {
 	formatTime,
 	formatDate,
@@ -41,6 +52,16 @@ export {
 export { startRecording, stopRecording, cancelRecording } from "./audioRecorder";
 
 export { pickFile } from "./filePicker";
+
+export {
+	tokenizeLinks,
+	expandTokens,
+	resolveToken,
+	parseFormatting,
+	applyInlineFormatting,
+	processTextSegment,
+	restoreTokensAsText
+} from "./slackMarkup";
 
 export { default as audioDownload } from "./audioDownload";
 

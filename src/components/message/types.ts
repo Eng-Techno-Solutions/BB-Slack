@@ -1,4 +1,4 @@
-import type { SlackMessage, UsersMap } from "../../types";
+import type { SlackFile, SlackMessage, SlackReaction, UsersMap } from "../../types";
 import type { ImageStyle, StyleProp, TextStyle, ViewStyle } from "react-native";
 
 export interface ImagePressData {
@@ -28,6 +28,31 @@ export interface MessageItemProps {
 }
 
 export interface MessageItemState {
+	showReactionUsers: number | null;
+}
+
+export interface AvatarProps {
+	userId: string;
+	userName: string;
+	usersMap: UsersMap;
+	size?: number;
+}
+
+export interface FileRendererProps {
+	files: SlackFile[];
+	token?: string;
+	onImagePress?: (data: ImagePressData) => void;
+	onAudioPress?: (data: AudioPressData) => void;
+}
+
+export interface ReactionRowProps {
+	reactions: SlackReaction[];
+	currentUserId: string;
+	usersMap: UsersMap;
+	onReactionPress?: (reactionName: string, reacted: boolean) => void;
+}
+
+export interface ReactionRowState {
 	showReactionUsers: number | null;
 }
 
@@ -87,9 +112,7 @@ export interface MentionSuggestStyles {
 	container: ViewStyle;
 	item: ViewStyle;
 	itemInner: ViewStyle;
-	avatar: ImageStyle;
-	avatarFallback: ViewStyle;
-	avatarInitial: TextStyle;
+	avatarWrap: ViewStyle;
 	name: TextStyle;
 	display: TextStyle;
 }

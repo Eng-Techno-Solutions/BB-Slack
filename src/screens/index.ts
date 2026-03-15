@@ -35,11 +35,5 @@ export type {
 	SettingsProps,
 	SettingsState,
 	ProfileProps,
-	ProfileState,
-	ChatScreenSlackAPI,
-	ThreadScreenSlackAPI,
-	ChannelListSlackAPI,
-	SearchScreenSlackAPI,
-	ChannelInfoSlackAPI,
-	ProfileScreenSlackAPI
+	ProfileState
 } from "./types";

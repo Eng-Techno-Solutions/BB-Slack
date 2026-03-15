@@ -1,3 +1,4 @@
+import type { ISlackAPI } from "../api/types";
 import type { AccountEntry, SlackChannel, SlackUser } from "../types";
 import { playNotification, saveAccounts } from "../utils";
 
@@ -6,24 +7,22 @@ export interface LoadChannelsResult {
 	changed: boolean;
 }
 
-export async function fetchAllUsers(slack: any): Promise<Record<string, SlackUser>> {
+export async function fetchAllUsers(slack: ISlackAPI): Promise<Record<string, SlackUser>> {
 	const usersMap: Record<string, SlackUser> = {};
 	let cursor = "";
 	do {
 		const res = await slack.usersList(cursor || undefined, 200);
-		const members = res.members || [];
+		const members = (res.members as SlackUser[]) || [];
 		for (let i = 0; i < members.length; i++) {
 			usersMap[members[i].id] = members[i];
 		}
-		cursor =
-			res.response_metadata && res.response_metadata.next_cursor
-				? res.response_metadata.next_cursor
-				: "";
+		const meta = res.response_metadata as { next_cursor?: string } | undefined;
+		cursor = meta && meta.next_cursor ? meta.next_cursor : "";
 	} while (cursor);
 	return usersMap;
 }
 
-export async function fetchAllChannels(slack: any): Promise<SlackChannel[]> {
+export async function fetchAllChannels(slack: ISlackAPI): Promise<SlackChannel[]> {
 	let allChannels: SlackChannel[] = [];
 	let cursor = "";
 	do {
@@ -32,11 +31,9 @@ export async function fetchAllChannels(slack: any): Promise<SlackChannel[]> {
 			cursor || undefined,
 			200
 		);
-		allChannels = allChannels.concat(res.channels || []);
-		cursor =
-			res.response_metadata && res.response_metadata.next_cursor
-				? res.response_metadata.next_cursor
-				: "";
+		allChannels = allChannels.concat((res.channels as SlackChannel[]) || []);
+		const meta = res.response_metadata as { next_cursor?: string } | undefined;
+		cursor = meta && meta.next_cursor ? meta.next_cursor : "";
 	} while (cursor);
 	return allChannels;
 }
@@ -79,7 +76,7 @@ export function hasChannelDataChanged(
 }
 
 export async function loadChannelsWithUnreadDetection(
-	slack: any,
+	slack: ISlackAPI,
 	oldChannels: SlackChannel[],
 	activeChannelId: string | null
 ): Promise<LoadChannelsResult> {
@@ -96,9 +93,10 @@ export async function loadChannelsWithUnreadDetection(
 	return { channels: allChannels, changed: changed };
 }
 
-export async function fetchTeamIcon(slack: any): Promise<string> {
+export async function fetchTeamIcon(slack: ISlackAPI): Promise<string> {
 	const res = await slack.teamInfo();
-	return res.team && res.team.icon ? res.team.icon.image_68 || res.team.icon.image_44 || "" : "";
+	const team = res.team as { icon?: { image_68?: string; image_44?: string } } | undefined;
+	return team && team.icon ? team.icon.image_68 || team.icon.image_44 || "" : "";
 }
 
 export async function updateAccountTeamIcon(

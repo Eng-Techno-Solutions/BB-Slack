@@ -1,6 +1,6 @@
 import { Header } from "../components";
 import { getColors } from "../theme";
-import type { KeyEvent, KeySub } from "../types";
+import type { KeyEvent, KeySub, SlackChannel, SlackUser } from "../types";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
 import { styles } from "./ProfileScreen.styles";
 import type { ProfileProps as Props, ProfileState as State } from "./types";
@@ -52,7 +52,7 @@ export default class ProfileScreen extends Component<Props, State> {
 
 		try {
 			const res = await slack.usersInfo(userId);
-			this.setState({ user: res.user, loading: false });
+			this.setState({ user: res.user as SlackUser, loading: false });
 		} catch (err: any) {
 			this.setState({ loading: false });
 			Alert.alert("Error", err.message);
@@ -64,7 +64,7 @@ export default class ProfileScreen extends Component<Props, State> {
 		try {
 			const res = await slack.conversationsOpen(userId);
 			if (res.channel && onOpenDM) {
-				onOpenDM(res.channel);
+				onOpenDM(res.channel as SlackChannel);
 			}
 		} catch (err: any) {
 			Alert.alert("Error", err.message);

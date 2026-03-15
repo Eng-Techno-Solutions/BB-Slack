@@ -1,5 +1,6 @@
 import { styles } from "./App.styles";
 import { SlackAPI } from "./api";
+import type { ISlackAPI } from "./api/types";
 import {
 	ChannelInfoScreen,
 	ChannelListScreen,
@@ -10,6 +11,14 @@ import {
 	SettingsScreen,
 	ThreadScreen
 } from "./screens";
+import {
+	getResetState,
+	performAuth,
+	persistAccountLogin,
+	removeAccount,
+	tryAutoLogin as resolveAutoLogin,
+	upsertAccount
+} from "./services/accountManager";
 import {
 	loadAllSettings,
 	loadThemeMode,
@@ -28,15 +37,7 @@ import {
 import { getColors } from "./theme";
 import type { AccountEntry, SlackChannel, SlackMessage } from "./types";
 import type { AppProps as Props, AppState as State } from "./types";
-import {
-	clearToken,
-	getAccounts,
-	getActiveAccountId,
-	getToken,
-	saveAccounts,
-	saveActiveAccountId,
-	saveToken
-} from "./utils";
+import { clearToken } from "./utils";
 import React, { Component } from "react";
 import { ActivityIndicator, StatusBar, View } from "react-native";
 
@@ -148,23 +149,14 @@ export default class App extends Component<Props, State> {
 
 	async tryAutoLogin(): Promise<void> {
 		try {
-			const accounts = await getAccounts();
-			if (accounts.length > 0) {
-				this.setState({ accounts: accounts });
-				const activeId = await getActiveAccountId();
-				const active = activeId
-					? accounts.find(function (a: AccountEntry) {
-							return a.userId === activeId;
-						})
-					: accounts[0];
-				await this.doLogin((active || accounts[0]).token);
+			const result = await resolveAutoLogin();
+			if (result.accounts.length > 0) {
+				this.setState({ accounts: result.accounts });
+			}
+			if (result.token) {
+				await this.doLogin(result.token);
 			} else {
-				const token = await getToken();
-				if (token) {
-					await this.doLogin(token);
-				} else {
-					this.setState({ initializing: false });
-				}
+				this.setState({ initializing: false });
 			}
 		} catch (_err) {
 			this.setState({ initializing: false });
@@ -173,29 +165,16 @@ export default class App extends Component<Props, State> {
 
 	async doLogin(token: string): Promise<void> {
 		const slack = new SlackAPI(token);
-		let auth: any;
+		let auth;
 		try {
-			auth = await slack.authTest();
+			auth = await performAuth(slack, token);
 		} catch (err: any) {
 			this.setState({ initializing: false });
 			throw new Error(err.message || "Authentication failed");
 		}
 
-		if (!auth || !auth.user_id) {
-			this.setState({ initializing: false });
-			throw new Error("Invalid authentication response");
-		}
-
-		try {
-			await saveToken(token);
-		} catch (_err) {}
-
-		const accounts = this._upsertAccount(auth, token);
-
-		try {
-			await saveAccounts(accounts);
-			await saveActiveAccountId(auth.user_id);
-		} catch (_err) {}
+		const accounts = upsertAccount(this.state.accounts, auth, token);
+		await persistAccountLogin(accounts, auth.user_id);
 
 		this.setState({
 			slack: slack,
@@ -212,36 +191,9 @@ export default class App extends Component<Props, State> {
 		this.startChannelPolling(slack);
 	}
 
-	_upsertAccount(auth: any, token: string): AccountEntry[] {
-		const accounts = this.state.accounts.slice();
-		const existingIdx = accounts.findIndex(function (a: AccountEntry) {
-			return a.userId === auth.user_id;
-		});
-		const entry: AccountEntry = {
-			token: token,
-			teamName: auth.team || "",
-			teamId: auth.team_id || "",
-			userId: auth.user_id,
-			userName: auth.user || "",
-			teamIcon: ""
-		};
-		if (existingIdx >= 0) {
-			accounts[existingIdx] = Object.assign({}, accounts[existingIdx], entry);
-		} else {
-			accounts.push(entry);
-		}
-		return accounts;
-	}
-
 	async handleLogout(): Promise<void> {
 		this.stopChannelPolling();
-		const currentUserId = this.state.currentUser;
-		const accounts = this.state.accounts.filter(function (a: AccountEntry) {
-			return a.userId !== currentUserId;
-		});
-		try {
-			await saveAccounts(accounts);
-		} catch (_e) {}
+		const accounts = await removeAccount(this.state.accounts, this.state.currentUser || "");
 
 		if (accounts.length > 0) {
 			this.setState({ accounts: accounts });
@@ -249,18 +201,17 @@ export default class App extends Component<Props, State> {
 				await this.switchAccount(accounts[0]);
 			} catch (_err) {
 				await clearToken();
-				this._resetState(accounts);
+				this.setState(Object.assign({}, getResetState(), { accounts: accounts }));
 			}
 		} else {
 			await clearToken();
-			this._resetState([]);
+			this.setState(Object.assign({}, getResetState(), { accounts: [] }));
 		}
 	}
 
 	async switchAccount(account: AccountEntry): Promise<void> {
 		this.stopChannelPolling();
-		this._resetState(this.state.accounts);
-		this.setState({ initializing: true });
+		this.setState(Object.assign({}, getResetState(), { initializing: true }));
 		await this.doLogin(account.token);
 	}
 
@@ -269,32 +220,13 @@ export default class App extends Component<Props, State> {
 	}
 
 	async handleRemoveAccount(account: AccountEntry): Promise<void> {
-		const accounts = this.state.accounts.filter(function (a: AccountEntry) {
-			return a.userId !== account.userId;
-		});
-		try {
-			await saveAccounts(accounts);
-		} catch (_e) {}
+		const accounts = await removeAccount(this.state.accounts, account.userId);
 		this.setState({ accounts: accounts });
-	}
-
-	_resetState(accounts: AccountEntry[]): void {
-		this.setState({
-			slack: null,
-			currentUser: null,
-			teamName: "",
-			teamIcon: "",
-			usersMap: {},
-			channels: [],
-			channelsLoading: false,
-			accounts: accounts,
-			stack: [{ screen: "login", params: {} }]
-		});
 	}
 
 	// ── Data Loading ───────────────────────────────────────
 
-	async _loadTeamInfo(slack: any): Promise<void> {
+	async _loadTeamInfo(slack: ISlackAPI): Promise<void> {
 		try {
 			const icon = await fetchTeamIcon(slack);
 			this.setState({ teamIcon: icon });
@@ -311,14 +243,14 @@ export default class App extends Component<Props, State> {
 		}
 	}
 
-	async _loadUsers(slack: any): Promise<void> {
+	async _loadUsers(slack: ISlackAPI): Promise<void> {
 		try {
 			const usersMap = await fetchAllUsers(slack);
 			this.setState({ usersMap: usersMap });
 		} catch (_err) {}
 	}
 
-	async _loadChannels(slack: any): Promise<void> {
+	async _loadChannels(slack: ISlackAPI): Promise<void> {
 		if (this._loadingChannels) return;
 		this._loadingChannels = true;
 		const isFirstLoad = this.state.channels.length === 0;
@@ -345,7 +277,7 @@ export default class App extends Component<Props, State> {
 
 	// ── Channel Polling ────────────────────────────────────
 
-	startChannelPolling(slack: any): void {
+	startChannelPolling(slack: ISlackAPI): void {
 		this.stopChannelPolling();
 		if (!this.state.notifEnabled) return;
 		const self = this;

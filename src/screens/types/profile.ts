@@ -1,16 +1,11 @@
+import type { ISlackAPI } from "../../api/types";
 import type { SlackChannel, SlackUser, UsersMap } from "../../types";
 import type { TextStyle, ViewStyle } from "react-native";
 
 // Profile screen types
 
-export interface ProfileScreenSlackAPI {
-	usersInfo(userId: string): Promise<{ user: SlackUser }>;
-	conversationsOpen(userId: string): Promise<{ channel: SlackChannel }>;
-	[key: string]: unknown;
-}
-
 export interface ProfileProps {
-	slack: ProfileScreenSlackAPI;
+	slack: ISlackAPI;
 	userId: string;
 	usersMap: UsersMap;
 	currentUserId: string;

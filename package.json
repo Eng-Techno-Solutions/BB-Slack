@@ -12,7 +12,8 @@
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx}\" \"App.tsx\" \"index.ts\" \"index.android.ts\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "generate:emoji": "node scripts/generate-emoji-map.js"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -39,6 +40,7 @@
     "@types/react-native": "^0.72.8",
     "@typescript-eslint/eslint-plugin": "^8.57.0",
     "@typescript-eslint/parser": "^8.57.0",
+    "emoji-datasource": "^16.0.0",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "husky": "^9.1.7",

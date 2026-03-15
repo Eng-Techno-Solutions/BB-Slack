@@ -1,29 +1,8 @@
+import type { ISlackAPI } from "../../api/types";
 import type { SlackChannel, SlackMessage, UsersMap } from "../../types";
 import type { TextStyle, ViewStyle } from "react-native";
 
 // Chat screen types
-
-export interface ChatScreenSlackAPI {
-	token: string;
-	conversationsHistory(
-		channelId: string,
-		cursor: string | null,
-		limit: number
-	): Promise<{ messages?: SlackMessage[]; response_metadata?: { next_cursor?: string } }>;
-	conversationsMark(channelId: string, ts: string): Promise<unknown>;
-	chatPostMessage(channelId: string, text: string, threadTs?: string): Promise<unknown>;
-	chatUpdate(channelId: string, ts: string, text: string): Promise<unknown>;
-	chatDelete(channelId: string, ts: string): Promise<unknown>;
-	reactionsAdd(channelId: string, name: string, ts: string): Promise<unknown>;
-	reactionsRemove(channelId: string, name: string, ts: string): Promise<unknown>;
-	filesUpload(
-		channelId: string,
-		file: any,
-		threadTs?: string | null,
-		text?: string | null
-	): Promise<unknown>;
-	[key: string]: unknown;
-}
 
 export interface ViewerImage {
 	uri: string;
@@ -45,7 +24,7 @@ export interface ChatActionItem {
 }
 
 export interface ChatProps {
-	slack: ChatScreenSlackAPI;
+	slack: ISlackAPI;
 	channel: SlackChannel;
 	usersMap: UsersMap;
 	currentUserId: string;

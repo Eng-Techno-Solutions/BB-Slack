@@ -85,7 +85,7 @@ export default class ChannelInfoScreen extends Component<Props, State> {
 		const { slack, channel, usersMap } = this.props;
 		try {
 			const res = await slack.conversationsMembers(channel.id);
-			const activeMembers = (res.members || []).filter(function (id: string) {
+			const activeMembers = ((res.members as string[]) || []).filter(function (id: string) {
 				const u = usersMap[id];
 				if (!u) return true;
 				if (u.deleted) return false;
@@ -103,7 +103,7 @@ export default class ChannelInfoScreen extends Component<Props, State> {
 		const { slack, channel } = this.props;
 		try {
 			const res = await slack.pinsList(channel.id);
-			this.setState({ pins: res.items || [], pinsLoading: false });
+			this.setState({ pins: (res.items as PinItem[]) || [], pinsLoading: false });
 		} catch (err) {
 			this.setState({ pinsLoading: false });
 		}

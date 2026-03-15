@@ -1,25 +1,11 @@
+import type { ISlackAPI } from "../../api/types";
 import type { SlackChannel, SlackMessage, UsersMap } from "../../types";
 import type { ViewStyle } from "react-native";
 
 // Thread screen types
 
-export interface ThreadScreenSlackAPI {
-	token: string;
-	conversationsReplies(channelId: string, threadTs: string): Promise<{ messages?: SlackMessage[] }>;
-	chatPostMessage(channelId: string, text: string, threadTs?: string): Promise<unknown>;
-	reactionsAdd(channelId: string, name: string, ts: string): Promise<unknown>;
-	reactionsRemove(channelId: string, name: string, ts: string): Promise<unknown>;
-	filesUpload(
-		channelId: string,
-		file: any,
-		threadTs?: string | null,
-		text?: string | null
-	): Promise<unknown>;
-	[key: string]: unknown;
-}
-
 export interface ThreadProps {
-	slack: ThreadScreenSlackAPI;
+	slack: ISlackAPI;
 	channel: SlackChannel;
 	parentMessage: SlackMessage;
 	usersMap: UsersMap;

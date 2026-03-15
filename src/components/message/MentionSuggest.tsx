@@ -1,5 +1,6 @@
 import { getColors } from "../../theme";
 import type { UsersMap } from "../../types";
+import Avatar from "./Avatar";
 import type {
 	FilteredUser,
 	MentionSuggestProps,
@@ -7,44 +8,7 @@ import type {
 	MentionSuggestStyles
 } from "./types";
 import React, { Component } from "react";
-import { Image, ScrollView, StyleSheet, Text, TouchableHighlight, View } from "react-native";
-import type { ViewStyle } from "react-native";
-
-const AVATAR_COLORS: string[] = [
-	"#E8912D",
-	"#2BAC76",
-	"#CD2553",
-	"#1264A3",
-	"#9B59B6",
-	"#E74C3C",
-	"#00BCD4",
-	"#4A154B",
-	"#3498DB",
-	"#E67E22",
-	"#1ABC9C",
-	"#8E44AD"
-];
-
-function hashCode(str: string): number {
-	let hash = 0;
-	for (let i = 0; i < str.length; i++) {
-		hash = (hash << 5) - hash + str.charCodeAt(i);
-		hash = hash & hash;
-	}
-	return Math.abs(hash);
-}
-
-function getAvatarColor(userId: string): string {
-	return AVATAR_COLORS[hashCode(userId || "") % AVATAR_COLORS.length];
-}
-
-function getProfileImage(userId: string, usersMap: UsersMap): string | null {
-	var u = usersMap[userId];
-	if (u && u.profile) {
-		return u.profile.image_72 || u.profile.image_48 || null;
-	}
-	return null;
-}
+import { ScrollView, StyleSheet, Text, TouchableHighlight, View } from "react-native";
 
 function getLastMentionQuery(text: string): string | null {
 	var at = text.lastIndexOf("@");
@@ -135,9 +99,6 @@ export default class MentionSuggest extends Component<MentionSuggestProps, Menti
 				style={[styles.container, { backgroundColor: c.bgSecondary, borderColor: c.border }]}
 				keyboardShouldPersistTaps="always">
 				{users.map(function (u: FilteredUser, i: number) {
-					var profileImg = getProfileImage(u.id, usersMap);
-					var initial = (u.name || "?").charAt(0).toUpperCase();
-					var avatarBg = getAvatarColor(u.id);
 					var focused = i === focusIndex;
 
 					return (
@@ -150,21 +111,14 @@ export default class MentionSuggest extends Component<MentionSuggestProps, Menti
 								onSelect(u.id, u.name);
 							}}>
 							<View style={styles.itemInner}>
-								{profileImg ? (
-									<Image
-										source={{ uri: profileImg }}
-										style={styles.avatar}
+								<View style={styles.avatarWrap}>
+									<Avatar
+										userId={u.id}
+										userName={u.name}
+										usersMap={usersMap}
+										size={28}
 									/>
-								) : (
-									<View
-										style={[
-											styles.avatar as ViewStyle,
-											styles.avatarFallback,
-											{ backgroundColor: avatarBg }
-										]}>
-										<Text style={styles.avatarInitial}>{initial}</Text>
-									</View>
-								)}
+								</View>
 								<Text style={[styles.name, { color: c.textSecondary }]}>{u.name}</Text>
 								{u.display ? (
 									<Text style={[styles.display, { color: c.textTertiary }]}>{u.display}</Text>
@@ -191,20 +145,8 @@ var styles = StyleSheet.create<MentionSuggestStyles>({
 		flexDirection: "row",
 		alignItems: "center"
 	},
-	avatar: {
-		width: 28,
-		height: 28,
-		borderRadius: 4,
+	avatarWrap: {
 		marginRight: 10
-	},
-	avatarFallback: {
-		justifyContent: "center",
-		alignItems: "center"
-	},
-	avatarInitial: {
-		color: "#FFFFFF",
-		fontSize: 13,
-		fontWeight: "bold"
 	},
 	name: {
 		fontSize: 14,

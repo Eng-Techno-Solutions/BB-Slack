@@ -5,6 +5,7 @@ export type {
 	HttpModuleInterface,
 	HttpResponse,
 	FileData,
+	ISlackAPI,
 	SlackResponse,
 	UploadCompleteBody,
 	UploadFields,

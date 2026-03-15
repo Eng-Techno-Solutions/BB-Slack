@@ -1,4 +1,5 @@
 import { SlackAPI } from "./src/api";
+import type { ISlackAPI } from "./src/api/types";
 import {
 	ChannelInfoScreen,
 	ChannelListScreen,
@@ -9,9 +10,21 @@ import {
 	SettingsScreen,
 	ThreadScreen
 } from "./src/screens";
+import {
+	getActiveChannelId,
+	popScreen,
+	pushScreen,
+	replaceTopScreen
+} from "./src/services/navigationManager";
+import {
+	fetchAllUsers,
+	fetchTeamIcon,
+	loadChannelsWithUnreadDetection,
+	updateAccountTeamIcon
+} from "./src/services/slackDataLoader";
 import { getMode, setFontSizeKey, setMode } from "./src/theme";
 import type { FontSizeKey } from "./src/theme";
-import type { AccountEntry, SlackChannel, SlackMessage, SlackUser } from "./src/types";
+import type { AccountEntry, SlackChannel, SlackMessage } from "./src/types";
 import type { AppProps as Props, AppState as State, AppStyles as Styles } from "./src/types";
 import {
 	clearToken,
@@ -23,7 +36,6 @@ import {
 	getSoundEnabled,
 	getTheme,
 	getToken,
-	playNotification,
 	saveAccounts,
 	saveActiveAccountId,
 	saveFontSize,
@@ -47,7 +59,7 @@ import type { NativeEventSubscription } from "react-native";
 
 export default class App extends Component<Props, State> {
 	_notifPollTimer: ReturnType<typeof setInterval> | null;
-	_notifPolling: boolean;
+	_loadingChannels: boolean;
 	_backHandler: NativeEventSubscription | null;
 	_appStateListener: NativeEventSubscription | null;
 
@@ -71,7 +83,7 @@ export default class App extends Component<Props, State> {
 			accounts: []
 		};
 		this._notifPollTimer = null;
-		this._notifPolling = false;
+		this._loadingChannels = false;
 		this._backHandler = null;
 		this._appStateListener = null;
 	}
@@ -192,79 +204,59 @@ export default class App extends Component<Props, State> {
 			accounts: accounts
 		});
 
-		this.loadUsers(slack);
-		this.loadChannels(slack);
-		this.loadTeamInfo(slack);
+		this._loadUsers(slack);
+		this._loadChannels(slack);
+		this._loadTeamInfo(slack);
 		this._loadNotifSettings();
 	}
 
-	async loadTeamInfo(slack: any): Promise<void> {
+	async _loadTeamInfo(slack: ISlackAPI): Promise<void> {
 		try {
-			const res = await slack.teamInfo();
-			const icon =
-				res.team && res.team.icon ? res.team.icon.image_68 || res.team.icon.image_44 || "" : "";
+			const icon = await fetchTeamIcon(slack);
 			this.setState({ teamIcon: icon });
-			const self = this;
-			const accounts = this.state.accounts.slice();
-			const idx = accounts.findIndex(function (a: AccountEntry) {
-				return a.userId === self.state.currentUser;
-			});
-			if (idx >= 0 && accounts[idx].teamIcon !== icon) {
-				accounts[idx] = Object.assign({}, accounts[idx], { teamIcon: icon });
-				this.setState({ accounts: accounts });
-				try {
-					await saveAccounts(accounts);
-				} catch (_e) {}
+			const updated = await updateAccountTeamIcon(
+				this.state.accounts,
+				this.state.currentUser || "",
+				icon
+			);
+			if (updated !== this.state.accounts) {
+				this.setState({ accounts: updated });
 			}
 		} catch (err: any) {
 			console.warn("loadTeamInfo error:", err.message);
 		}
 	}
 
-	async loadUsers(slack: any): Promise<void> {
+	async _loadUsers(slack: ISlackAPI): Promise<void> {
 		try {
-			const usersMap: Record<string, SlackUser> = {};
-			let cursor = "";
-			do {
-				const res = await slack.usersList(cursor || undefined, 200);
-				const members = res.members || [];
-				for (let i = 0; i < members.length; i++) {
-					usersMap[members[i].id] = members[i];
-				}
-				cursor =
-					res.response_metadata && res.response_metadata.next_cursor
-						? res.response_metadata.next_cursor
-						: "";
-			} while (cursor);
-
+			const usersMap = await fetchAllUsers(slack);
 			this.setState({ usersMap: usersMap });
-		} catch (err) {
-			// Users will load on demand
-		}
+		} catch (_err) {}
 	}
 
-	async loadChannels(slack: any): Promise<void> {
-		this.setState({ channelsLoading: true });
+	async _loadChannels(slack: ISlackAPI): Promise<void> {
+		if (this._loadingChannels) return;
+		this._loadingChannels = true;
+		const isFirstLoad = this.state.channels.length === 0;
+		if (isFirstLoad) this.setState({ channelsLoading: true });
 		try {
-			let allChannels: SlackChannel[] = [];
-			let cursor = "";
-			do {
-				const res = await slack.conversationsList(
-					"public_channel,private_channel,mpim,im",
-					cursor || undefined,
-					200
-				);
-				allChannels = allChannels.concat(res.channels || []);
-				cursor =
-					res.response_metadata && res.response_metadata.next_cursor
-						? res.response_metadata.next_cursor
-						: "";
-			} while (cursor);
-
-			this.setState({ channels: allChannels, channelsLoading: false });
-		} catch (err) {
+			const result = await loadChannelsWithUnreadDetection(
+				slack,
+				this.state.channels,
+				this._getCurrentChannelId()
+			);
+			if (result.changed) {
+				this.setState({ channels: result.channels, channelsLoading: false });
+			} else if (isFirstLoad) {
+				this.setState({ channelsLoading: false });
+			}
+		} catch (err: any) {
+			if (err.message === "ratelimited") {
+				console.warn("loadChannels rate limited, backing off");
+			}
 			this.setState({ channelsLoading: false });
 		}
+		this._loadingChannels = false;
 	}
 
 	async handleLogout(): Promise<void> {
@@ -418,7 +410,7 @@ export default class App extends Component<Props, State> {
 		const self = this;
 		const interval = this.state.notifInterval || 120000;
 		this._notifPollTimer = setInterval(function () {
-			if (self.state.slack && !self._notifPolling) self._pollUnreads();
+			if (self.state.slack) self._loadChannels(self.state.slack);
 		}, interval);
 	}
 
@@ -430,92 +422,26 @@ export default class App extends Component<Props, State> {
 	}
 
 	_getCurrentChannelId(): string | null {
-		const stack = this.state.stack;
-		const current = stack[stack.length - 1];
-		if (current.screen === "chat" && current.params && current.params.channel) {
-			return current.params.channel.id;
-		}
-		return null;
-	}
-
-	async _pollUnreads(): Promise<void> {
-		const { slack, currentUser, channels: oldChannels } = this.state;
-		if (!slack || !currentUser) return;
-		this._notifPolling = true;
-		try {
-			let allChannels: SlackChannel[] = [];
-			let cursor = "";
-			do {
-				const res = await slack.conversationsList(
-					"public_channel,private_channel,mpim,im",
-					cursor || undefined,
-					200
-				);
-				allChannels = allChannels.concat(res.channels || []);
-				cursor =
-					res.response_metadata && res.response_metadata.next_cursor
-						? res.response_metadata.next_cursor
-						: "";
-			} while (cursor);
-
-			const oldUnreadMap: Record<string, number> = {};
-			for (let i = 0; i < oldChannels.length; i++) {
-				oldUnreadMap[oldChannels[i].id] = oldChannels[i].unread_count_display || 0;
-			}
-
-			const currentChId = this._getCurrentChannelId();
-			let hasNewUnread = false;
-
-			for (let i = 0; i < allChannels.length; i++) {
-				const ch = allChannels[i];
-				const oldCount = oldUnreadMap[ch.id] || 0;
-				const newCount = ch.unread_count_display || 0;
-				if (newCount > oldCount && ch.id !== currentChId) {
-					hasNewUnread = true;
-					break;
-				}
-			}
-
-			if (hasNewUnread) {
-				playNotification();
-			}
-
-			let unreadChanged = allChannels.length !== oldChannels.length || hasNewUnread;
-			if (!unreadChanged) {
-				for (let u = 0; u < allChannels.length; u++) {
-					if ((allChannels[u].unread_count_display || 0) !== (oldUnreadMap[allChannels[u].id] || 0)) {
-						unreadChanged = true;
-						break;
-					}
-				}
-			}
-			if (unreadChanged) this.setState({ channels: allChannels });
-		} catch (err) {
-			// Silent fail
-		}
-		this._notifPolling = false;
+		return getActiveChannelId(this.state.stack);
 	}
 
 	navigate(screen: string, params?: Record<string, any>): void {
 		this.setState(function (prev: State) {
-			return {
-				stack: prev.stack.concat([{ screen: screen, params: params || {} }])
-			};
+			return { stack: pushScreen(prev.stack, screen, params) };
 		});
 	}
 
 	goBack(): void {
 		this.setState(function (prev: State) {
-			if (prev.stack.length <= 1) return null;
-			return { stack: prev.stack.slice(0, -1) };
+			const newStack = popScreen(prev.stack);
+			if (!newStack) return null;
+			return { stack: newStack };
 		});
 	}
 
 	replaceTop(screen: string, params?: Record<string, any>): void {
 		this.setState(function (prev: State) {
-			const newStack = prev.stack.slice(0, -1);
-			newStack.push({ screen: screen, params: params || {} });
-			return { stack: newStack };
+			return { stack: replaceTopScreen(prev.stack, screen, params) };
 		});
 	}
 

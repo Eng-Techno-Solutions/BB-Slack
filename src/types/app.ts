@@ -1,3 +1,4 @@
+import type { ISlackAPI } from "../api/types";
 import type { AccountEntry, SlackChannel, SlackUser, StackEntry } from "./index";
 import type { ViewStyle } from "react-native";
 
@@ -5,7 +6,7 @@ export interface AppProps {}
 
 export interface AppState {
 	initializing: boolean;
-	slack: any;
+	slack: ISlackAPI | null;
 	currentUser: string | null;
 	teamName: string;
 	teamIcon: string;

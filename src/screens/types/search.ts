@@ -1,3 +1,4 @@
+import type { ISlackAPI } from "../../api/types";
 import type { UsersMap } from "../../types";
 import type { TextStyle, ViewStyle } from "react-native";
 
@@ -12,13 +13,8 @@ export interface SearchMatch {
 	[key: string]: unknown;
 }
 
-export interface SearchScreenSlackAPI {
-	searchMessages(query: string): Promise<{ messages?: { matches?: SearchMatch[] } }>;
-	[key: string]: unknown;
-}
-
 export interface SearchProps {
-	slack: SearchScreenSlackAPI;
+	slack: ISlackAPI;
 	usersMap: UsersMap;
 	onBack?: () => void;
 	onSelectMessage?: (msg: SearchMatch) => void;

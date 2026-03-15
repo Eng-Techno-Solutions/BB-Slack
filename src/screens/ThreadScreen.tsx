@@ -1,4 +1,6 @@
 import { EmojiPicker, Header, InputBar, MentionSuggest, MessageItem } from "../components";
+import { hasMessagesChanged } from "../services/messageService";
+import { toggleReaction as toggleReactionService } from "../services/reactionService";
 import { getColors } from "../theme";
 import type { KeyEvent, KeySub, SlackMessage } from "../types";
 import { cancelRecording, startRecording, stopRecording } from "../utils/audioRecorder";
@@ -9,7 +11,7 @@ import { playNotification } from "../utils/notificationSound";
 import { styles } from "./ThreadScreen.styles";
 import type { ThreadProps as Props, ThreadState as State } from "./types";
 import React, { Component } from "react";
-import type { TextInput} from "react-native";
+import type { TextInput } from "react-native";
 import { ActivityIndicator, Alert, FlatList, View } from "react-native";
 
 export default class ThreadScreen extends Component<Props, State> {
@@ -138,7 +140,10 @@ export default class ThreadScreen extends Component<Props, State> {
 		const { slack, channel, parentMessage } = this.props;
 		try {
 			const res = await slack.conversationsReplies(channel.id, parentMessage.ts);
-			this.setState({ replies: (res.messages || []).slice().reverse(), loading: false });
+			this.setState({
+				replies: ((res.messages as SlackMessage[]) || []).slice().reverse(),
+				loading: false
+			});
 		} catch (err: any) {
 			this.setState({ loading: false });
 			Alert.alert("Error", err.message);
@@ -151,7 +156,7 @@ export default class ThreadScreen extends Component<Props, State> {
 		if (loading) return;
 		try {
 			const res = await slack.conversationsReplies(channel.id, parentMessage.ts);
-			const newReplies = (res.messages || []).slice().reverse();
+			const newReplies = ((res.messages as SlackMessage[]) || []).slice().reverse();
 			if (newReplies.length > replies.length) {
 				const newOnes = newReplies.slice(0, newReplies.length - replies.length);
 				const fromOthers = newOnes.filter(function (m: SlackMessage) {
@@ -161,20 +166,9 @@ export default class ThreadScreen extends Component<Props, State> {
 					playNotification();
 				}
 			}
-			let changed = newReplies.length !== replies.length;
-			if (!changed) {
-				for (let i = 0; i < newReplies.length; i++) {
-					if (
-						newReplies[i].ts !== replies[i].ts ||
-						newReplies[i].text !== replies[i].text ||
-						(newReplies[i].reactions || []).length !== (replies[i].reactions || []).length
-					) {
-						changed = true;
-						break;
-					}
-				}
+			if (hasMessagesChanged(replies, newReplies)) {
+				this.setState({ replies: newReplies });
 			}
-			if (changed) this.setState({ replies: newReplies });
 		} catch (err) {
 			// Silent
 		}
@@ -259,32 +253,16 @@ export default class ThreadScreen extends Component<Props, State> {
 		this.setState({ recording: false, recordingTime: 0 });
 	}
 
-	async addReaction(message: SlackMessage, name: string): Promise<void> {
-		const { slack, channel } = this.props;
-		try {
-			await slack.reactionsAdd(channel.id, name, message.ts);
-			this.setState({ reactionTarget: null });
-			this.pollReplies();
-		} catch (err: any) {
-			Alert.alert("Error", err.message);
-		}
-	}
-
-	async removeReaction(message: SlackMessage, name: string): Promise<void> {
-		const { slack, channel } = this.props;
-		try {
-			await slack.reactionsRemove(channel.id, name, message.ts);
-			this.pollReplies();
-		} catch (err: any) {
-			Alert.alert("Error", err.message);
-		}
-	}
-
 	async toggleReaction(message: SlackMessage, name: string, alreadyReacted: boolean): Promise<void> {
-		if (alreadyReacted) {
-			await this.removeReaction(message, name);
-		} else {
-			await this.addReaction(message, name);
+		const { slack, channel } = this.props;
+		try {
+			await toggleReactionService(slack, channel.id, message.ts, name, alreadyReacted);
+			if (!alreadyReacted) {
+				this.setState({ reactionTarget: null });
+			}
+			this.pollReplies();
+		} catch (err: any) {
+			Alert.alert("Error", err.message);
 		}
 	}
 
@@ -314,7 +292,7 @@ export default class ThreadScreen extends Component<Props, State> {
 	onEmojiSelect(name: string, emoji: string): void {
 		const mode = this.state.emojiPickerMode;
 		if (mode === "reaction") {
-			this.addReaction(this.state.reactionTarget!, name);
+			this.toggleReaction(this.state.reactionTarget!, name, false);
 		} else if (mode === "input") {
 			this.setState(function (prev: State) {
 				return { inputText: prev.inputText + emoji };

@@ -1,12 +1,8 @@
+import type { ISlackAPI } from "../../api/types";
 import type { AccountEntry, SlackChannel, UsersMap } from "../../types";
 import type { ImageStyle, TextStyle, ViewStyle } from "react-native";
 
 // ChannelList screen types
-
-export interface ChannelListSlackAPI {
-	token: string;
-	[key: string]: unknown;
-}
 
 export interface TabItem {
 	key: string;
@@ -21,7 +17,7 @@ export interface UnreadCounts {
 }
 
 export interface ChannelListProps {
-	slack: ChannelListSlackAPI;
+	slack: ISlackAPI;
 	channels: SlackChannel[];
 	usersMap: UsersMap;
 	currentUserId: string;

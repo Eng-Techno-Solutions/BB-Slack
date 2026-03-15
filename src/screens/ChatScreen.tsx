@@ -9,6 +9,8 @@ import {
 	MentionSuggest,
 	MessageItem
 } from "../components";
+import { mergeMessages } from "../services/messageService";
+import { toggleReaction as toggleReactionService } from "../services/reactionService";
 import { getColors } from "../theme";
 import type { KeyEvent, KeySub, SlackMessage } from "../types";
 import { cancelRecording, startRecording, stopRecording } from "../utils/audioRecorder";
@@ -25,16 +27,8 @@ import type {
 	ViewerImage
 } from "./types";
 import React, { Component } from "react";
-import {
-	ActivityIndicator,
-	Alert,
-	FlatList,
-	Text,
-	TouchableOpacity,
-	View
-} from "react-native";
-import type { NativeScrollEvent, NativeSyntheticEvent ,
-	TextInput} from "react-native";
+import { ActivityIndicator, Alert, FlatList, Text, TouchableOpacity, View } from "react-native";
+import type { NativeScrollEvent, NativeSyntheticEvent, TextInput } from "react-native";
 
 export default class ChatScreen extends Component<Props, State> {
 	_mounted: boolean;
@@ -188,8 +182,9 @@ export default class ChatScreen extends Component<Props, State> {
 		const { slack, channel } = this.props;
 		try {
 			const res = await slack.conversationsHistory(channel.id, null, 30);
-			const msgs = (res.messages || []).slice();
-			const cursor = res.response_metadata && res.response_metadata.next_cursor;
+			const msgs = ((res.messages as SlackMessage[]) || []).slice();
+			const meta = res.response_metadata as { next_cursor?: string } | undefined;
+			const cursor = meta && meta.next_cursor;
 			this.setState({
 				messages: msgs,
 				loading: false,
@@ -211,59 +206,18 @@ export default class ChatScreen extends Component<Props, State> {
 		try {
 			const limit = Math.min(Math.max(messages.length, 30), 100);
 			const res = await slack.conversationsHistory(channel.id, null, limit);
-			const fetched = (res.messages || []).slice();
+			const fetched = ((res.messages as SlackMessage[]) || []).slice();
 			if (fetched.length === 0) return;
 
-			const existingMap: Record<string, boolean> = {};
-			for (let i = 0; i < messages.length; i++) {
-				existingMap[messages[i].ts] = true;
-			}
-
-			let hasNew = false;
-			for (let j = 0; j < fetched.length; j++) {
-				if (!existingMap[fetched[j].ts]) {
-					hasNew = true;
-					break;
+			const result = mergeMessages(messages, fetched);
+			if (result.changed) this.setState({ messages: result.messages });
+			if (result.hasNew) {
+				const self = this;
+				const currentUserId = this.props.currentUserId;
+				const existingMap: Record<string, boolean> = {};
+				for (let i = 0; i < messages.length; i++) {
+					existingMap[messages[i].ts] = true;
 				}
-			}
-
-			const fetchedMap: Record<string, SlackMessage> = {};
-			for (let k = 0; k < fetched.length; k++) {
-				fetchedMap[fetched[k].ts] = fetched[k];
-			}
-
-			const merged: SlackMessage[] = [];
-			for (let n = 0; n < fetched.length; n++) {
-				if (!existingMap[fetched[n].ts]) {
-					merged.push(fetched[n]);
-				}
-			}
-			for (let m = 0; m < messages.length; m++) {
-				if (fetchedMap[messages[m].ts]) {
-					merged.push(fetchedMap[messages[m].ts]);
-				} else {
-					merged.push(messages[m]);
-				}
-			}
-
-			const self = this;
-			const currentUserId = this.props.currentUserId;
-			let changed = merged.length !== messages.length;
-			if (!changed) {
-				for (let c = 0; c < merged.length; c++) {
-					if (
-						merged[c].ts !== messages[c].ts ||
-						merged[c].text !== messages[c].text ||
-						(merged[c].reactions || []).length !== (messages[c].reactions || []).length ||
-						merged[c].reply_count !== messages[c].reply_count
-					) {
-						changed = true;
-						break;
-					}
-				}
-			}
-			if (changed) this.setState({ messages: merged });
-			if (hasNew) {
 				const newMsgs = fetched.filter(function (f: SlackMessage) {
 					return !existingMap[f.ts];
 				});
@@ -294,8 +248,9 @@ export default class ChatScreen extends Component<Props, State> {
 		this.setState({ loadingMore: true });
 		try {
 			const res = await slack.conversationsHistory(channel.id, cursor, 30);
-			const older = (res.messages || []).slice();
-			const nextCursor = res.response_metadata && res.response_metadata.next_cursor;
+			const older = ((res.messages as SlackMessage[]) || []).slice();
+			const nextMeta = res.response_metadata as { next_cursor?: string } | undefined;
+			const nextCursor = nextMeta && nextMeta.next_cursor;
 			this.setState(function (prev: State) {
 				return {
 					messages: prev.messages.concat(older),
@@ -432,32 +387,16 @@ export default class ChatScreen extends Component<Props, State> {
 		}
 	}
 
-	async addReaction(message: SlackMessage, name: string): Promise<void> {
-		const { slack, channel } = this.props;
-		try {
-			await slack.reactionsAdd(channel.id, name, message.ts);
-			this.setState({ actionMessage: null });
-			this.pollNewMessages();
-		} catch (err: any) {
-			Alert.alert("Error", err.message);
-		}
-	}
-
-	async removeReaction(message: SlackMessage, name: string): Promise<void> {
-		const { slack, channel } = this.props;
-		try {
-			await slack.reactionsRemove(channel.id, name, message.ts);
-			this.pollNewMessages();
-		} catch (err: any) {
-			Alert.alert("Error", err.message);
-		}
-	}
-
 	async toggleReaction(message: SlackMessage, name: string, alreadyReacted: boolean): Promise<void> {
-		if (alreadyReacted) {
-			await this.removeReaction(message, name);
-		} else {
-			await this.addReaction(message, name);
+		const { slack, channel } = this.props;
+		try {
+			await toggleReactionService(slack, channel.id, message.ts, name, alreadyReacted);
+			if (!alreadyReacted) {
+				this.setState({ actionMessage: null });
+			}
+			this.pollNewMessages();
+		} catch (err: any) {
+			Alert.alert("Error", err.message);
 		}
 	}
 
@@ -507,7 +446,7 @@ export default class ChatScreen extends Component<Props, State> {
 	onEmojiSelect(name: string, emoji: string): void {
 		const mode = this.state.emojiPickerMode;
 		if (mode === "reaction") {
-			this.addReaction(this.state.reactionTarget!, name);
+			this.toggleReaction(this.state.reactionTarget!, name, false);
 		} else if (mode === "input") {
 			this.setState(function (prev: State) {
 				return { inputText: prev.inputText + emoji };

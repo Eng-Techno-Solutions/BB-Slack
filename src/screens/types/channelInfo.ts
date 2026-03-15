@@ -1,3 +1,4 @@
+import type { ISlackAPI } from "../../api/types";
 import type { SlackChannel, UsersMap } from "../../types";
 import type { ImageStyle, TextStyle, ViewStyle } from "react-native";
 
@@ -15,15 +16,8 @@ export interface PinItem {
 	[key: string]: unknown;
 }
 
-export interface ChannelInfoSlackAPI {
-	token: string;
-	conversationsMembers(channelId: string): Promise<{ members?: string[] }>;
-	pinsList(channelId: string): Promise<{ items?: PinItem[] }>;
-	[key: string]: unknown;
-}
-
 export interface ChannelInfoProps {
-	slack: ChannelInfoSlackAPI;
+	slack: ISlackAPI;
 	channel: SlackChannel;
 	usersMap: UsersMap;
 	currentUserId: string;

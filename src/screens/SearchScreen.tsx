@@ -101,7 +101,8 @@ export default class SearchScreen extends Component<Props, State> {
 		this.setState({ loading: true, searched: true });
 		try {
 			const res = await slack.searchMessages(query.trim());
-			const matches = res.messages && res.messages.matches ? res.messages.matches : [];
+			const msgs = res.messages as { matches?: SearchMatch[] } | undefined;
+			const matches = msgs && msgs.matches ? msgs.matches : [];
 			this.setState({ results: matches, loading: false });
 		} catch (err) {
 			this.setState({ results: [], loading: false });

@@ -1,118 +1,17 @@
 import { getColors, getMessageFontSize } from "../../theme";
-import type { SlackFile, SlackReaction, UsersMap } from "../../types";
-import { getTwemojiUrlByName } from "../../utils/emoji";
-import { EMOJI_MAP, emojiFromName } from "../../utils/emoji";
+import { isEmojiOnly } from "../../utils/fileHelpers";
 import { formatTime, getUserName } from "../../utils/format";
-import Icon from "../ui/Icon";
-import { CONTENT_MAX_W, styles } from "./MessageItem.styles";
+import Avatar from "./Avatar";
+import FileRenderer from "./FileRenderer";
+import { styles } from "./MessageItem.styles";
+import ReactionRow from "./ReactionRow";
 import SlackText from "./SlackText";
-import type { MessageItemProps, MessageItemState } from "./types";
+import type { MessageItemProps } from "./types";
 import React, { Component } from "react";
-import {
-	Image,
-	Linking,
-	Platform,
-	Text,
-	TouchableHighlight,
-	TouchableOpacity,
-	View
-} from "react-native";
-import type { ImageSourcePropType } from "react-native";
+import { Text, TouchableHighlight, TouchableOpacity, View } from "react-native";
 
-const IS_ANDROID: boolean = Platform.OS === "android";
-
-const AVATAR_COLORS: string[] = [
-	"#E8912D",
-	"#2BAC76",
-	"#CD2553",
-	"#1264A3",
-	"#9B59B6",
-	"#E74C3C",
-	"#00BCD4",
-	"#4A154B",
-	"#3498DB",
-	"#E67E22",
-	"#1ABC9C",
-	"#8E44AD"
-];
-
-function hashCode(str: string): number {
-	let hash = 0;
-	for (let i = 0; i < str.length; i++) {
-		hash = (hash << 5) - hash + str.charCodeAt(i);
-		hash = hash & hash;
-	}
-	return Math.abs(hash);
-}
-
-function getAvatarColor(userId: string): string {
-	return AVATAR_COLORS[hashCode(userId || "") % AVATAR_COLORS.length];
-}
-
-function getProfileImage(userId: string, usersMap: UsersMap): string | null {
-	const u = usersMap[userId];
-	if (u && u.profile) {
-		return u.profile.image_72 || u.profile.image_48 || null;
-	}
-	return null;
-}
-
-function proxyUrl(url: string, token?: string): string {
-	if (Platform.OS === "web" && url && token) {
-		return "/slack-file?url=" + encodeURIComponent(url) + "&token=" + encodeURIComponent(token);
-	}
-	return url;
-}
-
-function imageSource(url: string, token?: string): ImageSourcePropType {
-	if (Platform.OS !== "web" && url && token) {
-		return { uri: url, headers: { Authorization: "Bearer " + token } };
-	}
-	return { uri: url };
-}
-
-function isImageFile(file: SlackFile): boolean {
-	if (file.mimetype && file.mimetype.indexOf("image/") === 0) return true;
-	const name = (file.name || file.title || "").toLowerCase();
-	return name.match(/\.(png|jpg|jpeg|gif|webp|bmp|svg)$/) !== null;
-}
-
-function isAudioFile(file: SlackFile): boolean {
-	if (file.subtype === "slack_audio") return true;
-	if (file.mimetype && file.mimetype.indexOf("audio/") === 0) return true;
-	return false;
-}
-
-function formatDuration(ms: number): string {
-	const secs = Math.round(ms / 1000);
-	const m = Math.floor(secs / 60);
-	const s = secs % 60;
-	return m + ":" + (s < 10 ? "0" : "") + s;
-}
-
-function isEmojiOnly(text: string): boolean {
-	if (!text) return false;
-	const withoutEmojis = text.replace(/:([a-zA-Z0-9_+-]+):/g, function (match: string, name: string) {
-		return EMOJI_MAP[name] ? "" : match;
-	});
-	return withoutEmojis.trim().length === 0;
-}
-
-function _getThumbDataUri(file: SlackFile): string | null {
-	if (file.thumb_tiny) {
-		return "data:image/jpeg;base64," + file.thumb_tiny;
-	}
-	return null;
-}
-
-export default class MessageItem extends Component<MessageItemProps, MessageItemState> {
-	constructor(props: MessageItemProps) {
-		super(props);
-		this.state = { showReactionUsers: null };
-	}
-
-	shouldComponentUpdate(nextProps: MessageItemProps, nextState: MessageItemState): boolean {
-		if (this.state.showReactionUsers !== nextState.showReactionUsers) return true;
+export default class MessageItem extends Component<MessageItemProps> {
+	shouldComponentUpdate(nextProps: MessageItemProps): boolean {
 		if (this.props.focused !== nextProps.focused) return true;
 		const prev = this.props.message;
 		const next = nextProps.message;
@@ -130,141 +29,6 @@ export default class MessageItem extends Component<MessageItemProps, MessageItem
 		const nextF = next.files || [];
 		if (prevF.length !== nextF.length) return true;
 		return false;
-	}
-
-	renderImageFile(f: SlackFile, i: number, token?: string): React.ReactNode {
-		const onImagePress = this.props.onImagePress;
-		const c = getColors();
-		const fullUrl = f.url_private || f.url_private_download || f.thumb_480 || f.thumb_360;
-		const thumbUrl = f.thumb_480 || f.thumb_360 || f.thumb_160 || fullUrl;
-		const proxiedThumb = proxyUrl(thumbUrl || "", token);
-		const proxiedFull = proxyUrl(fullUrl || "", token);
-
-		let w = f.original_w || f.thumb_480_w || f.thumb_360_w || 300;
-		let h = f.original_h || f.thumb_480_h || f.thumb_360_h || 200;
-		const maxW = CONTENT_MAX_W;
-		if (w > maxW) {
-			h = Math.round(h * (maxW / w));
-			w = maxW;
-		}
-
-		return (
-			<TouchableOpacity
-				key={i}
-				style={[styles.imageWrapper, { borderColor: c.border }]}
-				activeOpacity={0.8}
-				data-type="file-card"
-				onPress={function () {
-					onImagePress &&
-						onImagePress({ uri: proxiedFull, name: f.name || f.title || "Image", token: token });
-				}}>
-				<Image
-					source={imageSource(proxiedThumb, token)}
-					style={{ width: w, height: h, backgroundColor: c.bgTertiary }}
-					resizeMode="cover"
-				/>
-			</TouchableOpacity>
-		);
-	}
-
-	renderAudioFile(f: SlackFile, i: number, token?: string): React.ReactNode {
-		const onAudioPress = this.props.onAudioPress;
-		const c = getColors();
-		const audioUrl = f.aac || f.url_private || f.url_private_download || "";
-		const proxiedUrl = proxyUrl(audioUrl, token);
-		const duration = f.duration_ms ? formatDuration(f.duration_ms) : "";
-		const samples = f.audio_wave_samples || [];
-
-		return (
-			<TouchableOpacity
-				key={i}
-				style={[styles.audioCard, { backgroundColor: c.bgTertiary, borderColor: c.border }]}
-				activeOpacity={0.7}
-				data-type="file-card"
-				onPress={function () {
-					onAudioPress &&
-						onAudioPress({
-							uri: proxiedUrl,
-							name: f.name || f.title || "Audio",
-							duration: f.duration_ms,
-							token: token
-						});
-				}}>
-				<View style={[styles.audioPlayBtn, { backgroundColor: c.green }]}>
-					<Icon
-						name="play"
-						size={16}
-						color="#FFFFFF"
-					/>
-				</View>
-				<View style={styles.audioContent}>
-					<View style={styles.waveformRow}>
-						{samples
-							.filter(function (_: number, idx: number) {
-								return idx % 2 === 0;
-							})
-							.slice(0, 40)
-							.map(function (val: number, idx: number) {
-								const barH = Math.max(2, Math.round((val / 100) * 24));
-								return (
-									<View
-										key={idx}
-										style={[styles.waveBar, { height: barH, backgroundColor: c.accent }]}
-									/>
-								);
-							})}
-					</View>
-					{duration ? (
-						<Text style={[styles.audioDuration, { color: c.textTertiary }]}>{duration}</Text>
-					) : null}
-				</View>
-			</TouchableOpacity>
-		);
-	}
-
-	renderFileCard(f: SlackFile, i: number): React.ReactNode {
-		const c = getColors();
-		const permalink = f.permalink || f.permalink_public || "";
-		const ext = (f.filetype || "").toUpperCase();
-		const sizeKB = f.size
-			? f.size > 1048576
-				? (f.size / 1048576).toFixed(1) + " MB"
-				: Math.round(f.size / 1024) + " KB"
-			: "";
-
-		return (
-			<TouchableOpacity
-				key={i}
-				style={[styles.fileCard, { backgroundColor: c.bgTertiary, borderColor: c.border }]}
-				activeOpacity={0.7}
-				data-type="file-card"
-				onPress={function () {
-					if (permalink) {
-						if (Platform.OS === "web") {
-							(window as any).open(permalink, "_blank");
-						} else {
-							Linking.openURL(permalink).catch(function () {});
-						}
-					}
-				}}>
-				<View style={[styles.fileIcon, { backgroundColor: c.fileIconBg }]}>
-					<Text style={[styles.fileIconText, { color: c.textSecondary }]}>
-						{ext ? ext.substring(0, 4) : "FILE"}
-					</Text>
-				</View>
-				<View style={styles.fileInfo}>
-					<Text
-						style={[styles.fileName, { color: c.accentLight }]}
-						numberOfLines={1}>
-						{f.name || f.title || "attachment"}
-					</Text>
-					<Text style={[styles.fileMeta, { color: c.textTertiary }]}>
-						{ext}
-						{sizeKB ? (ext ? " · " : "") + sizeKB : ""}
-					</Text>
-				</View>
-			</TouchableOpacity>
-		);
 	}
 
 	render(): React.ReactNode {
@@ -297,9 +61,6 @@ export default class MessageItem extends Component<MessageItemProps, MessageItem
 		const threadCount = message.reply_count || 0;
 		const reactions = message.reactions || [];
 		const files = message.files || [];
-		const profileImg = getProfileImage(message.user, usersMap);
-		const initial = (userName || "?").charAt(0).toUpperCase();
-		const avatarBg = getAvatarColor(message.user);
 		const self = this;
 
 		return (
@@ -315,16 +76,11 @@ export default class MessageItem extends Component<MessageItemProps, MessageItem
 				data-type="message">
 				<View style={styles.msgInner}>
 					<View style={styles.avatarCol}>
-						{profileImg ? (
-							<Image
-								source={{ uri: profileImg }}
-								style={styles.avatar}
-							/>
-						) : (
-							<View style={[styles.avatar, styles.avatarFallback, { backgroundColor: avatarBg }]}>
-								<Text style={styles.avatarInitial}>{initial}</Text>
-							</View>
-						)}
+						<Avatar
+							userId={message.user}
+							userName={userName}
+							usersMap={usersMap}
+						/>
 					</View>
 					<View style={styles.contentCol}>
 						<View style={styles.headerRow}>
@@ -345,79 +101,25 @@ export default class MessageItem extends Component<MessageItemProps, MessageItem
 						) : null}
 
 						{files.length > 0 ? (
-							<View style={styles.filesContainer}>
-								{files.map(function (f: SlackFile, i: number) {
-									if (isImageFile(f)) return self.renderImageFile(f, i, token);
-									if (isAudioFile(f)) return self.renderAudioFile(f, i, token);
-									return self.renderFileCard(f, i);
-								})}
-							</View>
+							<FileRenderer
+								files={files}
+								token={token}
+								onImagePress={this.props.onImagePress}
+								onAudioPress={this.props.onAudioPress}
+							/>
 						) : null}
 
 						{reactions.length > 0 ? (
-							<View style={styles.reactionsRow}>
-								{reactions.map(function (r: SlackReaction, i: number) {
-									const emoji = emojiFromName(r.name);
-									const reacted = r.users && r.users.indexOf(currentUserId) !== -1;
-									const isExpanded = self.state.showReactionUsers === i;
-									return (
-										<View
-											key={i}
-											style={styles.reactionWrapper}>
-											<TouchableOpacity
-												style={[
-													styles.reactionBadge,
-													{ backgroundColor: c.bgTertiary, borderColor: c.border },
-													reacted && { backgroundColor: c.reactionActiveBg, borderColor: c.accent }
-												]}
-												activeOpacity={0.7}
-												data-type="reaction"
-												onPress={function () {
-													if (self.props.onReactionPress) {
-														self.props.onReactionPress(message, r.name, !!reacted);
-													}
-												}}
-												onLongPress={function () {
-													self.setState({ showReactionUsers: isExpanded ? null : i });
-												}}>
-												{IS_ANDROID ? (
-													<Image
-														source={{ uri: getTwemojiUrlByName(r.name) }}
-														style={styles.reactionImg}
-													/>
-												) : emoji ? (
-													<Text style={styles.reactionEmoji}>{emoji}</Text>
-												) : (
-													<Text style={[styles.reactionShortcode, { color: c.textSecondary }]}>:{r.name}:</Text>
-												)}
-												<Text
-													style={[
-														styles.reactionCount,
-														{ color: c.textTertiary },
-														reacted && { color: c.accentLight }
-													]}>
-													{r.count}
-												</Text>
-											</TouchableOpacity>
-											{isExpanded && r.users ? (
-												<View
-													style={[
-														styles.reactionTooltip,
-														{ backgroundColor: c.tooltipBg, borderColor: c.borderInput }
-													]}>
-													<Text style={[styles.reactionTooltipText, { color: c.textSecondary }]}>
-														{r.users
-															.map(function (uid: string) {
-																return getUserName(uid, usersMap);
-															})
-															.join(", ")}
-													</Text>
-												</View>
-											) : null}
-										</View>
-									);
-								})}
-							</View>
+							<ReactionRow
+								reactions={reactions}
+								currentUserId={currentUserId}
+								usersMap={usersMap}
+								onReactionPress={function (reactionName: string, reacted: boolean) {
+									if (self.props.onReactionPress) {
+										self.props.onReactionPress(message, reactionName, reacted);
+									}
+								}}
+							/>
 						) : null}
 
 						{threadCount > 0 ? (
