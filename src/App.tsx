@@ -1,3 +1,4 @@
+import { styles } from "./App.styles";
 import { SlackAPI } from "./api";
 import {
 	ChannelInfoScreen,
@@ -9,33 +10,35 @@ import {
 	SettingsScreen,
 	ThreadScreen
 } from "./screens";
-import { getColors, getMode, setFontSizeKey, setMode } from "./theme";
-import type { FontSizeKey } from "./theme";
-import type { AccountEntry, SlackChannel, SlackMessage, SlackUser } from "./types";
-import type { AppProps as Props, AppState as State, AppStyles as Styles } from "./types";
+import {
+	loadAllSettings,
+	loadThemeMode,
+	persistFontSize,
+	persistNotifEnabled,
+	persistNotifInterval,
+	persistSoundEnabled,
+	toggleThemeMode
+} from "./services/settingsManager";
+import {
+	fetchAllUsers,
+	fetchTeamIcon,
+	loadChannelsWithUnreadDetection,
+	updateAccountTeamIcon
+} from "./services/slackDataLoader";
+import { getColors } from "./theme";
+import type { AccountEntry, SlackChannel, SlackMessage } from "./types";
+import type { AppProps as Props, AppState as State } from "./types";
 import {
 	clearToken,
 	getAccounts,
 	getActiveAccountId,
-	getFontSize,
-	getNotifEnabled,
-	getNotifInterval,
-	getSoundEnabled,
-	getTheme,
 	getToken,
-	playNotification,
 	saveAccounts,
 	saveActiveAccountId,
-	saveFontSize,
-	saveNotifEnabled,
-	saveNotifInterval,
-	saveSoundEnabled,
-	saveTheme,
-	saveToken,
-	setNotificationMuted
+	saveToken
 } from "./utils";
 import React, { Component } from "react";
-import { ActivityIndicator, StatusBar, StyleSheet, View } from "react-native";
+import { ActivityIndicator, StatusBar, View } from "react-native";
 
 export default class App extends Component<Props, State> {
 	_channelPollTimer: ReturnType<typeof setInterval> | null;
@@ -65,8 +68,8 @@ export default class App extends Component<Props, State> {
 	}
 
 	componentDidMount(): void {
-		this.loadTheme();
-		this.loadNotifSettings();
+		this._initTheme();
+		this._initSettings();
 		this.tryAutoLogin();
 	}
 
@@ -74,32 +77,74 @@ export default class App extends Component<Props, State> {
 		this.stopChannelPolling();
 	}
 
-	async loadTheme(): Promise<void> {
+	// ── Theme ──────────────────────────────────────────────
+
+	async _initTheme(): Promise<void> {
 		try {
-			const mode = await getTheme();
-			setMode(mode);
+			const mode = await loadThemeMode();
 			this.setState({ themeMode: mode });
 			this._applyThemeToDOM(mode);
-		} catch (err) {
-			// Default dark
-		}
+		} catch (_err) {}
 	}
 
 	_applyThemeToDOM(mode: string): void {
 		try {
 			document.documentElement.setAttribute("data-theme", mode);
-		} catch (_e) {
-			// Non-web platform
+		} catch (_e) {}
+	}
+
+	_toggleTheme(): void {
+		const newMode = toggleThemeMode();
+		this.setState({ themeMode: newMode });
+		this._applyThemeToDOM(newMode);
+	}
+
+	// ── Settings ───────────────────────────────────────────
+
+	async _initSettings(): Promise<void> {
+		try {
+			const settings = await loadAllSettings();
+			const self = this;
+			this.setState(settings, function () {
+				if (settings.notifEnabled && self.state.slack) {
+					self.startChannelPolling(self.state.slack);
+				}
+			});
+		} catch (_err) {}
+	}
+
+	async _handleToggleNotif(): Promise<void> {
+		const enabled = !this.state.notifEnabled;
+		await persistNotifEnabled(enabled);
+		this.setState({ notifEnabled: enabled });
+		if (enabled) {
+			this.startChannelPolling(this.state.slack);
+		} else {
+			this.stopChannelPolling();
 		}
 	}
 
-	toggleTheme(): void {
-		const newMode = getMode() === "dark" ? "light" : "dark";
-		setMode(newMode);
-		this.setState({ themeMode: newMode });
-		saveTheme(newMode);
-		this._applyThemeToDOM(newMode);
+	async _handleChangeInterval(ms: number): Promise<void> {
+		await persistNotifInterval(ms);
+		this.setState({ notifInterval: ms });
+		if (this.state.notifEnabled && this.state.slack) {
+			this.stopChannelPolling();
+			this.startChannelPolling(this.state.slack);
+		}
 	}
+
+	async _handleToggleSound(): Promise<void> {
+		const enabled = !this.state.soundEnabled;
+		await persistSoundEnabled(enabled);
+		this.setState({ soundEnabled: enabled });
+	}
+
+	async _handleChangeFontSize(size: string): Promise<void> {
+		await persistFontSize(size);
+		this.setState({ fontSize: size });
+	}
+
+	// ── Auth & Accounts ────────────────────────────────────
 
 	async tryAutoLogin(): Promise<void> {
 		try {
@@ -112,11 +157,7 @@ export default class App extends Component<Props, State> {
 							return a.userId === activeId;
 						})
 					: accounts[0];
-				if (active) {
-					await this.doLogin(active.token);
-				} else {
-					await this.doLogin(accounts[0].token);
-				}
+				await this.doLogin((active || accounts[0]).token);
 			} else {
 				const token = await getToken();
 				if (token) {
@@ -125,7 +166,7 @@ export default class App extends Component<Props, State> {
 					this.setState({ initializing: false });
 				}
 			}
-		} catch (err) {
+		} catch (_err) {
 			this.setState({ initializing: false });
 		}
 	}
@@ -147,32 +188,14 @@ export default class App extends Component<Props, State> {
 
 		try {
 			await saveToken(token);
-		} catch (err) {
-			// Token save failed but login can continue
-		}
+		} catch (_err) {}
 
-		const accounts = this.state.accounts.slice();
-		const existingIdx = accounts.findIndex(function (a: AccountEntry) {
-			return a.userId === auth.user_id;
-		});
-		const accountEntry: AccountEntry = {
-			token: token,
-			teamName: auth.team || "",
-			teamId: auth.team_id || "",
-			userId: auth.user_id,
-			userName: auth.user || "",
-			teamIcon: ""
-		};
-		if (existingIdx >= 0) {
-			accounts[existingIdx] = Object.assign({}, accounts[existingIdx], accountEntry);
-		} else {
-			accounts.push(accountEntry);
-		}
+		const accounts = this._upsertAccount(auth, token);
 
 		try {
 			await saveAccounts(accounts);
 			await saveActiveAccountId(auth.user_id);
-		} catch (err) {}
+		} catch (_err) {}
 
 		this.setState({
 			slack: slack,
@@ -183,205 +206,31 @@ export default class App extends Component<Props, State> {
 			accounts: accounts
 		});
 
-		this.loadTeamInfo(slack);
-		this.loadUsers(slack);
-		this.loadChannels(slack);
+		this._loadTeamInfo(slack);
+		this._loadUsers(slack);
+		this._loadChannels(slack);
 		this.startChannelPolling(slack);
 	}
 
-	startChannelPolling(slack: any): void {
-		this.stopChannelPolling();
-		if (!this.state.notifEnabled) return;
-		const self = this;
-		const interval = this.state.notifInterval || 120000;
-		this._channelPollTimer = setInterval(function () {
-			self.loadChannels(slack);
-		}, interval);
-	}
-
-	stopChannelPolling(): void {
-		if (this._channelPollTimer) {
-			clearInterval(this._channelPollTimer);
-			this._channelPollTimer = null;
-		}
-	}
-
-	async loadTeamInfo(slack: any): Promise<void> {
-		try {
-			const res = await slack.teamInfo();
-			const icon =
-				res.team && res.team.icon ? res.team.icon.image_68 || res.team.icon.image_44 || "" : "";
-			this.setState({ teamIcon: icon });
-			const self = this;
-			const accounts = this.state.accounts.slice();
-			const idx = accounts.findIndex(function (a: AccountEntry) {
-				return a.userId === self.state.currentUser;
-			});
-			if (idx >= 0 && accounts[idx].teamIcon !== icon) {
-				accounts[idx] = Object.assign({}, accounts[idx], { teamIcon: icon });
-				this.setState({ accounts: accounts });
-				try {
-					await saveAccounts(accounts);
-				} catch (_e) {}
-			}
-		} catch (err: any) {
-			console.warn("loadTeamInfo error:", err.message);
-		}
-	}
-
-	async loadUsers(slack: any): Promise<void> {
-		try {
-			const usersMap: Record<string, SlackUser> = {};
-			let cursor = "";
-			do {
-				const res = await slack.usersList(cursor || undefined, 200);
-				const members = res.members || [];
-				for (let i = 0; i < members.length; i++) {
-					usersMap[members[i].id] = members[i];
-				}
-				cursor =
-					res.response_metadata && res.response_metadata.next_cursor
-						? res.response_metadata.next_cursor
-						: "";
-			} while (cursor);
-
-			this.setState({ usersMap: usersMap });
-		} catch (err) {
-			// Users will load on demand
-		}
-	}
-
-	async loadChannels(slack: any): Promise<void> {
-		if (this._loadingChannels) return;
-		this._loadingChannels = true;
-		const isFirstLoad = this.state.channels.length === 0;
-		const oldChannels = this.state.channels;
-		if (isFirstLoad) this.setState({ channelsLoading: true });
-		try {
-			let allChannels: SlackChannel[] = [];
-			let cursor = "";
-			do {
-				const res = await slack.conversationsList(
-					"public_channel,private_channel,mpim,im",
-					cursor || undefined,
-					200
-				);
-				allChannels = allChannels.concat(res.channels || []);
-				cursor =
-					res.response_metadata && res.response_metadata.next_cursor
-						? res.response_metadata.next_cursor
-						: "";
-			} while (cursor);
-
-			if (!isFirstLoad && oldChannels.length > 0) {
-				const oldUnreadMap: Record<string, number> = {};
-				for (let i = 0; i < oldChannels.length; i++) {
-					oldUnreadMap[oldChannels[i].id] = oldChannels[i].unread_count_display || 0;
-				}
-
-				const stack = this.state.stack;
-				const currentScreen = stack[stack.length - 1];
-				const activeChannelId =
-					currentScreen.screen === "chat" && currentScreen.params.channel
-						? currentScreen.params.channel.id
-						: null;
-
-				let hasNewUnread = false;
-				for (let j = 0; j < allChannels.length; j++) {
-					const ch = allChannels[j];
-					const oldCount = oldUnreadMap[ch.id] || 0;
-					const newCount = ch.unread_count_display || 0;
-					if (newCount > oldCount && ch.id !== activeChannelId) {
-						hasNewUnread = true;
-						break;
-					}
-				}
-
-				if (hasNewUnread) {
-					playNotification();
-				}
-			}
-
-			let channelDataChanged = isFirstLoad || allChannels.length !== oldChannels.length;
-			if (!channelDataChanged) {
-				const oldUnread: Record<string, number> = {};
-				for (let oi = 0; oi < oldChannels.length; oi++) {
-					oldUnread[oldChannels[oi].id] = oldChannels[oi].unread_count_display || 0;
-				}
-				for (let ni = 0; ni < allChannels.length; ni++) {
-					if ((allChannels[ni].unread_count_display || 0) !== (oldUnread[allChannels[ni].id] || 0)) {
-						channelDataChanged = true;
-						break;
-					}
-				}
-			}
-			if (channelDataChanged) {
-				this.setState({ channels: allChannels, channelsLoading: false });
-			}
-		} catch (err: any) {
-			if (err.message === "ratelimited") {
-				console.warn("loadChannels rate limited, backing off");
-			} else {
-				console.warn("loadChannels error: " + err.message);
-			}
-			this.setState({ channelsLoading: false });
-		}
-		this._loadingChannels = false;
-	}
-
-	async loadNotifSettings(): Promise<void> {
-		try {
-			const interval = await getNotifInterval();
-			const enabled = await getNotifEnabled();
-			const sound = await getSoundEnabled();
-			const font = await getFontSize();
-			setNotificationMuted(!sound);
-			setFontSizeKey(font);
-			const self = this;
-			this.setState(
-				{ notifInterval: interval, notifEnabled: enabled, soundEnabled: sound, fontSize: font },
-				function () {
-					if (enabled && self.state.slack) {
-						self.startChannelPolling(self.state.slack);
-					}
-				}
-			);
-		} catch (err) {
-			// Defaults
-		}
-	}
-
-	async handleToggleNotif(): Promise<void> {
-		const enabled = !this.state.notifEnabled;
-		await saveNotifEnabled(enabled);
-		this.setState({ notifEnabled: enabled });
-		if (enabled) {
-			this.startChannelPolling(this.state.slack);
+	_upsertAccount(auth: any, token: string): AccountEntry[] {
+		const accounts = this.state.accounts.slice();
+		const existingIdx = accounts.findIndex(function (a: AccountEntry) {
+			return a.userId === auth.user_id;
+		});
+		const entry: AccountEntry = {
+			token: token,
+			teamName: auth.team || "",
+			teamId: auth.team_id || "",
+			userId: auth.user_id,
+			userName: auth.user || "",
+			teamIcon: ""
+		};
+		if (existingIdx >= 0) {
+			accounts[existingIdx] = Object.assign({}, accounts[existingIdx], entry);
 		} else {
-			this.stopChannelPolling();
+			accounts.push(entry);
 		}
-	}
-
-	async handleChangeInterval(ms: number): Promise<void> {
-		await saveNotifInterval(ms);
-		this.setState({ notifInterval: ms });
-		if (this.state.notifEnabled && this.state.slack) {
-			this.stopChannelPolling();
-			this.startChannelPolling(this.state.slack);
-		}
-	}
-
-	async handleToggleSound(): Promise<void> {
-		const enabled = !this.state.soundEnabled;
-		await saveSoundEnabled(enabled);
-		setNotificationMuted(!enabled);
-		this.setState({ soundEnabled: enabled });
-	}
-
-	async handleChangeFontSize(size: string): Promise<void> {
-		await saveFontSize(size as FontSizeKey);
-		setFontSizeKey(size as FontSizeKey);
-		this.setState({ fontSize: size });
+		return accounts;
 	}
 
 	async handleLogout(): Promise<void> {
@@ -398,46 +247,20 @@ export default class App extends Component<Props, State> {
 			this.setState({ accounts: accounts });
 			try {
 				await this.switchAccount(accounts[0]);
-			} catch (err) {
+			} catch (_err) {
 				await clearToken();
-				this.setState({
-					slack: null,
-					currentUser: null,
-					teamName: "",
-					teamIcon: "",
-					usersMap: {},
-					channels: [],
-					accounts: accounts,
-					stack: [{ screen: "login", params: {} }]
-				});
+				this._resetState(accounts);
 			}
 		} else {
 			await clearToken();
-			this.setState({
-				slack: null,
-				currentUser: null,
-				teamName: "",
-				teamIcon: "",
-				usersMap: {},
-				channels: [],
-				accounts: [],
-				stack: [{ screen: "login", params: {} }]
-			});
+			this._resetState([]);
 		}
 	}
 
 	async switchAccount(account: AccountEntry): Promise<void> {
 		this.stopChannelPolling();
-		this.setState({
-			slack: null,
-			currentUser: null,
-			teamName: "",
-			teamIcon: "",
-			usersMap: {},
-			channels: [],
-			channelsLoading: false,
-			initializing: true
-		});
+		this._resetState(this.state.accounts);
+		this.setState({ initializing: true });
 		await this.doLogin(account.token);
 	}
 
@@ -454,6 +277,101 @@ export default class App extends Component<Props, State> {
 		} catch (_e) {}
 		this.setState({ accounts: accounts });
 	}
+
+	_resetState(accounts: AccountEntry[]): void {
+		this.setState({
+			slack: null,
+			currentUser: null,
+			teamName: "",
+			teamIcon: "",
+			usersMap: {},
+			channels: [],
+			channelsLoading: false,
+			accounts: accounts,
+			stack: [{ screen: "login", params: {} }]
+		});
+	}
+
+	// ── Data Loading ───────────────────────────────────────
+
+	async _loadTeamInfo(slack: any): Promise<void> {
+		try {
+			const icon = await fetchTeamIcon(slack);
+			this.setState({ teamIcon: icon });
+			const updated = await updateAccountTeamIcon(
+				this.state.accounts,
+				this.state.currentUser || "",
+				icon
+			);
+			if (updated !== this.state.accounts) {
+				this.setState({ accounts: updated });
+			}
+		} catch (err: any) {
+			console.warn("loadTeamInfo error:", err.message);
+		}
+	}
+
+	async _loadUsers(slack: any): Promise<void> {
+		try {
+			const usersMap = await fetchAllUsers(slack);
+			this.setState({ usersMap: usersMap });
+		} catch (_err) {}
+	}
+
+	async _loadChannels(slack: any): Promise<void> {
+		if (this._loadingChannels) return;
+		this._loadingChannels = true;
+		const isFirstLoad = this.state.channels.length === 0;
+		if (isFirstLoad) this.setState({ channelsLoading: true });
+		try {
+			const result = await loadChannelsWithUnreadDetection(
+				slack,
+				this.state.channels,
+				this._getActiveChannelId()
+			);
+			if (result.changed) {
+				this.setState({ channels: result.channels, channelsLoading: false });
+			}
+		} catch (err: any) {
+			if (err.message === "ratelimited") {
+				console.warn("loadChannels rate limited, backing off");
+			} else {
+				console.warn("loadChannels error: " + err.message);
+			}
+			this.setState({ channelsLoading: false });
+		}
+		this._loadingChannels = false;
+	}
+
+	// ── Channel Polling ────────────────────────────────────
+
+	startChannelPolling(slack: any): void {
+		this.stopChannelPolling();
+		if (!this.state.notifEnabled) return;
+		const self = this;
+		const interval = this.state.notifInterval || 120000;
+		this._channelPollTimer = setInterval(function () {
+			self._loadChannels(slack);
+		}, interval);
+	}
+
+	stopChannelPolling(): void {
+		if (this._channelPollTimer) {
+			clearInterval(this._channelPollTimer);
+			this._channelPollTimer = null;
+		}
+	}
+
+	_getActiveChannelId(): string | null {
+		const stack = this.state.stack;
+		const current = stack[stack.length - 1];
+		if (current.screen === "chat" && current.params && current.params.channel) {
+			return current.params.channel.id;
+		}
+		return null;
+	}
+
+	// ── Navigation ─────────────────────────────────────────
 
 	navigate(screen: string, params?: Record<string, any>): void {
 		this.setState(function (prev: State) {
@@ -477,6 +395,8 @@ export default class App extends Component<Props, State> {
 			return { stack: newStack };
 		});
 	}
+
+	// ── Screen Rendering ───────────────────────────────────
 
 	renderScreen(): React.ReactElement | null {
 		const {
@@ -643,19 +563,19 @@ export default class App extends Component<Props, State> {
 						soundEnabled={this.state.soundEnabled}
 						fontSize={this.state.fontSize}
 						onToggleNotif={function () {
-							self.handleToggleNotif();
+							self._handleToggleNotif();
 						}}
 						onChangeInterval={function (ms: number) {
-							self.handleChangeInterval(ms);
+							self._handleChangeInterval(ms);
 						}}
 						onToggleSound={function () {
-							self.handleToggleSound();
+							self._handleToggleSound();
 						}}
 						onToggleTheme={function () {
-							self.toggleTheme();
+							self._toggleTheme();
 						}}
 						onChangeFontSize={function (s: string) {
-							self.handleChangeFontSize(s);
+							self._handleChangeFontSize(s);
 						}}
 						onBack={function () {
 							self.goBack();
@@ -685,6 +605,8 @@ export default class App extends Component<Props, State> {
 		}
 	}
 
+	// ── Render ──────────────────────────────────────────────
+
 	render(): React.ReactElement {
 		const colors = getColors();
 
@@ -710,14 +632,3 @@ export default class App extends Component<Props, State> {
 		);
 	}
 }
-
-const styles = StyleSheet.create<Styles>({
-	app: {
-		flex: 1
-	},
-	splash: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center"
-	}
-});

@@ -24,7 +24,7 @@ interface InputBarProps {
 	onStartRecording: () => void;
 	onStopRecording: () => void;
 	onCancelRecording: () => void;
-	editingMessage?: { text: string } | null;
+	editingMessage?: { text?: string } | null;
 	onCancelEdit?: () => void;
 	placeholder?: string;
 	autoFocus?: boolean;

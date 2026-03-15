@@ -1,5 +1,5 @@
 import type { SlackChannel, SlackMessage, UsersMap } from "../../types";
-import type { TextStyle, ViewStyle } from "react-native";
+import type { ViewStyle } from "react-native";
 
 // Thread screen types
 
@@ -45,14 +45,4 @@ export interface ThreadState {
 export interface ThreadStyles {
 	container: ViewStyle;
 	center: ViewStyle;
-	inputRow: ViewStyle;
-	innerRow: ViewStyle;
-	input: TextStyle;
-	sendBtn: ViewStyle;
-	sendDisabled: ViewStyle;
-	actionBtn: ViewStyle;
-	micBtn: ViewStyle;
-	recordingRow: ViewStyle;
-	recordingDot: ViewStyle;
-	recordingText: TextStyle;
 }

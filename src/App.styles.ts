@@ -1,11 +1,11 @@
-import type { ThreadStyles as Styles } from "./types";
+import type { AppStyles as Styles } from "./types";
 import { StyleSheet } from "react-native";
 
 export const styles = StyleSheet.create<Styles>({
-	container: {
+	app: {
 		flex: 1
 	},
-	center: {
+	splash: {
 		flex: 1,
 		justifyContent: "center",
 		alignItems: "center"
