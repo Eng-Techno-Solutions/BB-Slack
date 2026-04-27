@@ -12,6 +12,9 @@ export interface ThreadProps {
 	currentUserId: string;
 	onBack?: () => void;
 	themeMode?: string;
+	rtmConnected?: boolean;
+	onRegisterRTMHandler?: (channelId: string, handler: () => void) => void;
+	onUnregisterRTMHandler?: (channelId: string) => void;
 }
 
 export interface ThreadState {

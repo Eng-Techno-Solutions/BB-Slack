@@ -32,6 +32,9 @@ export interface ChatProps {
 	onThread: (msg: SlackMessage) => void;
 	onMembers?: () => void;
 	themeMode?: string;
+	rtmConnected?: boolean;
+	onRegisterRTMHandler?: (channelId: string, handler: () => void) => void;
+	onUnregisterRTMHandler?: (channelId: string) => void;
 }
 
 export interface ChatState {

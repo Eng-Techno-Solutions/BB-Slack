@@ -342,6 +342,18 @@ export default class SettingsScreen extends Component<Props, State> {
 							<Text style={[styles.rowValue, { color: c.textPlaceholder }]}>1.0.0</Text>
 						</View>
 					</View>
+					<View style={[styles.row, { borderBottomColor: c.border }]}>
+						<View style={styles.rowInner}>
+							<Text style={[styles.rowLabel, { color: c.textSecondary, marginLeft: 0 }]}>Real-time</Text>
+							<Text
+								style={[
+									styles.rowValue,
+									{ color: this.props.rtmConnected ? c.green || "#2BAC76" : c.textPlaceholder }
+								]}>
+								{this.props.rtmConnected ? "Connected" : "Disconnected"}
+							</Text>
+						</View>
+					</View>
 					{((engTechnoIdx = this._renderIdx++), null)}
 					<TouchableHighlight
 						onLayout={function (e: LayoutChangeEvent) {

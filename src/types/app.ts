@@ -20,6 +20,7 @@ export interface AppState {
 	soundEnabled: boolean;
 	fontSize: string;
 	accounts: AccountEntry[];
+	rtmConnected: boolean;
 }
 
 export interface AppStyles {

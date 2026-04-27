@@ -27,6 +27,7 @@
     "src/types/**/*.d.ts",
     "App.ts",
     "App.tsx",
+    "server/**/*.ts",
     "index.ts",
     "index.android.ts"
   ],

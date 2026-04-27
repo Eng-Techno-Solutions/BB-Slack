@@ -17,3 +17,5 @@ export type { ThemeColors, ThemeMode, FontSizeKey } from "./theme";
 export type { KeyEvent, KeyEventCallback, KeySub } from "./events";
 
 export type { AppProps, AppState, AppStyles } from "./app";
+
+export type { RTMConnectResponse, RTMEvent, RTMEventCallback } from "./rtm";

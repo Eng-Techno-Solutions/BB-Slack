@@ -118,6 +118,11 @@ export default class ChatScreen extends Component<Props, State> {
 		this._keySub = addKeyEventListener(function (e: KeyEvent) {
 			self.handleKeyEvent(e);
 		});
+		if (this.props.onRegisterRTMHandler) {
+			this.props.onRegisterRTMHandler(this.props.channel.id, function () {
+				self.pollNewMessages();
+			});
+		}
 	}
 
 	componentWillUnmount(): void {
@@ -129,6 +134,9 @@ export default class ChatScreen extends Component<Props, State> {
 		}
 		if (this.state.recording) {
 			cancelRecording();
+		}
+		if (this.props.onUnregisterRTMHandler) {
+			this.props.onUnregisterRTMHandler(this.props.channel.id);
 		}
 	}
 
@@ -166,9 +174,10 @@ export default class ChatScreen extends Component<Props, State> {
 
 	startPolling(): void {
 		const self = this;
+		const interval = this.props.rtmConnected ? 60000 : 10000;
 		this._pollTimer = setInterval(function () {
 			if (self._mounted) self.pollNewMessages();
-		}, 10000);
+		}, interval);
 	}
 
 	stopPolling(): void {

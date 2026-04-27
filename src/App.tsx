@@ -19,6 +19,7 @@ import {
 	tryAutoLogin as resolveAutoLogin,
 	upsertAccount
 } from "./services/accountManager";
+import RTMClient from "./services/rtmClient";
 import {
 	loadAllSettings,
 	loadThemeMode,
@@ -35,6 +36,7 @@ import {
 	updateAccountTeamIcon
 } from "./services/slackDataLoader";
 import { getColors } from "./theme";
+import type { RTMEvent } from "./types";
 import type { AccountEntry, SlackChannel, SlackMessage } from "./types";
 import type { AppProps as Props, AppState as State } from "./types";
 import { clearToken } from "./utils";
@@ -44,6 +46,8 @@ import { ActivityIndicator, StatusBar, View } from "react-native";
 export default class App extends Component<Props, State> {
 	_channelPollTimer: ReturnType<typeof setInterval> | null;
 	_loadingChannels: boolean;
+	_rtm: RTMClient;
+	_rtmChannelHandlers: Record<string, () => void>;
 
 	constructor(props: Props) {
 		super(props);
@@ -62,10 +66,13 @@ export default class App extends Component<Props, State> {
 			notifEnabled: true,
 			soundEnabled: true,
 			fontSize: "medium",
-			accounts: []
+			accounts: [],
+			rtmConnected: false
 		};
 		this._channelPollTimer = null;
 		this._loadingChannels = false;
+		this._rtm = new RTMClient();
+		this._rtmChannelHandlers = {};
 	}
 
 	componentDidMount(): void {
@@ -76,6 +83,7 @@ export default class App extends Component<Props, State> {
 
 	componentWillUnmount(): void {
 		this.stopChannelPolling();
+		this._rtm.disconnect();
 	}
 
 	// ── Theme ──────────────────────────────────────────────
@@ -189,9 +197,12 @@ export default class App extends Component<Props, State> {
 		this._loadUsers(slack);
 		this._loadChannels(slack);
 		this.startChannelPolling(slack);
+		this._connectRTM(slack);
 	}
 
 	async handleLogout(): Promise<void> {
+		this._rtm.disconnect();
+		this._rtmChannelHandlers = {};
 		this.stopChannelPolling();
 		const accounts = await removeAccount(this.state.accounts, this.state.currentUser || "");
 
@@ -210,6 +221,8 @@ export default class App extends Component<Props, State> {
 	}
 
 	async switchAccount(account: AccountEntry): Promise<void> {
+		this._rtm.disconnect();
+		this._rtmChannelHandlers = {};
 		this.stopChannelPolling();
 		this.setState(Object.assign({}, getResetState(), { initializing: true }));
 		await this.doLogin(account.token);
@@ -275,13 +288,78 @@ export default class App extends Component<Props, State> {
 		this._loadingChannels = false;
 	}
 
+	// ── RTM ───────────────────────────────────────────────
+
+	_connectRTM(slack: ISlackAPI): void {
+		if (this._rtm.isConnected()) return;
+		const self = this;
+
+		this._rtm.on("message", function (event: RTMEvent) {
+			const channelId = event.channel;
+			if (!channelId) return;
+			const handler = self._rtmChannelHandlers[channelId];
+			if (handler) {
+				handler();
+			} else {
+				if (event.user !== self.state.currentUser) {
+					self._loadChannels(slack);
+				}
+			}
+		});
+
+		this._rtm.on("reaction_added", function (event: RTMEvent) {
+			var item = event.item;
+			if (item && item.channel) {
+				var handler = self._rtmChannelHandlers[item.channel];
+				if (handler) handler();
+			}
+		});
+
+		this._rtm.on("reaction_removed", function (event: RTMEvent) {
+			var item = event.item;
+			if (item && item.channel) {
+				var handler = self._rtmChannelHandlers[item.channel];
+				if (handler) handler();
+			}
+		});
+
+		this._rtm.on("channel_marked", function () {
+			self._loadChannels(slack);
+		});
+
+		this._rtm.on("group_marked", function () {
+			self._loadChannels(slack);
+		});
+
+		this._rtm.on("im_marked", function () {
+			self._loadChannels(slack);
+		});
+
+		this._rtm.on("_status", function () {
+			var isConnected = self._rtm.isConnected();
+			self.setState({ rtmConnected: isConnected });
+			self.startChannelPolling(slack);
+		});
+
+		this._rtm.connect(slack);
+	}
+
+	_registerRTMHandler(channelId: string, handler: () => void): void {
+		this._rtmChannelHandlers[channelId] = handler;
+	}
+
+	_unregisterRTMHandler(channelId: string): void {
+		delete this._rtmChannelHandlers[channelId];
+	}
+
 	// ── Channel Polling ────────────────────────────────────
 
 	startChannelPolling(slack: ISlackAPI): void {
 		this.stopChannelPolling();
 		if (!this.state.notifEnabled) return;
 		const self = this;
-		const interval = this.state.notifInterval || 120000;
+		const baseInterval = this.state.notifInterval || 120000;
+		const interval = this.state.rtmConnected ? 300000 : baseInterval;
 		this._channelPollTimer = setInterval(function () {
 			self._loadChannels(slack);
 		}, interval);
@@ -415,6 +493,13 @@ export default class App extends Component<Props, State> {
 						channel={params.channel}
 						usersMap={usersMap}
 						currentUserId={currentUser || ""}
+						rtmConnected={this.state.rtmConnected}
+						onRegisterRTMHandler={function (channelId: string, handler: () => void) {
+							self._registerRTMHandler(channelId, handler);
+						}}
+						onUnregisterRTMHandler={function (channelId: string) {
+							self._unregisterRTMHandler(channelId);
+						}}
 						onBack={function () {
 							self.goBack();
 						}}
@@ -441,6 +526,13 @@ export default class App extends Component<Props, State> {
 						parentMessage={params.parentMessage}
 						usersMap={usersMap}
 						currentUserId={currentUser || ""}
+						rtmConnected={this.state.rtmConnected}
+						onRegisterRTMHandler={function (channelId: string, handler: () => void) {
+							self._registerRTMHandler(channelId, handler);
+						}}
+						onUnregisterRTMHandler={function (channelId: string) {
+							self._unregisterRTMHandler(channelId);
+						}}
 						onBack={function () {
 							self.goBack();
 						}}
@@ -494,6 +586,7 @@ export default class App extends Component<Props, State> {
 						notifInterval={this.state.notifInterval}
 						soundEnabled={this.state.soundEnabled}
 						fontSize={this.state.fontSize}
+						rtmConnected={this.state.rtmConnected}
 						onToggleNotif={function () {
 							self._handleToggleNotif();
 						}}

@@ -29,6 +29,7 @@ export interface SettingsProps {
 	onChangeFontSize: (value: string) => void;
 	onBack: () => void;
 	themeMode?: string;
+	rtmConnected?: boolean;
 }
 
 export interface SettingsState {

@@ -125,13 +125,22 @@ export function parseFormatting(text: string): TextPart[] {
 
 export function applyInlineFormatting(text: string): TextPart[] {
 	const parts: TextPart[] = [];
+	// Protect emoji shortcodes from being split by italic parsing.
+	// Replace :emoji_name: with placeholders, apply formatting, then restore.
+	const emojiPlaceholders: string[] = [];
+	const protected_ = text.replace(/:([a-zA-Z0-9_+-]+):/g, function (match: string) {
+		const idx = emojiPlaceholders.length;
+		emojiPlaceholders.push(match);
+		return "\x02" + idx + "\x02";
+	});
+
 	const regex = /(\*([^*]+)\*)|(_([^_]+)_)|(~([^~]+)~)/g;
 	let lastIndex = 0;
 	let match: RegExpExecArray | null;
 
-	while ((match = regex.exec(text)) !== null) {
+	while ((match = regex.exec(protected_)) !== null) {
 		if (match.index > lastIndex) {
-			parts.push({ type: "text", value: text.substring(lastIndex, match.index) });
+			parts.push({ type: "text", value: protected_.substring(lastIndex, match.index) });
 		}
 		if (match[2]) {
 			parts.push({ type: "bold", value: match[2] });
@@ -143,8 +152,18 @@ export function applyInlineFormatting(text: string): TextPart[] {
 		lastIndex = match.index + match[0].length;
 	}
 
-	if (lastIndex < text.length) {
-		parts.push({ type: "text", value: text.substring(lastIndex) });
+	if (lastIndex < protected_.length) {
+		parts.push({ type: "text", value: protected_.substring(lastIndex) });
+	}
+
+	// Restore emoji shortcodes in all parts
+	for (let i = 0; i < parts.length; i++) {
+		if (parts[i].value) {
+			// eslint-disable-next-line no-control-regex
+			parts[i].value = parts[i].value!.replace(/\x02(\d+)\x02/g, function (m: string, idx: string) {
+				return emojiPlaceholders[parseInt(idx)];
+			});
+		}
 	}
 
 	return parts;

@@ -255,6 +255,11 @@ export default class SlackAPI {
 		}
 	}
 
+	// RTM
+	async rtmConnect(): Promise<SlackResponse> {
+		return this._get("rtm.connect", {});
+	}
+
 	// Emoji
 	emojiList(): Promise<SlackResponse> {
 		return this._get("emoji.list", {});

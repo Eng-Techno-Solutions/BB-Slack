@@ -98,6 +98,7 @@ export interface ISlackAPI {
 		threadTs?: string,
 		comment?: string
 	): Promise<SlackResponse>;
+	rtmConnect(): Promise<SlackResponse>;
 	emojiList(): Promise<SlackResponse>;
 	teamInfo(): Promise<SlackResponse>;
 }
