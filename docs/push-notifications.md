@@ -1,28 +1,32 @@
-# Real-Time Notifications: RTM + Slack Events API + ntfy
+# Real-Time Notifications: RTM + Background Polling
 
 ## Overview
 
 BBSlack uses two notification mechanisms:
 
 - **Foreground (app open):** Slack RTM WebSocket for instant message delivery
-- **Background (app closed):** Slack Events API → Vercel serverless function → ntfy push notification → BB Q20
+- **Background (app closed):** Native Android service polls Slack API directly, shows system notifications
+
+No external server, no Firebase, no third-party app required. The device talks to Slack directly.
 
 ```
 FOREGROUND (app open)
   BBSlack App ←──WebSocket──→ Slack RTM API
 
 BACKGROUND (app closed)
-  Slack Workspace
-      │ Events API (webhook)
+  AlarmManager (every 2 min)
+      │
       ▼
-  Vercel Serverless Function
-      │ HTTP POST
+  NotificationPollService
+      │ polls Slack conversations.list per account
       ▼
-  ntfy.sh (or self-hosted)
-      │ push
+  Compares with last known unread state
+      │ new unreads detected
       ▼
-  ntfy Android app on BB Q20
+  Android system notification
 ```
+
+Works with all workspaces automatically — polls every registered account.
 
 ## Part 1: In-App RTM (automatic)
 
@@ -41,86 +45,78 @@ On Android, RTM disconnects when the app goes to background and reconnects on fo
 
 ## Part 2: Background Push Notifications
 
-### Step 1: Create a Slack App
+### How It Works
 
-1. Go to https://api.slack.com/apps and click **Create New App**
-2. Choose **From scratch**, name it (e.g., "BBSlack Push"), select your workspace
-3. Go to **Event Subscriptions** and toggle **Enable Events** on
-4. For **Request URL**, you'll set this after deploying (Step 2)
-5. Under **Subscribe to bot events**, add:
-   - `message.channels` — messages in public channels
-   - `message.groups` — messages in private channels
-   - `message.im` — direct messages
-   - `message.mpim` — group DMs
-6. Go to **OAuth & Permissions** and add these **Bot Token Scopes**:
-   - `channels:history`
-   - `groups:history`
-   - `im:history`
-   - `mpim:history`
-7. Install the app to your workspace
-8. Note the **Signing Secret** from **Basic Information** page
+1. **App goes to background** → `AlarmManager` starts, fires every 2 minutes
+2. **Each alarm** → triggers `NotificationPollService` (IntentService)
+3. **Service reads accounts** from `SharedPreferences` (synced from RN on login/logout)
+4. **For each account** → calls `conversations.list` Slack API with the user's token
+5. **Compares unread counts** with last stored state
+6. **New unreads detected** → shows native Android notification with channel name and count
+7. **App returns to foreground** → AlarmManager stops, RTM reconnects
+8. **Device reboot** → `BootReceiver` re-registers the AlarmManager
 
-### Step 2: Deploy Vercel Relay
+### Setup
 
-```bash
-cd server
-npx vercel
+**No setup required.** Background notifications work automatically after login.
+
+- Login to one or more workspaces
+- Background the app
+- Notifications appear within ~2 minutes of new messages
+
+### Settings
+
+In the app's Settings screen:
+- **Push Notifications** toggle — enables/disables background polling
+- **Notification Sound** toggle — enables/disables notification sound
+- **Check Interval** — controls foreground polling interval (background always uses 2 min)
+
+## Android Native Components
+
+| File | Purpose |
+|------|---------|
+| `NotificationModule.java` | RN bridge — syncs account tokens to SharedPreferences, starts/stops AlarmManager |
+| `NotificationAlarmReceiver.java` | BroadcastReceiver triggered by AlarmManager every 2 minutes |
+| `NotificationPollService.java` | IntentService — polls Slack API per account, compares unreads, shows notifications |
+| `BootReceiver.java` | Re-registers AlarmManager on device reboot |
+
+### Data Flow
+
+```
+RN App.tsx (login)
+  │ syncAccountsToNative(accounts)
+  ▼
+SharedPreferences (BBSlackNotifPrefs)
+  │ accounts: JSON array of {token, teamName, userId, ...}
+  │ lastUnreads: JSON map of "userId:channelId" → unreadCount
+  ▼
+NotificationPollService reads on each alarm tick
 ```
 
-Follow the prompts to set up the project.
+### Manifest Permissions
 
-Set environment variables in the Vercel dashboard or via CLI:
-
-```bash
-npx vercel env add SLACK_SIGNING_SECRET    # From Slack app > Basic Information
-npx vercel env add NTFY_TOPIC              # Your ntfy topic name (e.g., bbslack-abc123)
-npx vercel env add SLACK_USER_ID           # Your Slack user ID (found in profile)
+```xml
+<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+<uses-permission android:name="android.permission.WAKE_LOCK" />
+<uses-permission android:name="android.permission.VIBRATE" />
 ```
-
-Deploy to production:
-
-```bash
-npx vercel --prod
-```
-
-Copy the deployment URL (e.g., `https://bbslack-push.vercel.app`).
-
-### Step 3: Connect Slack to Vercel
-
-1. Go back to your Slack app's **Event Subscriptions**
-2. Set the **Request URL** to: `https://<your-deployment>.vercel.app/api/slack/events`
-3. Slack will send a challenge request — if the function is deployed correctly, it will verify automatically
-4. Save changes
-
-### Step 4: Set Up ntfy
-
-**Option A: Use ntfy.sh (free, easiest)**
-
-Choose a random topic name (e.g., `bbslack-<random-string>`). This is what you set as `NTFY_TOPIC` in Vercel.
-
-**Option B: Self-host ntfy**
-
-See https://docs.ntfy.sh/install/ for self-hosting instructions. Update the ntfy URL in `server/api/slack/events.ts` to point to your instance.
-
-### Step 5: Install ntfy on BB Q20
-
-1. Download the ntfy APK from https://ntfy.sh/docs/subscribe/phone/
-2. Install via ADB: `adb install ntfy-*.apk`
-3. Open ntfy app
-4. Tap **+** to subscribe to a topic
-5. Enter your topic name (same as `NTFY_TOPIC`)
-6. Notifications will now appear as system notifications
 
 ## Troubleshooting
 
-### Slack challenge failing
-- Verify the Vercel function is deployed: visit `https://<deployment>.vercel.app/api/slack/events` — should return "Method Not Allowed" for GET
-- Check Vercel logs for errors
+### Background notifications not appearing
+- Check Settings > Push Notifications is enabled
+- Verify you're logged into at least one workspace
+- On some devices, battery optimization kills background services — whitelist BBSlack in battery settings
+- Check that the device has internet connectivity in background
 
-### Notifications not arriving via ntfy
-- Verify `NTFY_TOPIC` matches between Vercel env and ntfy app subscription
-- Test manually: `curl -d "test message" ntfy.sh/<your-topic>`
-- Check that `SLACK_USER_ID` is set correctly (messages from yourself are filtered)
+### Notifications delayed
+- AlarmManager fires every 2 minutes — this is the expected maximum delay
+- Android may batch alarms for battery efficiency
+- On BB Q20 (Android 4.x), `setRepeating` is exact — no batching
+
+### Duplicate notifications after reboot
+- BootReceiver re-registers AlarmManager automatically
+- If you see duplicates, the previous alarm wasn't properly cancelled — restart the app once to reset
 
 ### RTM not connecting
 - RTM requires the `rtm:stream` scope — this is available on classic Slack apps

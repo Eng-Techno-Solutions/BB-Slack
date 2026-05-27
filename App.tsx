@@ -48,6 +48,11 @@ import {
 	saveToken,
 	setNotificationMuted
 } from "./src/utils";
+import {
+	startBackgroundNotifications,
+	stopBackgroundNotifications,
+	syncAccountsToNative
+} from "./src/services/nativeNotification";
 import React, { Component } from "react";
 import {
 	ActivityIndicator,
@@ -217,6 +222,7 @@ export default class App extends Component<Props, State> {
 		this._loadTeamInfo(slack);
 		this._loadNotifSettings();
 		this._connectRTM(slack);
+		syncAccountsToNative(accounts);
 	}
 
 	async _loadTeamInfo(slack: ISlackAPI): Promise<void> {
@@ -276,6 +282,7 @@ export default class App extends Component<Props, State> {
 		const accounts = this.state.accounts.filter(function (a: AccountEntry) {
 			return a.userId !== currentUserId;
 		});
+		syncAccountsToNative(accounts);
 		try {
 			await saveAccounts(accounts);
 		} catch (_e) {}
@@ -345,11 +352,15 @@ export default class App extends Component<Props, State> {
 
 	_handleAppState(state: string): void {
 		if (state === "active") {
+			stopBackgroundNotifications();
 			if (this.state.notifEnabled) this._startNotifPolling();
 			if (this.state.slack) this._connectRTM(this.state.slack);
 		} else if (state === "background") {
 			this._stopNotifPolling();
 			this._rtm.disconnect();
+			if (this.state.notifEnabled && this.state.accounts.length > 0) {
+				startBackgroundNotifications();
+			}
 		}
 	}
 
