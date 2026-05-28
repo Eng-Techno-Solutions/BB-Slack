@@ -7,7 +7,6 @@ export { default as ChannelInfoScreen } from "./ChannelInfoScreen";
 export { default as SettingsScreen } from "./SettingsScreen";
 export { default as ProfileScreen } from "./ProfileScreen";
 export type {
-	SigninResponse,
 	FieldName,
 	LoginProps,
 	LoginState,

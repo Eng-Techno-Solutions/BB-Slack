@@ -14,6 +14,8 @@ import { toggleReaction as toggleReactionService } from "../services/reactionSer
 import { getColors } from "../theme";
 import type { KeyEvent, KeySub, SlackMessage } from "../types";
 import { cancelRecording, startRecording, stopRecording } from "../utils/audioRecorder";
+import { getChatPollInterval } from "../utils/constants";
+import { errorMessage } from "../utils/error";
 import { pickFile } from "../utils/filePicker";
 import { getChannelDisplayName } from "../utils/format";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
@@ -40,7 +42,7 @@ export default class ChatScreen extends Component<Props, State> {
 	_keySub: KeySub | null;
 	_list: FlatList<SlackMessage> | null;
 	_inputRef: TextInput | null;
-	_mentionRef: any;
+	_mentionRef: MentionSuggest | null;
 	_onLongPress: (m: SlackMessage) => void;
 	_onReactionPress: (m: SlackMessage, name: string, reacted: boolean) => void;
 	_onImagePress: (img: ViewerImage) => void;
@@ -174,7 +176,7 @@ export default class ChatScreen extends Component<Props, State> {
 
 	startPolling(): void {
 		const self = this;
-		const interval = this.props.rtmConnected ? 60000 : 10000;
+		const interval = getChatPollInterval(this.props.rtmConnected);
 		this._pollTimer = setInterval(function () {
 			if (self._mounted) self.pollNewMessages();
 		}, interval);
@@ -201,9 +203,9 @@ export default class ChatScreen extends Component<Props, State> {
 				hasMore: !!cursor
 			});
 			this.markRead(msgs);
-		} catch (err: any) {
+		} catch (err: unknown) {
 			this.setState({ loading: false });
-			Alert.alert("Error", err.message);
+			Alert.alert("Error", errorMessage(err, "Failed to load messages"));
 		}
 	}
 
@@ -312,9 +314,9 @@ export default class ChatScreen extends Component<Props, State> {
 				if (this._inputRef) this._inputRef.clear();
 				this.pollNewMessages();
 			}
-		} catch (err: any) {
+		} catch (err: unknown) {
 			this.setState({ sending: false });
-			Alert.alert("Error", err.message);
+			Alert.alert("Error", errorMessage(err, "Failed to send"));
 		}
 	}
 
@@ -329,9 +331,9 @@ export default class ChatScreen extends Component<Props, State> {
 			this.setState({ uploading: false, inputText: "" });
 			if (this._inputRef) this._inputRef.clear();
 			this.pollNewMessages();
-		} catch (err: any) {
+		} catch (err: unknown) {
 			this.setState({ uploading: false });
-			Alert.alert("Error", err.message);
+			Alert.alert("Error", errorMessage(err, "Upload failed"));
 		}
 	}
 
@@ -347,8 +349,8 @@ export default class ChatScreen extends Component<Props, State> {
 					});
 				}
 			}, 1000);
-		} catch (err: any) {
-			Alert.alert("Error", "Could not start recording: " + err.message);
+		} catch (err: unknown) {
+			Alert.alert("Error", "Could not start recording: " + errorMessage(err, "unknown error"));
 		}
 	}
 
@@ -364,9 +366,9 @@ export default class ChatScreen extends Component<Props, State> {
 			await slack.filesUpload(channel.id, audio);
 			this.setState({ uploading: false });
 			this.pollNewMessages();
-		} catch (err: any) {
+		} catch (err: unknown) {
 			this.setState({ recording: false, recordingTime: 0, uploading: false });
-			Alert.alert("Error", err.message);
+			Alert.alert("Error", errorMessage(err, "Recording failed"));
 		}
 	}
 
@@ -391,8 +393,8 @@ export default class ChatScreen extends Component<Props, State> {
 					actionMessage: null as SlackMessage | null
 				} as Pick<State, "messages" | "actionMessage">;
 			});
-		} catch (err: any) {
-			Alert.alert("Error", err.message);
+		} catch (err: unknown) {
+			Alert.alert("Error", errorMessage(err, "Delete failed"));
 		}
 	}
 
@@ -404,8 +406,8 @@ export default class ChatScreen extends Component<Props, State> {
 				this.setState({ actionMessage: null });
 			}
 			this.pollNewMessages();
-		} catch (err: any) {
-			Alert.alert("Error", err.message);
+		} catch (err: unknown) {
+			Alert.alert("Error", errorMessage(err, "Reaction failed"));
 		}
 	}
 
@@ -642,7 +644,7 @@ export default class ChatScreen extends Component<Props, State> {
 				)}
 
 				<MentionSuggest
-					ref={function (r: any) {
+					ref={function (r: MentionSuggest | null) {
 						self._mentionRef = r;
 					}}
 					text={inputText}
@@ -684,7 +686,7 @@ export default class ChatScreen extends Component<Props, State> {
 					}}
 					placeholder="Message..."
 					autoFocus={true}
-					inputRef={function (r: any) {
+					inputRef={function (r: TextInput | null) {
 						self._inputRef = r;
 					}}
 				/>

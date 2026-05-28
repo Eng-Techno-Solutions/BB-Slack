@@ -4,6 +4,8 @@ import { toggleReaction as toggleReactionService } from "../services/reactionSer
 import { getColors } from "../theme";
 import type { KeyEvent, KeySub, SlackMessage } from "../types";
 import { cancelRecording, startRecording, stopRecording } from "../utils/audioRecorder";
+import { getChatPollInterval } from "../utils/constants";
+import { errorMessage } from "../utils/error";
 import { pickFile } from "../utils/filePicker";
 import { getUserName } from "../utils/format";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
@@ -21,7 +23,7 @@ export default class ThreadScreen extends Component<Props, State> {
 	_keySub: KeySub | null;
 	_list: FlatList<SlackMessage> | null;
 	_inputRef: TextInput | null;
-	_mentionRef: any;
+	_mentionRef: MentionSuggest | null;
 	_keyExtractor: (item: SlackMessage) => string;
 	_renderItem: (obj: { item: SlackMessage; index: number }) => React.ReactElement;
 	_onReactionPress: (m: SlackMessage, name: string, reacted: boolean) => void;
@@ -132,7 +134,7 @@ export default class ThreadScreen extends Component<Props, State> {
 
 	startPolling(): void {
 		const self = this;
-		const interval = this.props.rtmConnected ? 60000 : 10000;
+		const interval = getChatPollInterval(this.props.rtmConnected);
 		this._pollTimer = setInterval(function () {
 			if (self._mounted) self.pollReplies();
 		}, interval);
@@ -153,9 +155,9 @@ export default class ThreadScreen extends Component<Props, State> {
 				replies: ((res.messages as SlackMessage[]) || []).slice().reverse(),
 				loading: false
 			});
-		} catch (err: any) {
+		} catch (err: unknown) {
 			this.setState({ loading: false });
-			Alert.alert("Error", err.message);
+			Alert.alert("Error", errorMessage(err, "Failed to load thread"));
 		}
 	}
 
@@ -195,9 +197,9 @@ export default class ThreadScreen extends Component<Props, State> {
 			this.setState({ inputText: "", sending: false });
 			if (this._inputRef) this._inputRef.clear();
 			this.loadReplies();
-		} catch (err: any) {
+		} catch (err: unknown) {
 			this.setState({ sending: false });
-			Alert.alert("Error", err.message);
+			Alert.alert("Error", errorMessage(err, "Failed to send"));
 		}
 	}
 
@@ -212,9 +214,9 @@ export default class ThreadScreen extends Component<Props, State> {
 			this.setState({ uploading: false, inputText: "" });
 			if (this._inputRef) this._inputRef.clear();
 			this.loadReplies();
-		} catch (err: any) {
+		} catch (err: unknown) {
 			this.setState({ uploading: false });
-			Alert.alert("Error", err.message);
+			Alert.alert("Error", errorMessage(err, "Upload failed"));
 		}
 	}
 
@@ -230,8 +232,8 @@ export default class ThreadScreen extends Component<Props, State> {
 					});
 				}
 			}, 1000);
-		} catch (err: any) {
-			Alert.alert("Error", "Could not start recording: " + err.message);
+		} catch (err: unknown) {
+			Alert.alert("Error", "Could not start recording: " + errorMessage(err, "unknown error"));
 		}
 	}
 
@@ -247,9 +249,9 @@ export default class ThreadScreen extends Component<Props, State> {
 			await slack.filesUpload(channel.id, audio, parentMessage.ts);
 			this.setState({ uploading: false });
 			this.loadReplies();
-		} catch (err: any) {
+		} catch (err: unknown) {
 			this.setState({ recording: false, recordingTime: 0, uploading: false });
-			Alert.alert("Error", err.message);
+			Alert.alert("Error", errorMessage(err, "Recording failed"));
 		}
 	}
 
@@ -270,8 +272,8 @@ export default class ThreadScreen extends Component<Props, State> {
 				this.setState({ reactionTarget: null });
 			}
 			this.pollReplies();
-		} catch (err: any) {
-			Alert.alert("Error", err.message);
+		} catch (err: unknown) {
+			Alert.alert("Error", errorMessage(err, "Reaction failed"));
 		}
 	}
 
@@ -353,7 +355,7 @@ export default class ThreadScreen extends Component<Props, State> {
 				)}
 
 				<MentionSuggest
-					ref={function (r: any) {
+					ref={function (r: MentionSuggest | null) {
 						self._mentionRef = r;
 					}}
 					text={inputText}
@@ -391,7 +393,7 @@ export default class ThreadScreen extends Component<Props, State> {
 					}}
 					placeholder="Reply..."
 					autoFocus={true}
-					inputRef={function (r: any) {
+					inputRef={function (r: TextInput | null) {
 						self._inputRef = r;
 					}}
 				/>

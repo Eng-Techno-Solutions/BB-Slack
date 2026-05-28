@@ -1,6 +1,7 @@
 import { Header } from "../components";
 import { getColors } from "../theme";
 import type { KeyEvent, KeySub, SlackChannel, SlackUser } from "../types";
+import { errorMessage } from "../utils/error";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
 import { styles } from "./ProfileScreen.styles";
 import type { ProfileProps as Props, ProfileState as State } from "./types";
@@ -53,9 +54,9 @@ export default class ProfileScreen extends Component<Props, State> {
 		try {
 			const res = await slack.usersInfo(userId);
 			this.setState({ user: res.user as SlackUser, loading: false });
-		} catch (err: any) {
+		} catch (err: unknown) {
 			this.setState({ loading: false });
-			Alert.alert("Error", err.message);
+			Alert.alert("Error", errorMessage(err, "Failed to load user"));
 		}
 	}
 
@@ -66,8 +67,8 @@ export default class ProfileScreen extends Component<Props, State> {
 			if (res.channel && onOpenDM) {
 				onOpenDM(res.channel as SlackChannel);
 			}
-		} catch (err: any) {
-			Alert.alert("Error", err.message);
+		} catch (err: unknown) {
+			Alert.alert("Error", errorMessage(err, "Failed to open DM"));
 		}
 	}
 

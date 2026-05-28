@@ -73,9 +73,9 @@ export default class AudioPlayer extends Component<AudioPlayerProps, AudioPlayer
 
 	downloadAndPlay(url: string, token: string, SoundClass: NativeSoundConstructor): void {
 		const self = this;
-		audioDownload.downloadAudio(url, token, function (err: any, localPath: string) {
-			if (err) {
-				self.setState({ error: err });
+		audioDownload.downloadAudio(url, token, function (err: string | null, localPath: string | null) {
+			if (err || !localPath) {
+				self.setState({ error: err || "Download failed" });
 				return;
 			}
 			self._tempFile = localPath;
@@ -85,7 +85,7 @@ export default class AudioPlayer extends Component<AudioPlayerProps, AudioPlayer
 
 	playSoundFromUrl(url: string, SoundClass: NativeSoundConstructor): void {
 		const self = this;
-		this.sound = new SoundClass(url, null, function (err: any) {
+		this.sound = new SoundClass(url, null, function (err: Error | null) {
 			if (err) {
 				self.setState({ error: "Failed to load audio" });
 				return;

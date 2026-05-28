@@ -1,4 +1,5 @@
 import { getColors } from "../../theme";
+import type { ThemeColors } from "../../theme";
 import { EMOJI_MAP, getTwemojiUrl, replaceEmojisInText } from "../../utils/emoji";
 import {
 	parseFormatting,
@@ -58,7 +59,7 @@ function openUrl(url: string): void {
 function renderPart(
 	part: TextPart,
 	key: number | string,
-	c: any,
+	c: ThemeColors,
 	emojiOnly?: boolean
 ): React.ReactNode {
 	if (part.type === "link") {

@@ -11,6 +11,7 @@ import {
 	SettingsScreen,
 	ThreadScreen
 } from "./screens";
+import type { SearchMatch } from "./screens/types";
 import {
 	getResetState,
 	performAuth,
@@ -40,6 +41,7 @@ import type { RTMEvent } from "./types";
 import type { AccountEntry, SlackChannel, SlackMessage } from "./types";
 import type { AppProps as Props, AppState as State } from "./types";
 import { clearToken } from "./utils";
+import { errorMessage } from "./utils/error";
 import React, { Component } from "react";
 import { ActivityIndicator, StatusBar, View } from "react-native";
 
@@ -176,9 +178,9 @@ export default class App extends Component<Props, State> {
 		let auth;
 		try {
 			auth = await performAuth(slack, token);
-		} catch (err: any) {
+		} catch (err: unknown) {
 			this.setState({ initializing: false });
-			throw new Error(err.message || "Authentication failed");
+			throw new Error(errorMessage(err, "Authentication failed"));
 		}
 
 		const accounts = upsertAccount(this.state.accounts, auth, token);
@@ -251,8 +253,8 @@ export default class App extends Component<Props, State> {
 			if (updated !== this.state.accounts) {
 				this.setState({ accounts: updated });
 			}
-		} catch (err: any) {
-			console.warn("loadTeamInfo error:", err.message);
+		} catch (err: unknown) {
+			console.warn("loadTeamInfo error:", errorMessage(err, "unknown"));
 		}
 	}
 
@@ -277,11 +279,12 @@ export default class App extends Component<Props, State> {
 			if (result.changed) {
 				this.setState({ channels: result.channels, channelsLoading: false });
 			}
-		} catch (err: any) {
-			if (err.message === "ratelimited") {
+		} catch (err: unknown) {
+			const msg = errorMessage(err, "unknown");
+			if (msg === "ratelimited") {
 				console.warn("loadChannels rate limited, backing off");
 			} else {
-				console.warn("loadChannels error: " + err.message);
+				console.warn("loadChannels error: " + msg);
 			}
 			this.setState({ channelsLoading: false });
 		}
@@ -548,7 +551,7 @@ export default class App extends Component<Props, State> {
 						onBack={function () {
 							self.goBack();
 						}}
-						onSelectMessage={function (msg: any) {
+						onSelectMessage={function (msg: SearchMatch) {
 							if (msg.channel && msg.channel.id) {
 								const ch = channels.find(function (c: SlackChannel) {
 									return c.id === msg.channel.id;

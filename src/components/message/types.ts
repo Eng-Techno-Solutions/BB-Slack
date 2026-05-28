@@ -139,6 +139,17 @@ export interface MousePosition {
 	y: number;
 }
 
+export interface WheelLikeEvent {
+	deltaY: number;
+	preventDefault: () => void;
+}
+
+export interface MouseLikeEvent {
+	clientX: number;
+	clientY: number;
+	preventDefault: () => void;
+}
+
 export interface WindowDimensions {
 	width: number;
 	height: number;
@@ -173,7 +184,7 @@ export interface NativeSoundInstance {
 }
 
 export interface NativeSoundConstructor {
-	new (url: string, basePath: string | null, cb: (err: any) => void): NativeSoundInstance;
+	new (url: string, basePath: string | null, cb: (err: Error | null) => void): NativeSoundInstance;
 }
 
 export interface AudioPlayerProps {

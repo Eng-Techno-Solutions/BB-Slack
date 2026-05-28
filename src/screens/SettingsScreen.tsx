@@ -201,7 +201,7 @@ export default class SettingsScreen extends Component<Props, State> {
 	renderSelectList(
 		options: Array<{ label: string; value: string | number }>,
 		selectedValue: string | number,
-		onSelect: (value: any) => void
+		onSelect: (value: string | number) => void
 	): React.ReactElement[] {
 		const c = getColors();
 		const self = this;

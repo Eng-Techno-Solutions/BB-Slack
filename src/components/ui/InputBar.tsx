@@ -28,7 +28,7 @@ interface InputBarProps {
 	onCancelEdit?: () => void;
 	placeholder?: string;
 	autoFocus?: boolean;
-	inputRef?: (r: any) => void;
+	inputRef?: (r: TextInput | null) => void;
 }
 
 export default class InputBar extends Component<InputBarProps> {

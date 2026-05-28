@@ -1,15 +1,22 @@
-import { request } from "../api/http";
 import { Icon } from "../components";
+import {
+	findTeam,
+	isMfaRequired,
+	mapPinError,
+	mapSigninError,
+	signin
+} from "../services/authService";
 import { getColors } from "../theme";
 import type { KeyEvent, KeySub } from "../types";
+import { API } from "../utils/constants";
+import { errorMessage } from "../utils/error";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
 import { styles } from "./LoginScreen.styles";
-import type { FieldName, LoginProps as Props, SigninResponse, LoginState as State } from "./types";
+import type { FieldName, FocusableRef, LoginProps as Props, LoginState as State } from "./types";
 import React, { Component } from "react";
 import {
 	ActivityIndicator,
 	Linking,
-	Platform,
 	ScrollView,
 	Text,
 	TextInput,
@@ -18,11 +25,9 @@ import {
 } from "react-native";
 import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 
-const SLACK_API: string = Platform.OS === "web" ? "/slack-api/" : "https://slack.com/api/";
-
 export default class LoginScreen extends Component<Props, State> {
 	_keySub: KeySub | null;
-	_inputRefs: Record<string, any>;
+	_inputRefs: Record<string, FocusableRef | null>;
 	_scrollView: ScrollView | null;
 	_scrollY: number;
 
@@ -98,7 +103,7 @@ export default class LoginScreen extends Component<Props, State> {
 
 	_scrollToField(field: FieldName): void {
 		const ref = this._inputRefs[field];
-		if (!ref || !this._scrollView) return;
+		if (!ref || !ref.measure || !this._scrollView) return;
 		const sv = this._scrollView;
 		const scrollY = this._scrollY;
 		ref.measure(function (fx: number, fy: number, w: number, h: number, px: number, py: number) {
@@ -118,54 +123,26 @@ export default class LoginScreen extends Component<Props, State> {
 		} else if (field === "verify") this.handlePinSubmit();
 		else if (field === "pinBack")
 			this.setState({ needsPin: false, pin: "", error: null, focusIndex: -1 });
-		else if (field === "openApps") Linking.openURL("https://api.slack.com/apps");
+		else if (field === "openApps") Linking.openURL(API.SLACK_APPS_PAGE);
 	}
 
 	async handleEmailLogin(): Promise<void> {
-		let { workspace, email, password } = this.state;
-		workspace = workspace
-			.trim()
-			.toLowerCase()
-			.replace(/\.slack\.com$/, "");
-		email = email.trim();
-		if (!workspace || !email || !password) return;
+		const { workspace, email, password } = this.state;
+		const trimmedEmail = email.trim();
+		if (!workspace.trim() || !trimmedEmail || !password) return;
 
 		this.setState({ loading: true, error: null });
 		try {
-			const headers: Record<string, string> = { "Content-Type": "application/x-www-form-urlencoded" };
-
-			const findBody = "domain=" + encodeURIComponent(workspace);
-			const findRes = await request("POST", SLACK_API + "auth.findTeam", headers, findBody);
-			const findData = JSON.parse(findRes.body);
-
-			if (!findData.ok) {
-				throw new Error('Workspace "' + workspace + '" not found. Check the workspace name.');
-			}
-
-			const teamId: string = findData.team_id;
-
-			const signinData = await this._callSignin(headers, teamId, email, password, "");
+			const teamId = await findTeam(workspace);
+			const signinData = await signin({ teamId, email: trimmedEmail, password, pin: "" });
 
 			if (!signinData.ok) {
 				const errCode = signinData.error || "Login failed";
-				if (
-					errCode === "missing_pin_app_sms" ||
-					errCode === "missing_pin" ||
-					errCode === "two_factor_setup_required" ||
-					errCode === "two_factor_required"
-				) {
+				if (isMfaRequired(errCode)) {
 					this.setState({ loading: false, needsPin: true, _teamId: teamId, error: null });
 					return;
 				}
-				let errMsg = errCode;
-				if (errMsg === "invalid_auth" || errMsg === "invalid_password") {
-					errMsg = "Invalid email or password.";
-				} else if (errMsg === "ratelimited") {
-					errMsg = "Too many attempts. Please wait and try again.";
-				} else if (errMsg === "team_login_method_not_supported" || errMsg === "sso_required") {
-					errMsg = "This workspace requires SSO login. Please use the Token method instead.";
-				}
-				throw new Error(errMsg);
+				throw new Error(mapSigninError(errCode));
 			}
 
 			const token = signinData.token;
@@ -174,50 +151,27 @@ export default class LoginScreen extends Component<Props, State> {
 			}
 
 			await this.props.onLogin(token);
-		} catch (err: any) {
-			this.setState({ loading: false, error: err.message || "Login failed" });
+		} catch (err: unknown) {
+			this.setState({ loading: false, error: errorMessage(err, "Login failed") });
 		}
-	}
-
-	async _callSignin(
-		headers: Record<string, string>,
-		teamId: string,
-		email: string,
-		password: string,
-		pin: string
-	): Promise<SigninResponse> {
-		let signinBody =
-			"team=" +
-			encodeURIComponent(teamId) +
-			"&email=" +
-			encodeURIComponent(email) +
-			"&password=" +
-			encodeURIComponent(password);
-		if (pin) {
-			signinBody += "&pin=" + encodeURIComponent(pin);
-		}
-		const signinRes = await request("POST", SLACK_API + "auth.signin", headers, signinBody);
-		return JSON.parse(signinRes.body);
 	}
 
 	async handlePinSubmit(): Promise<void> {
-		let { pin, _teamId, email, password } = this.state;
-		pin = pin.trim();
-		if (!pin || !_teamId) return;
+		const { pin, _teamId, email, password } = this.state;
+		const trimmedPin = pin.trim();
+		if (!trimmedPin || !_teamId) return;
 
 		this.setState({ loading: true, error: null });
 		try {
-			const headers: Record<string, string> = { "Content-Type": "application/x-www-form-urlencoded" };
-			const data = await this._callSignin(headers, _teamId, email.trim(), password, pin);
+			const data = await signin({
+				teamId: _teamId,
+				email: email.trim(),
+				password,
+				pin: trimmedPin
+			});
 
 			if (!data.ok) {
-				let errMsg = data.error || "Verification failed";
-				if (errMsg === "invalid_pin" || errMsg === "missing_pin_app_sms" || errMsg === "missing_pin") {
-					errMsg = "Invalid code. Please try again.";
-				} else if (errMsg === "ratelimited") {
-					errMsg = "Too many attempts. Please wait and try again.";
-				}
-				throw new Error(errMsg);
+				throw new Error(mapPinError(data.error || "Verification failed"));
 			}
 
 			const token = data.token;
@@ -226,8 +180,8 @@ export default class LoginScreen extends Component<Props, State> {
 			}
 
 			await this.props.onLogin(token);
-		} catch (err: any) {
-			this.setState({ loading: false, error: err.message || "Verification failed" });
+		} catch (err: unknown) {
+			this.setState({ loading: false, error: errorMessage(err, "Verification failed") });
 		}
 	}
 
@@ -238,13 +192,13 @@ export default class LoginScreen extends Component<Props, State> {
 		this.setState({ loading: true, error: null });
 		try {
 			await this.props.onLogin(token);
-		} catch (err: any) {
-			this.setState({ loading: false, error: err.message || "Invalid token" });
+		} catch (err: unknown) {
+			this.setState({ loading: false, error: errorMessage(err, "Invalid token") });
 		}
 	}
 
 	openTokenPage(): void {
-		Linking.openURL("https://api.slack.com/apps");
+		Linking.openURL(API.SLACK_APPS_PAGE);
 	}
 
 	render(): React.ReactElement {
@@ -289,7 +243,7 @@ export default class LoginScreen extends Component<Props, State> {
 				{!needsPin ? (
 					<View style={styles.tabs}>
 						<TouchableHighlight
-							ref={function (r: any) {
+							ref={function (r: FocusableRef | null) {
 								self._inputRefs.emailTab = r;
 							}}
 							style={[
@@ -313,7 +267,7 @@ export default class LoginScreen extends Component<Props, State> {
 							</Text>
 						</TouchableHighlight>
 						<TouchableHighlight
-							ref={function (r: any) {
+							ref={function (r: FocusableRef | null) {
 								self._inputRefs.tokenTab = r;
 							}}
 							style={[
@@ -345,7 +299,7 @@ export default class LoginScreen extends Component<Props, State> {
 						<Text style={[styles.label, { color: c.textSecondary }]}>Workspace</Text>
 						<View style={styles.workspaceRow}>
 							<TextInput
-								ref={function (r: any) {
+								ref={function (r: FocusableRef | null) {
 									self._inputRefs.workspace = r;
 								}}
 								style={[
@@ -373,7 +327,7 @@ export default class LoginScreen extends Component<Props, State> {
 
 						<Text style={[styles.label, { color: c.textSecondary }]}>Email</Text>
 						<TextInput
-							ref={function (r: any) {
+							ref={function (r: FocusableRef | null) {
 								self._inputRefs.email = r;
 							}}
 							style={[
@@ -399,7 +353,7 @@ export default class LoginScreen extends Component<Props, State> {
 
 						<Text style={[styles.label, { color: c.textSecondary }]}>Password</Text>
 						<TextInput
-							ref={function (r: any) {
+							ref={function (r: FocusableRef | null) {
 								self._inputRefs.password = r;
 							}}
 							style={[
@@ -425,7 +379,7 @@ export default class LoginScreen extends Component<Props, State> {
 						/>
 
 						<TouchableHighlight
-							ref={function (r: any) {
+							ref={function (r: FocusableRef | null) {
 								self._inputRefs.signin = r;
 							}}
 							style={[
@@ -465,7 +419,7 @@ export default class LoginScreen extends Component<Props, State> {
 							Enter the 6-digit code from your authenticator app or SMS.
 						</Text>
 						<TextInput
-							ref={function (r: any) {
+							ref={function (r: FocusableRef | null) {
 								self._inputRefs.pin = r;
 							}}
 							style={[
@@ -495,7 +449,7 @@ export default class LoginScreen extends Component<Props, State> {
 						/>
 
 						<TouchableHighlight
-							ref={function (r: any) {
+							ref={function (r: FocusableRef | null) {
 								self._inputRefs.verify = r;
 							}}
 							style={[
@@ -521,7 +475,7 @@ export default class LoginScreen extends Component<Props, State> {
 						</TouchableHighlight>
 
 						<TouchableHighlight
-							ref={function (r: any) {
+							ref={function (r: FocusableRef | null) {
 								self._inputRefs.pinBack = r;
 							}}
 							style={[
@@ -544,7 +498,7 @@ export default class LoginScreen extends Component<Props, State> {
 					<View style={styles.form}>
 						<Text style={[styles.label, { color: c.textSecondary }]}>Slack Token</Text>
 						<TextInput
-							ref={function (r: any) {
+							ref={function (r: FocusableRef | null) {
 								self._inputRefs.token = r;
 							}}
 							style={[
@@ -571,7 +525,7 @@ export default class LoginScreen extends Component<Props, State> {
 						/>
 
 						<TouchableHighlight
-							ref={function (r: any) {
+							ref={function (r: FocusableRef | null) {
 								if (self.state.mode === "token") self._inputRefs.signin = r;
 							}}
 							style={[
@@ -619,7 +573,7 @@ export default class LoginScreen extends Component<Props, State> {
 							</Text>
 
 							<TouchableHighlight
-								ref={function (r: any) {
+								ref={function (r: FocusableRef | null) {
 									self._inputRefs.openApps = r;
 								}}
 								style={[

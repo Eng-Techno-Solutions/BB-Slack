@@ -2,10 +2,11 @@ import type { TextStyle, ViewStyle } from "react-native";
 
 // Login screen types
 
-export interface SigninResponse {
-	ok: boolean;
-	token?: string;
-	error?: string;
+export interface FocusableRef {
+	focus?: () => void;
+	measure?: (
+		callback: (fx: number, fy: number, w: number, h: number, px: number, py: number) => void
+	) => void;
 }
 
 export type FieldName =

@@ -67,6 +67,8 @@ export { default as audioDownload } from "./audioDownload";
 
 export { STORAGE_KEYS, TIMING, SCREENS, API } from "./constants";
 
+export { errorMessage } from "./error";
+
 export type {
 	AsyncStorageInterface,
 	NotificationModuleInterface,

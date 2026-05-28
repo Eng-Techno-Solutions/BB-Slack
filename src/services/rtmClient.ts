@@ -1,6 +1,7 @@
 import type { ISlackAPI } from "../api/types";
 import type { RTMEvent, RTMEventCallback } from "../types";
 import { TIMING } from "../utils/constants";
+import { errorMessage } from "../utils/error";
 
 export default class RTMClient {
 	_slack: ISlackAPI | null;
@@ -66,8 +67,8 @@ export default class RTMClient {
 			const url = res.url as string;
 			if (!url) throw new Error("No RTM URL returned");
 			this._setupWebSocket(url);
-		} catch (err: any) {
-			console.warn("RTM connect failed:", err.message);
+		} catch (err: unknown) {
+			console.warn("RTM connect failed:", errorMessage(err, "unknown"));
 			this._scheduleReconnect();
 		}
 	}

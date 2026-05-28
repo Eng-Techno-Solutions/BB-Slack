@@ -1,7 +1,14 @@
 import { getColors } from "../../theme";
 import Icon from "../ui/Icon";
 import { styles } from "./ImageViewer.styles";
-import type { ImageViewerProps, ImageViewerState, MousePosition, WindowDimensions } from "./types";
+import type {
+	ImageViewerProps,
+	ImageViewerState,
+	MouseLikeEvent,
+	MousePosition,
+	WheelLikeEvent,
+	WindowDimensions
+} from "./types";
 import React, { Component } from "react";
 import {
 	ActivityIndicator,
@@ -66,7 +73,7 @@ export default class ImageViewer extends Component<ImageViewerProps, ImageViewer
 		}
 	}
 
-	handleWheel(e: any): void {
+	handleWheel(e: WheelLikeEvent): void {
 		e.preventDefault();
 		this.setState(function (prev: ImageViewerState) {
 			const delta = e.deltaY > 0 ? -0.15 : 0.15;
@@ -78,14 +85,14 @@ export default class ImageViewer extends Component<ImageViewerProps, ImageViewer
 		});
 	}
 
-	handleMouseDown(e: any): void {
+	handleMouseDown(e: MouseLikeEvent): void {
 		if (this.state.scale <= 1) return;
 		e.preventDefault();
 		this.lastMouse = { x: e.clientX, y: e.clientY };
 		this.setState({ dragging: true });
 	}
 
-	handleMouseMove(e: any): void {
+	handleMouseMove(e: MouseLikeEvent): void {
 		if (!this.state.dragging) return;
 		const dx = e.clientX - this.lastMouse.x;
 		const dy = e.clientY - this.lastMouse.y;
@@ -129,13 +136,13 @@ export default class ImageViewer extends Component<ImageViewerProps, ImageViewer
 						} as any
 					}
 					{...({
-						onWheel: function (e: any) {
+						onWheel: function (e: { nativeEvent?: WheelLikeEvent } & WheelLikeEvent) {
 							self.handleWheel(e.nativeEvent || e);
 						},
-						onMouseDown: function (e: any) {
+						onMouseDown: function (e: { nativeEvent?: MouseLikeEvent } & MouseLikeEvent) {
 							self.handleMouseDown(e.nativeEvent || e);
 						},
-						onMouseMove: function (e: any) {
+						onMouseMove: function (e: { nativeEvent?: MouseLikeEvent } & MouseLikeEvent) {
 							self.handleMouseMove(e.nativeEvent || e);
 						},
 						onMouseUp: function () {
@@ -206,7 +213,7 @@ export default class ImageViewer extends Component<ImageViewerProps, ImageViewer
 		);
 	}
 
-	_getDistance(touches: any[]): number {
+	_getDistance(touches: Array<{ pageX: number; pageY: number }>): number {
 		const dx = touches[0].pageX - touches[1].pageX;
 		const dy = touches[0].pageY - touches[1].pageY;
 		return Math.sqrt(dx * dx + dy * dy);

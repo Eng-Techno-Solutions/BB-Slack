@@ -10,6 +10,12 @@ import {
 	SettingsScreen,
 	ThreadScreen
 } from "./src/screens";
+import type { SearchMatch } from "./src/screens/types";
+import {
+	startBackgroundNotifications,
+	stopBackgroundNotifications,
+	syncAccountsToNative
+} from "./src/services/nativeNotification";
 import {
 	getActiveChannelId,
 	popScreen,
@@ -26,7 +32,7 @@ import {
 import { getMode, setFontSizeKey, setMode } from "./src/theme";
 import type { FontSizeKey } from "./src/theme";
 import type { RTMEvent } from "./src/types";
-import type { AccountEntry, SlackChannel, SlackMessage } from "./src/types";
+import type { AccountEntry, SlackChannel, SlackMessage, SlackResponse } from "./src/types";
 import type { AppProps as Props, AppState as State, AppStyles as Styles } from "./src/types";
 import {
 	clearToken,
@@ -48,11 +54,7 @@ import {
 	saveToken,
 	setNotificationMuted
 } from "./src/utils";
-import {
-	startBackgroundNotifications,
-	stopBackgroundNotifications,
-	syncAccountsToNative
-} from "./src/services/nativeNotification";
+import { errorMessage } from "./src/utils/error";
 import React, { Component } from "react";
 import {
 	ActivityIndicator,
@@ -165,15 +167,16 @@ export default class App extends Component<Props, State> {
 
 	async doLogin(token: string): Promise<void> {
 		const slack = new SlackAPI(token);
-		let auth: any;
+		let auth: SlackResponse;
 		try {
 			auth = await slack.authTest();
-		} catch (err: any) {
+		} catch (err: unknown) {
 			this.setState({ initializing: false });
-			throw new Error(err.message || "Authentication failed");
+			throw new Error(errorMessage(err, "Authentication failed"));
 		}
 
-		if (!auth || !auth.user_id) {
+		const userId = auth && typeof auth.user_id === "string" ? auth.user_id : "";
+		if (!userId) {
 			this.setState({ initializing: false });
 			throw new Error("Invalid authentication response");
 		}
@@ -184,17 +187,21 @@ export default class App extends Component<Props, State> {
 			// Token save failed but login can continue
 		}
 
+		const teamName = typeof auth.team === "string" ? auth.team : "";
+		const teamId = typeof auth.team_id === "string" ? auth.team_id : "";
+		const userName = typeof auth.user === "string" ? auth.user : "";
+
 		const _self = this;
 		const accounts = this.state.accounts.slice();
 		const existingIdx = accounts.findIndex(function (a: AccountEntry) {
-			return a.userId === auth.user_id;
+			return a.userId === userId;
 		});
 		const accountEntry: AccountEntry = {
 			token: token,
-			teamName: auth.team || "",
-			teamId: auth.team_id || "",
-			userId: auth.user_id,
-			userName: auth.user || "",
+			teamName: teamName,
+			teamId: teamId,
+			userId: userId,
+			userName: userName,
 			teamIcon: ""
 		};
 		if (existingIdx >= 0) {
@@ -205,13 +212,13 @@ export default class App extends Component<Props, State> {
 
 		try {
 			await saveAccounts(accounts);
-			await saveActiveAccountId(auth.user_id);
+			await saveActiveAccountId(userId);
 		} catch (err) {}
 
 		this.setState({
 			slack: slack,
-			currentUser: auth.user_id,
-			teamName: auth.team || "",
+			currentUser: userId,
+			teamName: teamName,
 			stack: [{ screen: "channelList", params: {} }],
 			initializing: false,
 			accounts: accounts
@@ -237,8 +244,8 @@ export default class App extends Component<Props, State> {
 			if (updated !== this.state.accounts) {
 				this.setState({ accounts: updated });
 			}
-		} catch (err: any) {
-			console.warn("loadTeamInfo error:", err.message);
+		} catch (err: unknown) {
+			console.warn("loadTeamInfo error:", errorMessage(err, "unknown"));
 		}
 	}
 
@@ -265,8 +272,8 @@ export default class App extends Component<Props, State> {
 			} else if (isFirstLoad) {
 				this.setState({ channelsLoading: false });
 			}
-		} catch (err: any) {
-			if (err.message === "ratelimited") {
+		} catch (err: unknown) {
+			if (errorMessage(err, "") === "ratelimited") {
 				console.warn("loadChannels rate limited, backing off");
 			}
 			this.setState({ channelsLoading: false });
@@ -660,7 +667,7 @@ export default class App extends Component<Props, State> {
 						onBack={function () {
 							self.goBack();
 						}}
-						onSelectMessage={function (msg: any) {
+						onSelectMessage={function (msg: SearchMatch) {
 							if (msg.channel && msg.channel.id) {
 								const ch = channels.find(function (c: SlackChannel) {
 									return c.id === msg.channel.id;

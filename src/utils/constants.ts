@@ -18,8 +18,13 @@ export const TIMING = {
 	RTM_PONG_TIMEOUT: 10000,
 	RTM_MAX_BACKOFF: 30000,
 	RTM_POLL_FALLBACK: 300000,
-	CHAT_POLL_RTM_FALLBACK: 60000
+	CHAT_POLL_RTM_FALLBACK: 60000,
+	CHAT_POLL_NO_RTM: 10000
 } as const;
+
+export function getChatPollInterval(rtmConnected: boolean): number {
+	return rtmConnected ? TIMING.CHAT_POLL_RTM_FALLBACK : TIMING.CHAT_POLL_NO_RTM;
+}
 
 export const SCREENS = {
 	LOGIN: "login",
@@ -35,5 +40,6 @@ export const SCREENS = {
 export const API = {
 	SLACK_WEB: "https://slack.com/api/",
 	SLACK_PROXY: "/slack-api/",
-	SLACK_FILE_PROXY: "/slack-file"
+	SLACK_FILE_PROXY: "/slack-file",
+	SLACK_APPS_PAGE: "https://api.slack.com/apps"
 } as const;
