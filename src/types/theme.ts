@@ -5,7 +5,7 @@ export interface ThemeColors {
 	bgHeader: string;
 	bgSplash: string;
 	statusBar: string;
-	statusBarStyle: string;
+	statusBarStyle: "default" | "light-content" | "dark-content";
 	headerText: string;
 	headerIcon: string;
 	headerBorder: string;

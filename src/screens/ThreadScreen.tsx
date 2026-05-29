@@ -9,6 +9,7 @@ import { errorMessage } from "../utils/error";
 import { pickFile } from "../utils/filePicker";
 import { getUserName } from "../utils/format";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
+import { safeScrollToIndex } from "../utils/listScroll";
 import { playNotification } from "../utils/notificationSound";
 import { styles } from "./ThreadScreen.styles";
 import type { ThreadProps as Props, ThreadState as State } from "./types";
@@ -113,18 +114,12 @@ export default class ThreadScreen extends Component<Props, State> {
 			if (replies.length === 0) return;
 			const next = idx < 0 ? 0 : Math.min(idx + 1, replies.length - 1);
 			this.setState({ focusIndex: next });
-			if (this._list)
-				try {
-					this._list.scrollToIndex({ index: next, viewOffset: 80, animated: true });
-				} catch (_e) {}
+			safeScrollToIndex(this._list, next);
 		} else if (action === "up") {
 			if (replies.length === 0) return;
 			const prev = idx <= 0 ? 0 : idx - 1;
 			this.setState({ focusIndex: prev });
-			if (this._list)
-				try {
-					this._list.scrollToIndex({ index: prev, viewOffset: 80, animated: true });
-				} catch (_e) {}
+			safeScrollToIndex(this._list, prev);
 		} else if (action === "select" && idx >= 0 && idx < replies.length) {
 			this.setState({ reactionTarget: replies[idx], emojiPickerMode: "reaction" });
 		} else if (action === "back") {

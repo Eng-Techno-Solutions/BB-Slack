@@ -6,9 +6,28 @@ import com.facebook.react.ReactInstanceManager;
 import com.facebook.react.bridge.ReactContext;
 
 public class MainActivity extends ReactActivity {
+
+    private static volatile boolean sIsForeground = false;
+
+    public static boolean isForeground() {
+        return sIsForeground;
+    }
+
     @Override
     protected String getMainComponentName() {
         return "BBSlack";
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        sIsForeground = true;
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        sIsForeground = false;
     }
 
     @Override

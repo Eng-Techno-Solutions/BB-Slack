@@ -45,6 +45,12 @@ public class NotificationPollService extends IntentService {
 
         if (accounts.length() == 0) return;
 
+        // While the app is in the foreground, the in-app JS poller and RTM
+        // socket already deliver updates. Skip notifications to avoid duplicates,
+        // but still refresh the baseline so the first post-background tick has
+        // an accurate diff.
+        boolean foreground = MainActivity.isForeground();
+
         JSONObject newUnreads = new JSONObject();
         int notifIndex = 0;
 
@@ -84,7 +90,7 @@ public class NotificationPollService extends IntentService {
                         // ignore
                     }
 
-                    if (unreadCount > prevCount) {
+                    if (!foreground && unreadCount > prevCount) {
                         int newMessages = unreadCount - prevCount;
                         String title;
                         String body;

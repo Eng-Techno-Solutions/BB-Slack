@@ -28,8 +28,7 @@
     "App.ts",
     "App.tsx",
     "server/**/*.ts",
-    "index.ts",
-    "index.android.ts"
+    "index.ts"
   ],
   "exclude": [
     "node_modules",

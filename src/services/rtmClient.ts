@@ -1,7 +1,7 @@
 import type { ISlackAPI } from "../api/types";
 import type { RTMEvent, RTMEventCallback } from "../types";
 import { TIMING } from "../utils/constants";
-import { errorMessage } from "../utils/error";
+import { logger } from "../utils/logger";
 
 export default class RTMClient {
 	_slack: ISlackAPI | null;
@@ -68,7 +68,7 @@ export default class RTMClient {
 			if (!url) throw new Error("No RTM URL returned");
 			this._setupWebSocket(url);
 		} catch (err: unknown) {
-			console.warn("RTM connect failed:", errorMessage(err, "unknown"));
+			logger.warn("rtmClient.connect", "RTM connect failed", err);
 			this._scheduleReconnect();
 		}
 	}
@@ -159,11 +159,12 @@ export default class RTMClient {
 		var self = this;
 		try {
 			this._ws.send(JSON.stringify({ id: this._messageId, type: "ping" }));
-		} catch (_e) {
+		} catch (err: unknown) {
+			logger.warn("rtmClient.ping", "send failed", err);
 			return;
 		}
 		this._pongTimer = setTimeout(function () {
-			console.warn("RTM pong timeout, reconnecting");
+			logger.warn("rtmClient.ping", "pong timeout, reconnecting");
 			self._ws && self._ws.close();
 		}, TIMING.RTM_PONG_TIMEOUT);
 	}

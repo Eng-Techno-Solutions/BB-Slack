@@ -29,22 +29,37 @@ public class NotificationModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void setAccounts(String accountsJson) {
+        Context context = getReactApplicationContext();
         getPrefs().edit()
             .putString(KEY_ACCOUNTS, accountsJson)
             .apply();
+        // Keep the alarm lifetime tied to having at least one account.
+        // Auto-arming here means a fresh login covers the swipe-kill case
+        // (where AppState=background is never delivered before the process dies).
+        if (accountsJson == null || accountsJson.equals("[]")) {
+            cancelAlarm(context);
+        } else {
+            scheduleAlarm(context);
+        }
     }
 
     @ReactMethod
     public void startBackgroundPolling() {
-        Context context = getReactApplicationContext();
+        scheduleAlarm(getReactApplicationContext());
+    }
+
+    @ReactMethod
+    public void stopBackgroundPolling() {
+        cancelAlarm(getReactApplicationContext());
+    }
+
+    static void scheduleAlarm(Context context) {
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         if (alarmManager == null) return;
-
         Intent intent = new Intent(context, NotificationAlarmReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
             context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT
         );
-
         alarmManager.setRepeating(
             AlarmManager.ELAPSED_REALTIME_WAKEUP,
             SystemClock.elapsedRealtime() + POLL_INTERVAL,
@@ -53,17 +68,13 @@ public class NotificationModule extends ReactContextBaseJavaModule {
         );
     }
 
-    @ReactMethod
-    public void stopBackgroundPolling() {
-        Context context = getReactApplicationContext();
+    static void cancelAlarm(Context context) {
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         if (alarmManager == null) return;
-
         Intent intent = new Intent(context, NotificationAlarmReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
             context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT
         );
-
         alarmManager.cancel(pendingIntent);
     }
 

@@ -3,6 +3,7 @@ import { getColors } from "../theme";
 import type { KeyEvent, KeySub } from "../types";
 import { formatDateFull, getUserName } from "../utils/format";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
+import { safeScrollToIndex } from "../utils/listScroll";
 import { styles } from "./SearchScreen.styles";
 import type { SearchProps as Props, SearchMatch, SearchState as State } from "./types";
 import React, { Component } from "react";
@@ -74,18 +75,12 @@ export default class SearchScreen extends Component<Props, State> {
 			if (results.length === 0) return;
 			const next = idx < 0 ? 0 : Math.min(idx + 1, results.length - 1);
 			this.setState({ focusIndex: next });
-			if (this._list)
-				try {
-					this._list.scrollToIndex({ index: next, viewOffset: 80, animated: true });
-				} catch (_e) {}
+			safeScrollToIndex(this._list, next);
 		} else if (action === "up") {
 			if (results.length === 0) return;
 			const prev = idx <= 0 ? 0 : idx - 1;
 			this.setState({ focusIndex: prev });
-			if (this._list)
-				try {
-					this._list.scrollToIndex({ index: prev, viewOffset: 80, animated: true });
-				} catch (_e) {}
+			safeScrollToIndex(this._list, prev);
 		} else if (action === "select" && idx >= 0 && idx < results.length) {
 			this.props.onSelectMessage && this.props.onSelectMessage(results[idx]);
 		} else if (action === "back") {

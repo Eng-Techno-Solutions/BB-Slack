@@ -19,6 +19,7 @@ import { errorMessage } from "../utils/error";
 import { pickFile } from "../utils/filePicker";
 import { getChannelDisplayName } from "../utils/format";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
+import { safeScrollToIndex } from "../utils/listScroll";
 import { playNotification } from "../utils/notificationSound";
 import { styles } from "./ChatScreen.styles";
 import type {
@@ -155,18 +156,12 @@ export default class ChatScreen extends Component<Props, State> {
 			if (msgs.length === 0) return;
 			const next = idx <= 0 ? 0 : idx - 1;
 			this.setState({ focusIndex: next });
-			if (this._list)
-				try {
-					this._list.scrollToIndex({ index: next, viewOffset: 80, animated: true });
-				} catch (_e) {}
+			safeScrollToIndex(this._list, next);
 		} else if (action === "up") {
 			if (msgs.length === 0) return;
 			const prev = idx < 0 ? 0 : Math.min(idx + 1, msgs.length - 1);
 			this.setState({ focusIndex: prev });
-			if (this._list)
-				try {
-					this._list.scrollToIndex({ index: prev, viewOffset: 80, animated: true });
-				} catch (_e) {}
+			safeScrollToIndex(this._list, prev);
 		} else if (action === "select" && idx >= 0 && idx < msgs.length) {
 			this.onMessageLongPress(msgs[idx]);
 		} else if (action === "back") {

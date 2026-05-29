@@ -1,5 +1,6 @@
 import { getColors } from "../../theme";
 import audioDownload from "../../utils/audioDownload";
+import { logger } from "../../utils/logger";
 import Icon from "../ui/Icon";
 import { styles } from "./AudioPlayer.styles";
 import type {
@@ -184,7 +185,7 @@ export default class AudioPlayer extends Component<AudioPlayerProps, AudioPlayer
 					autoPlay
 					style={{ width: "100%", height: 48 }}
 					onError={function () {
-						console.warn("Audio load error for:", source);
+						logger.warn("AudioPlayer", "audio load error for " + source);
 					}}>
 					<source
 						src={source}

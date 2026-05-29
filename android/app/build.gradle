@@ -1,7 +1,7 @@
 apply plugin: "com.android.application"
 
 project.ext.react = [
-    entryFile: "index.js"
+    entryFile: "index.ts"
 ]
 
 apply from: "../../node_modules/react-native/react.gradle"

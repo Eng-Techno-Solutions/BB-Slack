@@ -1,6 +1,7 @@
 import { styles } from "./App.styles";
 import { SlackAPI } from "./api";
 import type { ISlackAPI } from "./api/types";
+import { ErrorBoundary, ErrorView } from "./components";
 import {
 	ChannelInfoScreen,
 	ChannelListScreen,
@@ -21,6 +22,7 @@ import {
 	upsertAccount
 } from "./services/accountManager";
 import RTMClient from "./services/rtmClient";
+import { registerRTMHandlers } from "./services/rtmHandlers";
 import {
 	loadAllSettings,
 	loadThemeMode,
@@ -37,10 +39,9 @@ import {
 	updateAccountTeamIcon
 } from "./services/slackDataLoader";
 import { getColors } from "./theme";
-import type { RTMEvent } from "./types";
 import type { AccountEntry, SlackChannel, SlackMessage } from "./types";
 import type { AppProps as Props, AppState as State } from "./types";
-import { clearToken } from "./utils";
+import { clearToken, logger } from "./utils";
 import { errorMessage } from "./utils/error";
 import React, { Component } from "react";
 import { ActivityIndicator, StatusBar, View } from "react-native";
@@ -62,6 +63,7 @@ export default class App extends Component<Props, State> {
 			usersMap: {},
 			channels: [],
 			channelsLoading: false,
+			channelsError: null,
 			stack: [{ screen: "login", params: {} }],
 			themeMode: "dark",
 			notifInterval: 120000,
@@ -95,13 +97,17 @@ export default class App extends Component<Props, State> {
 			const mode = await loadThemeMode();
 			this.setState({ themeMode: mode });
 			this._applyThemeToDOM(mode);
-		} catch (_err) {}
+		} catch (err: unknown) {
+			logger.warn("App.initTheme", "failed to load theme, using default", err);
+		}
 	}
 
 	_applyThemeToDOM(mode: string): void {
 		try {
 			document.documentElement.setAttribute("data-theme", mode);
-		} catch (_e) {}
+		} catch (_err) {
+			// Non-web platforms have no `document`; intentional no-op.
+		}
 	}
 
 	_toggleTheme(): void {
@@ -121,7 +127,9 @@ export default class App extends Component<Props, State> {
 					self.startChannelPolling(self.state.slack);
 				}
 			});
-		} catch (_err) {}
+		} catch (err: unknown) {
+			logger.warn("App.initSettings", "failed to load settings, using defaults", err);
+		}
 	}
 
 	async _handleToggleNotif(): Promise<void> {
@@ -168,7 +176,8 @@ export default class App extends Component<Props, State> {
 			} else {
 				this.setState({ initializing: false });
 			}
-		} catch (_err) {
+		} catch (err: unknown) {
+			logger.warn("App.autoLogin", "auto-login failed, showing login screen", err);
 			this.setState({ initializing: false });
 		}
 	}
@@ -212,7 +221,8 @@ export default class App extends Component<Props, State> {
 			this.setState({ accounts: accounts });
 			try {
 				await this.switchAccount(accounts[0]);
-			} catch (_err) {
+			} catch (err: unknown) {
+				logger.warn("App.handleLogout", "switching to fallback account failed", err);
 				await clearToken();
 				this.setState(Object.assign({}, getResetState(), { accounts: accounts }));
 			}
@@ -254,7 +264,7 @@ export default class App extends Component<Props, State> {
 				this.setState({ accounts: updated });
 			}
 		} catch (err: unknown) {
-			console.warn("loadTeamInfo error:", errorMessage(err, "unknown"));
+			logger.warn("App.loadTeamInfo", "failed to fetch team icon", err);
 		}
 	}
 
@@ -262,7 +272,9 @@ export default class App extends Component<Props, State> {
 		try {
 			const usersMap = await fetchAllUsers(slack);
 			this.setState({ usersMap: usersMap });
-		} catch (_err) {}
+		} catch (err: unknown) {
+			logger.warn("App.loadUsers", "failed to load users directory", err);
+		}
 	}
 
 	async _loadChannels(slack: ISlackAPI): Promise<void> {
@@ -277,73 +289,54 @@ export default class App extends Component<Props, State> {
 				this._getActiveChannelId()
 			);
 			if (result.changed) {
-				this.setState({ channels: result.channels, channelsLoading: false });
+				this.setState({
+					channels: result.channels,
+					channelsLoading: false,
+					channelsError: null
+				});
+			} else if (this.state.channelsError) {
+				this.setState({ channelsError: null });
 			}
 		} catch (err: unknown) {
 			const msg = errorMessage(err, "unknown");
 			if (msg === "ratelimited") {
-				console.warn("loadChannels rate limited, backing off");
+				logger.warn("App.loadChannels", "rate limited, backing off");
 			} else {
-				console.warn("loadChannels error: " + msg);
+				logger.warn("App.loadChannels", "load failed", err);
 			}
-			this.setState({ channelsLoading: false });
+			this.setState({
+				channelsLoading: false,
+				channelsError: isFirstLoad ? msg : this.state.channelsError
+			});
 		}
 		this._loadingChannels = false;
 	}
+
+	_retryLoadChannels = (): void => {
+		if (!this.state.slack) return;
+		this.setState({ channelsError: null });
+		this._loadChannels(this.state.slack);
+	};
 
 	// ── RTM ───────────────────────────────────────────────
 
 	_connectRTM(slack: ISlackAPI): void {
 		if (this._rtm.isConnected()) return;
 		const self = this;
-
-		this._rtm.on("message", function (event: RTMEvent) {
-			const channelId = event.channel;
-			if (!channelId) return;
-			const handler = self._rtmChannelHandlers[channelId];
-			if (handler) {
-				handler();
-			} else {
-				if (event.user !== self.state.currentUser) {
-					self._loadChannels(slack);
-				}
+		registerRTMHandlers({
+			rtm: this._rtm,
+			handlers: this._rtmChannelHandlers,
+			currentUserId: function () {
+				return self.state.currentUser;
+			},
+			onChannelsChanged: function () {
+				self._loadChannels(slack);
+			},
+			onStatusChanged: function (connected: boolean) {
+				self.setState({ rtmConnected: connected });
+				self.startChannelPolling(slack);
 			}
 		});
-
-		this._rtm.on("reaction_added", function (event: RTMEvent) {
-			var item = event.item;
-			if (item && item.channel) {
-				var handler = self._rtmChannelHandlers[item.channel];
-				if (handler) handler();
-			}
-		});
-
-		this._rtm.on("reaction_removed", function (event: RTMEvent) {
-			var item = event.item;
-			if (item && item.channel) {
-				var handler = self._rtmChannelHandlers[item.channel];
-				if (handler) handler();
-			}
-		});
-
-		this._rtm.on("channel_marked", function () {
-			self._loadChannels(slack);
-		});
-
-		this._rtm.on("group_marked", function () {
-			self._loadChannels(slack);
-		});
-
-		this._rtm.on("im_marked", function () {
-			self._loadChannels(slack);
-		});
-
-		this._rtm.on("_status", function () {
-			var isConnected = self._rtm.isConnected();
-			self.setState({ rtmConnected: isConnected });
-			self.startChannelPolling(slack);
-		});
-
 		this._rtm.connect(slack);
 	}
 
@@ -447,6 +440,19 @@ export default class App extends Component<Props, State> {
 				);
 
 			case "channelList":
+				if (channels.length === 0 && this.state.channelsError && !channelsLoading) {
+					return (
+						<ErrorView
+							title="Couldn't load channels"
+							message={
+								this.state.channelsError === "ratelimited"
+									? "Slack rate-limited the request. Try again in a moment."
+									: "Check your connection and try again."
+							}
+							onRetry={this._retryLoadChannels}
+						/>
+					);
+				}
 				return (
 					<ChannelListScreen
 						themeMode={themeMode}
@@ -653,9 +659,9 @@ export default class App extends Component<Props, State> {
 			<View style={[styles.app, { backgroundColor: colors.bgSplash }]}>
 				<StatusBar
 					backgroundColor={colors.statusBar}
-					barStyle={colors.statusBarStyle as any}
+					barStyle={colors.statusBarStyle}
 				/>
-				{this.renderScreen()}
+				<ErrorBoundary scope="App.screen">{this.renderScreen()}</ErrorBoundary>
 			</View>
 		);
 	}

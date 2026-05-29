@@ -3,6 +3,7 @@ import { getColors, getMode } from "../theme";
 import type { KeyEvent, KeySub, SlackChannel } from "../types";
 import { getChannelDisplayName } from "../utils/format";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
+import { safeScrollToIndex } from "../utils/listScroll";
 import { styles } from "./ChannelListScreen.styles";
 import type {
 	ChannelListProps as Props,
@@ -132,10 +133,7 @@ export default class ChannelListScreen extends Component<Props, State> {
 				while (next < data.length && data[next]._sectionHeader) next++;
 				if (next < data.length) {
 					this.setState({ focusIndex: next });
-					if (this._list)
-						try {
-							this._list.scrollToIndex({ index: next, viewOffset: 80, animated: true });
-						} catch (_e) {}
+					safeScrollToIndex(this._list, next);
 				}
 			} else if (action === "up") {
 				if (data.length === 0) return;
@@ -143,10 +141,7 @@ export default class ChannelListScreen extends Component<Props, State> {
 				while (prev >= 0 && data[prev]._sectionHeader) prev--;
 				if (prev >= 0) {
 					this.setState({ focusIndex: prev });
-					if (this._list)
-						try {
-							this._list.scrollToIndex({ index: prev, viewOffset: 80, animated: true });
-						} catch (_e) {}
+					safeScrollToIndex(this._list, prev);
 				} else {
 					this.setState({ focusZone: "header", headerIndex: 5, focusIndex: -1 });
 				}

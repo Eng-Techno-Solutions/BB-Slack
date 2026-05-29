@@ -1,3 +1,4 @@
+import { logger } from "./logger";
 import type { WebRecordingResult } from "./types";
 
 let _mediaRecorder: MediaRecorder | null = null;
@@ -52,7 +53,9 @@ export function cancelRecording(): Promise<void> {
 			const tracks = _mediaRecorder.stream.getTracks();
 			for (let i = 0; i < tracks.length; i++) tracks[i].stop();
 			_mediaRecorder.stop();
-		} catch (e) {}
+		} catch (err: unknown) {
+			logger.warn("audioRecorder.cancel", "failed to stop recorder cleanly", err);
+		}
 		_mediaRecorder = null;
 		_chunks = [];
 	}

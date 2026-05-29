@@ -4,6 +4,7 @@ import {
 	getAccounts,
 	getActiveAccountId,
 	getToken,
+	logger,
 	saveAccounts,
 	saveActiveAccountId,
 	saveToken
@@ -43,7 +44,9 @@ export async function performAuth(slack: ISlackAPI, token: string): Promise<Auth
 	}
 	try {
 		await saveToken(token);
-	} catch (_err) {}
+	} catch (err: unknown) {
+		logger.warn("accountManager.performAuth", "token persistence failed; login continues", err);
+	}
 	return auth as unknown as AuthResult;
 }
 
@@ -76,7 +79,9 @@ export async function persistAccountLogin(accounts: AccountEntry[], userId: stri
 	try {
 		await saveAccounts(accounts);
 		await saveActiveAccountId(userId);
-	} catch (_err) {}
+	} catch (err: unknown) {
+		logger.warn("accountManager.persistAccountLogin", "failed to persist account login", err);
+	}
 }
 
 export async function removeAccount(
@@ -88,7 +93,9 @@ export async function removeAccount(
 	});
 	try {
 		await saveAccounts(filtered);
-	} catch (_e) {}
+	} catch (err: unknown) {
+		logger.warn("accountManager.removeAccount", "failed to persist accounts after remove", err);
+	}
 	return filtered;
 }
 
@@ -101,6 +108,7 @@ export function getResetState(): object {
 		usersMap: {},
 		channels: [],
 		channelsLoading: false,
+		channelsError: null,
 		stack: [{ screen: "login", params: {} }]
 	};
 }

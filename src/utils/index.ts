@@ -69,6 +69,10 @@ export { STORAGE_KEYS, TIMING, SCREENS, API } from "./constants";
 
 export { errorMessage } from "./error";
 
+export { logger } from "./logger";
+
+export { safeScrollToIndex } from "./listScroll";
+
 export type {
 	AsyncStorageInterface,
 	NotificationModuleInterface,

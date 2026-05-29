@@ -1,5 +1,6 @@
 import { SlackAPI } from "./src/api";
 import type { ISlackAPI } from "./src/api/types";
+import { ErrorBoundary, ErrorView } from "./src/components";
 import {
 	ChannelInfoScreen,
 	ChannelListScreen,
@@ -23,6 +24,7 @@ import {
 	replaceTopScreen
 } from "./src/services/navigationManager";
 import RTMClient from "./src/services/rtmClient";
+import { registerRTMHandlers } from "./src/services/rtmHandlers";
 import {
 	fetchAllUsers,
 	fetchTeamIcon,
@@ -31,7 +33,6 @@ import {
 } from "./src/services/slackDataLoader";
 import { getMode, setFontSizeKey, setMode } from "./src/theme";
 import type { FontSizeKey } from "./src/theme";
-import type { RTMEvent } from "./src/types";
 import type { AccountEntry, SlackChannel, SlackMessage, SlackResponse } from "./src/types";
 import type { AppProps as Props, AppState as State, AppStyles as Styles } from "./src/types";
 import {
@@ -44,6 +45,7 @@ import {
 	getSoundEnabled,
 	getTheme,
 	getToken,
+	logger,
 	saveAccounts,
 	saveActiveAccountId,
 	saveFontSize,
@@ -85,6 +87,7 @@ export default class App extends Component<Props, State> {
 			usersMap: {},
 			channels: [],
 			channelsLoading: false,
+			channelsError: null,
 			stack: [{ screen: "login", params: {} }],
 			notifInterval: 120000,
 			notifEnabled: true,
@@ -160,7 +163,8 @@ export default class App extends Component<Props, State> {
 					this.setState({ initializing: false });
 				}
 			}
-		} catch (err) {
+		} catch (err: unknown) {
+			logger.warn("App.autoLogin", "auto-login failed, showing login screen", err);
 			this.setState({ initializing: false });
 		}
 	}
@@ -183,8 +187,8 @@ export default class App extends Component<Props, State> {
 
 		try {
 			await saveToken(token);
-		} catch (err) {
-			// Token save failed but login can continue
+		} catch (err: unknown) {
+			logger.warn("App.doLogin", "token persistence failed; login continues", err);
 		}
 
 		const teamName = typeof auth.team === "string" ? auth.team : "";
@@ -213,7 +217,9 @@ export default class App extends Component<Props, State> {
 		try {
 			await saveAccounts(accounts);
 			await saveActiveAccountId(userId);
-		} catch (err) {}
+		} catch (err: unknown) {
+			logger.warn("App.doLogin", "failed to persist account list", err);
+		}
 
 		this.setState({
 			slack: slack,
@@ -245,7 +251,7 @@ export default class App extends Component<Props, State> {
 				this.setState({ accounts: updated });
 			}
 		} catch (err: unknown) {
-			console.warn("loadTeamInfo error:", errorMessage(err, "unknown"));
+			logger.warn("App.loadTeamInfo", "failed to fetch team icon", err);
 		}
 	}
 
@@ -253,7 +259,9 @@ export default class App extends Component<Props, State> {
 		try {
 			const usersMap = await fetchAllUsers(slack);
 			this.setState({ usersMap: usersMap });
-		} catch (_err) {}
+		} catch (err: unknown) {
+			logger.warn("App.loadUsers", "failed to load users directory", err);
+		}
 	}
 
 	async _loadChannels(slack: ISlackAPI): Promise<void> {
@@ -268,18 +276,36 @@ export default class App extends Component<Props, State> {
 				this._getCurrentChannelId()
 			);
 			if (result.changed) {
-				this.setState({ channels: result.channels, channelsLoading: false });
+				this.setState({
+					channels: result.channels,
+					channelsLoading: false,
+					channelsError: null
+				});
 			} else if (isFirstLoad) {
-				this.setState({ channelsLoading: false });
+				this.setState({ channelsLoading: false, channelsError: null });
+			} else if (this.state.channelsError) {
+				this.setState({ channelsError: null });
 			}
 		} catch (err: unknown) {
-			if (errorMessage(err, "") === "ratelimited") {
-				console.warn("loadChannels rate limited, backing off");
+			const msg = errorMessage(err, "unknown");
+			if (msg === "ratelimited") {
+				logger.warn("App.loadChannels", "rate limited, backing off");
+			} else {
+				logger.warn("App.loadChannels", "load failed", err);
 			}
-			this.setState({ channelsLoading: false });
+			this.setState({
+				channelsLoading: false,
+				channelsError: isFirstLoad ? msg : this.state.channelsError
+			});
 		}
 		this._loadingChannels = false;
 	}
+
+	_retryLoadChannels = (): void => {
+		if (!this.state.slack) return;
+		this.setState({ channelsError: null });
+		this._loadChannels(this.state.slack);
+	};
 
 	async handleLogout(): Promise<void> {
 		this._rtm.disconnect();
@@ -292,13 +318,16 @@ export default class App extends Component<Props, State> {
 		syncAccountsToNative(accounts);
 		try {
 			await saveAccounts(accounts);
-		} catch (_e) {}
+		} catch (err: unknown) {
+			logger.warn("App.handleLogout", "failed to persist accounts after logout", err);
+		}
 
 		if (accounts.length > 0) {
 			this.setState({ accounts: accounts });
 			try {
 				await this.switchAccount(accounts[0]);
-			} catch (err) {
+			} catch (err: unknown) {
+				logger.warn("App.handleLogout", "switching to fallback account failed", err);
 				await clearToken();
 				this.setState({
 					slack: null,
@@ -353,75 +382,43 @@ export default class App extends Component<Props, State> {
 		});
 		try {
 			await saveAccounts(accounts);
-		} catch (_e) {}
+		} catch (err: unknown) {
+			logger.warn("App.handleRemoveAccount", "failed to persist accounts", err);
+		}
 		this.setState({ accounts: accounts });
 	}
 
 	_handleAppState(state: string): void {
 		if (state === "active") {
-			stopBackgroundNotifications();
 			if (this.state.notifEnabled) this._startNotifPolling();
 			if (this.state.slack) this._connectRTM(this.state.slack);
 		} else if (state === "background") {
 			this._stopNotifPolling();
 			this._rtm.disconnect();
-			if (this.state.notifEnabled && this.state.accounts.length > 0) {
-				startBackgroundNotifications();
-			}
 		}
+		// Native background polling is now driven by setAccounts +
+		// the notification toggle, not by AppState. That way swipe-killing
+		// the app from recents (no background event delivered) still leaves
+		// the alarm armed.
 	}
 
 	_connectRTM(slack: ISlackAPI): void {
 		if (this._rtm.isConnected()) return;
 		const self = this;
-
-		this._rtm.on("message", function (event: RTMEvent) {
-			const channelId = event.channel;
-			if (!channelId) return;
-			const handler = self._rtmChannelHandlers[channelId];
-			if (handler) {
-				handler();
-			} else {
-				if (event.user !== self.state.currentUser) {
-					self._loadChannels(slack);
-				}
+		registerRTMHandlers({
+			rtm: this._rtm,
+			handlers: this._rtmChannelHandlers,
+			currentUserId: function () {
+				return self.state.currentUser;
+			},
+			onChannelsChanged: function () {
+				self._loadChannels(slack);
+			},
+			onStatusChanged: function (connected: boolean) {
+				self.setState({ rtmConnected: connected });
+				self._startNotifPolling();
 			}
 		});
-
-		this._rtm.on("reaction_added", function (event: RTMEvent) {
-			var item = event.item;
-			if (item && item.channel) {
-				var handler = self._rtmChannelHandlers[item.channel];
-				if (handler) handler();
-			}
-		});
-
-		this._rtm.on("reaction_removed", function (event: RTMEvent) {
-			var item = event.item;
-			if (item && item.channel) {
-				var handler = self._rtmChannelHandlers[item.channel];
-				if (handler) handler();
-			}
-		});
-
-		this._rtm.on("channel_marked", function () {
-			self._loadChannels(slack);
-		});
-
-		this._rtm.on("group_marked", function () {
-			self._loadChannels(slack);
-		});
-
-		this._rtm.on("im_marked", function () {
-			self._loadChannels(slack);
-		});
-
-		this._rtm.on("_status", function () {
-			var isConnected = self._rtm.isConnected();
-			self.setState({ rtmConnected: isConnected });
-			self._startNotifPolling();
-		});
-
 		this._rtm.connect(slack);
 	}
 
@@ -438,7 +435,9 @@ export default class App extends Component<Props, State> {
 			const mode = await getTheme();
 			setMode(mode);
 			this.setState({ themeMode: mode });
-		} catch (err) {}
+		} catch (err: unknown) {
+			logger.warn("App.loadTheme", "failed to load theme, using default", err);
+		}
 	}
 
 	_toggleTheme(): void {
@@ -461,10 +460,19 @@ export default class App extends Component<Props, State> {
 				function (this: App) {
 					if (enabled) {
 						this._startNotifPolling();
+					} else {
+						// User has notifications disabled in settings — cancel the alarm
+						// that setAccounts auto-armed during login.
+						stopBackgroundNotifications();
 					}
 				}.bind(this)
 			);
-		} catch (err) {
+		} catch (err: unknown) {
+			logger.warn(
+				"App.loadNotifSettings",
+				"failed to load notification settings, using defaults",
+				err
+			);
 			this._startNotifPolling();
 		}
 	}
@@ -475,8 +483,10 @@ export default class App extends Component<Props, State> {
 		this.setState({ notifEnabled: enabled });
 		if (enabled) {
 			this._startNotifPolling();
+			if (this.state.accounts.length > 0) startBackgroundNotifications();
 		} else {
 			this._stopNotifPolling();
+			stopBackgroundNotifications();
 		}
 	}
 
@@ -567,6 +577,19 @@ export default class App extends Component<Props, State> {
 				);
 
 			case "channelList":
+				if (channels.length === 0 && this.state.channelsError && !channelsLoading) {
+					return (
+						<ErrorView
+							title="Couldn't load channels"
+							message={
+								this.state.channelsError === "ratelimited"
+									? "Slack rate-limited the request. Try again in a moment."
+									: "Check your connection and try again."
+							}
+							onRetry={this._retryLoadChannels}
+						/>
+					);
+				}
 				return (
 					<ChannelListScreen
 						slack={slack}
@@ -764,7 +787,7 @@ export default class App extends Component<Props, State> {
 					backgroundColor="#19171D"
 					barStyle="light-content"
 				/>
-				{this.renderScreen()}
+				<ErrorBoundary scope="App.screen">{this.renderScreen()}</ErrorBoundary>
 			</View>
 		);
 	}

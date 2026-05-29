@@ -13,6 +13,7 @@ export interface AppState {
 	usersMap: Record<string, SlackUser>;
 	channels: SlackChannel[];
 	channelsLoading: boolean;
+	channelsError: string | null;
 	stack: StackEntry[];
 	themeMode: string;
 	notifInterval: number;

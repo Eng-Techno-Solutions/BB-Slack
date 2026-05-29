@@ -1,3 +1,4 @@
+import { logger } from "./logger";
 import type {
 	AudioDownloadCallback,
 	AudioDownloadHttpModule as HttpModuleInterface,
@@ -40,9 +41,10 @@ function downloadAudio(url: string, token: string, callback: AudioDownloadCallba
 }
 
 function cleanupFile(path: string | null): void {
-	if (path) {
-		RNFS.unlink(path).catch(function () {});
-	}
+	if (!path) return;
+	RNFS.unlink(path).catch(function (err: unknown) {
+		logger.warn("audioDownload.cleanupFile", "unlink failed for " + path, err);
+	});
 }
 
 export default { downloadAudio: downloadAudio, cleanupFile: cleanupFile };
