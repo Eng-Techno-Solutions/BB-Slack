@@ -21,6 +21,8 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
@@ -40,6 +42,8 @@ public class NotificationPollService extends Service {
     // conversations.info is Tier 3 (50+/min); this cap keeps one poll cycle
     // inside a single minute's budget.
     private static final int MAX_DMS_PER_POLL = 40;
+    private static final int MAX_PREVIEW_CHARS = 160;
+    private static final Pattern MENTION_PATTERN = Pattern.compile("<@([A-Z0-9]+)(\\|[^>]*)?>");
 
     private HandlerThread pollThread;
     private Handler pollHandler;
@@ -119,6 +123,13 @@ public class NotificationPollService extends Service {
         int notifIndex = 0;
         JSONArray results = new JSONArray();
 
+        JSONObject nameCache;
+        try {
+            nameCache = new JSONObject(NotificationModule.getUserNames(this));
+        } catch (Exception e) {
+            nameCache = new JSONObject();
+        }
+
         NotificationManager notifManager = (NotificationManager)
             getSystemService(Context.NOTIFICATION_SERVICE);
         if (notifManager == null) return;
@@ -185,17 +196,29 @@ public class NotificationPollService extends Service {
 
                     if (!foreground && unreadCount > prevCount) {
                         int newMessages = unreadCount - prevCount;
-                        String title;
-                        if (isIm) {
-                            title = "New DM";
-                        } else if (isMpim) {
-                            title = "Group DM";
-                        } else {
-                            title = "#" + ch.optString("name", channelId);
-                        }
-                        if (!teamName.isEmpty()) title += " — " + teamName;
+                        String channelName = "#" + ch.optString("name", channelId);
+                        String title = isIm ? "New DM" : (isMpim ? "Group DM" : channelName);
                         String body = newMessages + " new message" + (newMessages > 1 ? "s" : "");
 
+                        // Best-effort: show who wrote what instead of a bare
+                        // count. Only runs for conversations that just gained
+                        // unreads, so it adds at most a couple of calls per poll.
+                        String[] preview = fetchMessagePreview(token, channelId, nameCache);
+                        if (preview != null) {
+                            String sender = preview[0];
+                            String text = preview[1];
+                            if (isIm || isMpim) {
+                                if (!sender.isEmpty()) title = sender + (isMpim ? " (group)" : "");
+                                body = text;
+                            } else {
+                                body = sender.isEmpty() ? text : sender + ": " + text;
+                            }
+                            if (newMessages > 1) {
+                                body += " (+" + (newMessages - 1) + " more)";
+                            }
+                        }
+
+                        if (!teamName.isEmpty()) title += " — " + teamName;
                         postNotification(this, BASE_NOTIF_ID + notifIndex, title, body);
                         notifIndex++;
                     }
@@ -213,6 +236,7 @@ public class NotificationPollService extends Service {
 
         saveDiag(foreground, accounts.length(), results);
         NotificationModule.setLastUnreads(this, newUnreads.toString());
+        NotificationModule.setUserNames(this, nameCache.toString());
     }
 
     // Persist a one-line-per-account poll report so the Settings screen can
@@ -309,6 +333,85 @@ public class NotificationPollService extends Service {
             }
         }
         return countsById;
+    }
+
+    // Fetches the newest message of a conversation so the notification can say
+    // who wrote what. Returns {senderName, text} or null; any failure means the
+    // caller keeps the plain "N new messages" body.
+    private String[] fetchMessagePreview(String token, String channelId, JSONObject nameCache) {
+        try {
+            JSONObject response = slackGet(token,
+                "conversations.history?channel=" + channelId + "&limit=1");
+            JSONArray messages = response.optJSONArray("messages");
+            if (messages == null || messages.length() == 0) return null;
+            JSONObject message = messages.getJSONObject(0);
+
+            String sender = resolveSenderName(token, message, nameCache);
+            String text = cleanSlackText(message.optString("text", ""), token, nameCache);
+            if (text.isEmpty()) text = describeNonTextMessage(message);
+            if (text.isEmpty()) return null;
+            if (text.length() > MAX_PREVIEW_CHARS) {
+                text = text.substring(0, MAX_PREVIEW_CHARS - 1) + "…";
+            }
+            return new String[] { sender, text };
+        } catch (Exception e) {
+            Log.w(TAG, "Preview fetch failed for " + channelId + ": " + e.getMessage());
+            return null;
+        }
+    }
+
+    private String resolveSenderName(String token, JSONObject message, JSONObject nameCache) {
+        String senderId = message.optString("user", "");
+        // Bot/app messages carry a username instead of a user id.
+        if (senderId.isEmpty()) return message.optString("username", "");
+        return resolveUserName(token, senderId, nameCache);
+    }
+
+    // Resolves a user id to a display name via the persistent cache, falling
+    // back to one users.info call. Returns "" when the name can't be resolved.
+    private String resolveUserName(String token, String userId, JSONObject nameCache) {
+        String cached = nameCache.optString(userId, "");
+        if (!cached.isEmpty()) return cached;
+        try {
+            JSONObject response = slackGet(token, "users.info?user=" + userId);
+            JSONObject user = response.optJSONObject("user");
+            if (user == null) return "";
+            JSONObject profile = user.optJSONObject("profile");
+            String name = profile != null ? profile.optString("display_name", "") : "";
+            if (name.isEmpty() && profile != null) name = profile.optString("real_name", "");
+            if (name.isEmpty()) name = user.optString("real_name", "");
+            if (name.isEmpty()) name = user.optString("name", "");
+            if (!name.isEmpty()) nameCache.put(userId, name);
+            return name;
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    // Strips Slack's message markup (<@U..>, <#C..|name>, <url|label>, HTML
+    // entities) down to plain text fit for a one-line notification.
+    private String cleanSlackText(String raw, String token, JSONObject nameCache) {
+        if (raw == null) return "";
+        Matcher mention = MENTION_PATTERN.matcher(raw);
+        StringBuffer resolved = new StringBuffer();
+        while (mention.find()) {
+            String name = resolveUserName(token, mention.group(1), nameCache);
+            mention.appendReplacement(resolved,
+                Matcher.quoteReplacement("@" + (name.isEmpty() ? "user" : name)));
+        }
+        mention.appendTail(resolved);
+        String text = resolved.toString();
+        text = text.replaceAll("<#[A-Z0-9]+\\|([^>]*)>", "#$1");
+        text = text.replaceAll("<[^>|]+\\|([^>]*)>", "$1");
+        text = text.replaceAll("<([^>]+)>", "$1");
+        text = text.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&");
+        return text.trim();
+    }
+
+    private String describeNonTextMessage(JSONObject message) {
+        if (message.optJSONArray("files") != null) return "Sent a file";
+        if (message.optJSONArray("attachments") != null) return "Sent an attachment";
+        return "New message";
     }
 
     // Throws with a specific reason (TLS failure, HTTP code, Slack API error)

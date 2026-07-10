@@ -19,6 +19,7 @@ public class NotificationModule extends ReactContextBaseJavaModule {
     private static final String KEY_SERVICE_STARTED_AT = "serviceStartedAt";
     private static final String KEY_LAST_POLL_DIAG = "lastPollDiag";
     private static final String KEY_CHANNELS_MENTION_ONLY = "channelsMentionOnly";
+    private static final String KEY_USER_NAMES = "userNames";
     private static final int TEST_NOTIF_ID = 8999;
 
     public NotificationModule(ReactApplicationContext reactContext) {
@@ -121,6 +122,18 @@ public class NotificationModule extends ReactContextBaseJavaModule {
     public static boolean isChannelsMentionOnly(Context context) {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .getBoolean(KEY_CHANNELS_MENTION_ONLY, false);
+    }
+
+    // userId -> display name cache so message previews don't re-hit users.info
+    // for senders we've already resolved.
+    public static String getUserNames(Context context) {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_USER_NAMES, "{}");
+    }
+
+    public static void setUserNames(Context context, String namesJson) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putString(KEY_USER_NAMES, namesJson).apply();
     }
 
     public static void setServiceStartedAt(Context context, long timestamp) {

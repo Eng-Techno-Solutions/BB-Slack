@@ -55,6 +55,7 @@ import {
 	getTheme,
 	getToken,
 	getTotalUnread,
+	getUserName,
 	logger,
 	playNotification,
 	saveAccounts,
@@ -472,10 +473,15 @@ export default class App extends Component<Props, State> {
 		logger.info("App.banner", "showing banner for " + channelId);
 
 		const text = (event.text || "").trim();
+		const body = text.length > 0 ? text : "New message";
+		// DM banners already carry the sender's name as the title; for channels
+		// and group DMs, prefix the sender so the user knows who wrote it.
+		const senderName =
+			!channel.is_im && event.user ? getUserName(event.user, this.state.usersMap) : "";
 		const banner = {
 			channelId: channelId,
 			title: getChannelLabel(channel, this.state.usersMap),
-			body: text.length > 0 ? text : "New message"
+			body: senderName ? senderName + ": " + body : body
 		};
 		this.setState({ banner: banner });
 		playNotification();
