@@ -110,7 +110,7 @@ public class HttpModule extends ReactContextBaseJavaModule {
                     }
                 }
             }
-        }).start();
+        });
     }
 
     @ReactMethod
@@ -198,7 +198,7 @@ public class HttpModule extends ReactContextBaseJavaModule {
                     if (conn != null) conn.disconnect();
                 }
             }
-        }).start();
+        });
     }
 
     private HttpURLConnection openConnectionWithTls(URL url) throws Exception {
@@ -267,7 +267,7 @@ public class HttpModule extends ReactContextBaseJavaModule {
                     promise.reject("DOWNLOAD_ERROR", e.getMessage());
                 }
             }
-        }).start();
+        });
     }
 
     @ReactMethod
@@ -318,6 +318,6 @@ public class HttpModule extends ReactContextBaseJavaModule {
                     if (conn != null) conn.disconnect();
                 }
             }
-        }).start();
+        });
     }
 }
