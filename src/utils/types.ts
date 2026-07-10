@@ -37,12 +37,19 @@ export interface AudioDownloadHttpModule {
 	downloadFile(url: string, token: string, destPath: string): Promise<void>;
 }
 
+export interface DocumentHttpModule {
+	downloadFile(url: string, token: string, destPath: string): Promise<void>;
+	openFile(path: string, mimeType: string): Promise<boolean>;
+}
+
 export interface RNFSDownloadResult {
 	statusCode: number;
 }
 
 export interface RNFSModule {
 	CachesDirectoryPath: string;
+	ExternalStorageDirectoryPath: string | null;
+	mkdir(path: string): Promise<void>;
 	downloadFile(options: { fromUrl: string; toFile: string; headers: Record<string, string> }): {
 		promise: Promise<RNFSDownloadResult>;
 	};

@@ -270,6 +270,45 @@ public class HttpModule extends ReactContextBaseJavaModule {
         });
     }
 
+    // Open an already-downloaded local file in whatever app the device has
+    // registered for its MIME type. Uses a file:// URI (no FileProvider) which
+    // is valid on the BB10 Android runtime (< API 24, so no StrictMode block).
+    // We only fire the intent when a handler actually exists — otherwise we
+    // reject with NO_HANDLER so the JS layer can inform the user instead of
+    // risking an unhandled-intent crash on the runtime.
+    @ReactMethod
+    public void openFile(final String path, final String mimeType, final Promise promise) {
+        try {
+            java.io.File file = new java.io.File(path);
+            if (!file.exists()) {
+                promise.reject("NOT_FOUND", "File not found");
+                return;
+            }
+
+            android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_VIEW);
+            android.net.Uri uri = android.net.Uri.fromFile(file);
+            intent.setDataAndType(uri, mimeType != null && mimeType.length() > 0 ? mimeType : "*/*");
+
+            java.util.List<android.content.pm.ResolveInfo> handlers =
+                getReactApplicationContext().getPackageManager().queryIntentActivities(intent, 0);
+            if (handlers == null || handlers.isEmpty()) {
+                promise.reject("NO_HANDLER", "No app can open this file type");
+                return;
+            }
+
+            android.app.Activity activity = getCurrentActivity();
+            if (activity != null) {
+                activity.startActivity(intent);
+            } else {
+                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                getReactApplicationContext().startActivity(intent);
+            }
+            promise.resolve(true);
+        } catch (Exception e) {
+            promise.reject("OPEN_ERROR", e.getMessage());
+        }
+    }
+
     @ReactMethod
     public void uploadBinary(final String urlString, final String fileBase64, final String contentType, final Promise promise) {
         EXECUTOR.execute(new Runnable() {

@@ -7,11 +7,12 @@ import {
 	isImageFile,
 	proxyUrl
 } from "../../utils/fileHelpers";
+import { openDocument } from "../../utils/openDocument";
 import Icon from "../ui/Icon";
 import { CONTENT_MAX_W, styles } from "./MessageItem.styles";
 import type { FileRendererProps } from "./types";
 import React, { Component } from "react";
-import { Image, Linking, Platform, Text, TouchableOpacity, View } from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 
 export default class FileRenderer extends Component<FileRendererProps> {
 	shouldComponentUpdate(nextProps: FileRendererProps): boolean {
@@ -114,9 +115,8 @@ export default class FileRenderer extends Component<FileRendererProps> {
 		);
 	}
 
-	renderFileCard(f: SlackFile, i: number): React.ReactNode {
+	renderFileCard(f: SlackFile, i: number, token?: string): React.ReactNode {
 		const c = getColors();
-		const permalink = f.permalink || f.permalink_public || "";
 		const ext = (f.filetype || "").toUpperCase();
 		const sizeKB = f.size
 			? f.size > 1048576
@@ -131,13 +131,7 @@ export default class FileRenderer extends Component<FileRendererProps> {
 				activeOpacity={0.7}
 				data-type="file-card"
 				onPress={function () {
-					if (permalink) {
-						if (Platform.OS === "web") {
-							(window as any).open(permalink, "_blank");
-						} else {
-							Linking.openURL(permalink).catch(function () {});
-						}
-					}
+					openDocument(f, token);
 				}}>
 				<View style={[styles.fileIcon, { backgroundColor: c.fileIconBg }]}>
 					<Text style={[styles.fileIconText, { color: c.textSecondary }]}>
@@ -170,7 +164,7 @@ export default class FileRenderer extends Component<FileRendererProps> {
 				{files.map(function (f: SlackFile, i: number) {
 					if (isImageFile(f)) return self.renderImageFile(f, i, token);
 					if (isAudioFile(f)) return self.renderAudioFile(f, i, token);
-					return self.renderFileCard(f, i);
+					return self.renderFileCard(f, i, token);
 				})}
 			</View>
 		);
