@@ -10,6 +10,7 @@ import { pickFile } from "../utils/filePicker";
 import { getUserName } from "../utils/format";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
 import { safeScrollToIndex } from "../utils/listScroll";
+import { displayToWire } from "../utils/mentions";
 import { playNotification } from "../utils/notificationSound";
 import { styles } from "./ThreadScreen.styles";
 import type { ThreadProps as Props, ThreadState as State } from "./types";
@@ -181,9 +182,9 @@ export default class ThreadScreen extends Component<Props, State> {
 	}
 
 	async sendReply(): Promise<void> {
-		const { slack, channel, parentMessage } = this.props;
+		const { slack, channel, parentMessage, usersMap } = this.props;
 		const { inputText } = this.state;
-		const text = inputText.trim();
+		const text = displayToWire(inputText.trim(), usersMap);
 		if (!text) return;
 
 		this.setState({ sending: true });
@@ -204,7 +205,7 @@ export default class ThreadScreen extends Component<Props, State> {
 			const file = await pickFile();
 			if (!file) return;
 			this.setState({ uploading: true });
-			const text = this.state.inputText.trim();
+			const text = displayToWire(this.state.inputText.trim(), this.props.usersMap);
 			await slack.filesUpload(channel.id, file, parentMessage.ts, text || null);
 			this.setState({ uploading: false, inputText: "" });
 			if (this._inputRef) this._inputRef.clear();
@@ -286,12 +287,12 @@ export default class ThreadScreen extends Component<Props, State> {
 		);
 	}
 
-	onMentionSelect(userId: string, _displayName: string): void {
+	onMentionSelect(_userId: string, displayName: string): void {
 		this.setState(function (prev: State) {
 			const text = prev.inputText;
 			const at = text.lastIndexOf("@");
 			const before = text.substring(0, at);
-			return { inputText: before + "<@" + userId + "> " };
+			return { inputText: before + "@" + displayName + " " };
 		});
 	}
 

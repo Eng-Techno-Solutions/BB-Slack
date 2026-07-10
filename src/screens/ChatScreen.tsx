@@ -20,6 +20,7 @@ import { pickFile } from "../utils/filePicker";
 import { getChannelDisplayName } from "../utils/format";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
 import { safeScrollToIndex } from "../utils/listScroll";
+import { displayToWire, wireToDisplay } from "../utils/mentions";
 import { playNotification } from "../utils/notificationSound";
 import { styles } from "./ChatScreen.styles";
 import type {
@@ -279,9 +280,9 @@ export default class ChatScreen extends Component<Props, State> {
 	}
 
 	async sendMessage(): Promise<void> {
-		const { slack, channel } = this.props;
+		const { slack, channel, usersMap } = this.props;
 		const { inputText, editingMessage } = this.state;
-		const text = inputText.trim();
+		const text = displayToWire(inputText.trim(), usersMap);
 		if (!text) return;
 
 		this.setState({ sending: true });
@@ -321,7 +322,7 @@ export default class ChatScreen extends Component<Props, State> {
 			const file = await pickFile();
 			if (!file) return;
 			this.setState({ uploading: true });
-			const text = this.state.inputText.trim();
+			const text = displayToWire(this.state.inputText.trim(), this.props.usersMap);
 			await slack.filesUpload(channel.id, file, null, text || null);
 			this.setState({ uploading: false, inputText: "" });
 			if (this._inputRef) this._inputRef.clear();
@@ -440,12 +441,12 @@ export default class ChatScreen extends Component<Props, State> {
 		this.setState({ actionMessage: message, reactionTarget: message });
 	}
 
-	onMentionSelect(userId: string, _displayName: string): void {
+	onMentionSelect(_userId: string, displayName: string): void {
 		this.setState(function (prev: State) {
 			const text = prev.inputText;
 			const at = text.lastIndexOf("@");
 			const before = text.substring(0, at);
-			return { inputText: before + "<@" + userId + "> " };
+			return { inputText: before + "@" + displayName + " " };
 		});
 	}
 
@@ -491,7 +492,7 @@ export default class ChatScreen extends Component<Props, State> {
 				onPress: function () {
 					self.setState({
 						editingMessage: actionMessage,
-						inputText: actionMessage.text,
+						inputText: wireToDisplay(actionMessage.text, self.props.usersMap),
 						actionMessage: null
 					});
 				}
