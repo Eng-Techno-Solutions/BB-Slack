@@ -24,6 +24,7 @@ import Pause from "lucide-react/dist/esm/icons/pause";
 import Pencil from "lucide-react/dist/esm/icons/pencil";
 import Play from "lucide-react/dist/esm/icons/play";
 import Plus from "lucide-react/dist/esm/icons/plus";
+import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw";
 import Reply from "lucide-react/dist/esm/icons/reply";
 import Search from "lucide-react/dist/esm/icons/search";
 import SendHorizontal from "lucide-react/dist/esm/icons/send-horizontal";
@@ -68,6 +69,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
 	square: Square,
 	settings: Settings,
 	bell: Bell,
+	"refresh-cw": RefreshCw,
 	globe: Globe,
 	user: User,
 	coffee: Coffee,

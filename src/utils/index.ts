@@ -10,6 +10,8 @@ export {
 	getNotifEnabled,
 	saveSoundEnabled,
 	getSoundEnabled,
+	saveChannelsMentionOnly,
+	getChannelsMentionOnly,
 	saveFontSize,
 	getFontSize,
 	getAccounts,
@@ -40,6 +42,10 @@ export {
 export { addKeyEventListener, removeKeyEventListener } from "./keyEvents";
 
 export { playNotification, setNotificationMuted } from "./notificationSound";
+
+export { getTotalUnread, getChannelLabel } from "./unread";
+
+export { setMouseEnabled } from "./pointer";
 
 export {
 	EMOJI_MAP,

@@ -5,6 +5,8 @@ export { default as Icon } from "./Icon";
 export { default as InputBar } from "./InputBar";
 export { default as ErrorBoundary } from "./ErrorBoundary";
 export { default as ErrorView } from "./ErrorView";
+export { default as NotificationBanner } from "./NotificationBanner";
+export { default as GlobalUnreadBadge } from "./GlobalUnreadBadge";
 export type {
 	EmojiEntry,
 	EmojiPickerProps,
@@ -15,5 +17,9 @@ export type {
 	ActionSheetStyles,
 	HeaderProps,
 	HeaderStyles,
-	IconProps
+	IconProps,
+	NotificationBannerProps,
+	NotificationBannerStyles,
+	GlobalUnreadBadgeProps,
+	GlobalUnreadBadgeStyles
 } from "./types";

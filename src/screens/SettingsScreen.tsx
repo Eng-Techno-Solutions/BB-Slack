@@ -1,4 +1,9 @@
 import { Header, Icon } from "../components";
+import {
+	getNotifDiagnostics,
+	hasNotifDiagnostics,
+	sendTestNotification
+} from "../services/nativeNotification";
 import { getColors, getMode } from "../theme";
 import type { KeyEvent, KeySub } from "../types";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
@@ -28,6 +33,15 @@ const FONT_SIZE_OPTIONS: FontSizeOption[] = [
 	{ label: "Large", value: "large" }
 ];
 
+function formatAgo(now: number, timestamp: number): string {
+	if (!timestamp) return "never";
+	const seconds = Math.max(0, Math.round((now - timestamp) / 1000));
+	if (seconds < 60) return seconds + "s ago";
+	const minutes = Math.round(seconds / 60);
+	if (minutes < 60) return minutes + "m ago";
+	return Math.round(minutes / 60) + "h ago";
+}
+
 export default class SettingsScreen extends Component<Props, State> {
 	_keySub: KeySub | null;
 	_actions: ActionItem[];
@@ -37,7 +51,7 @@ export default class SettingsScreen extends Component<Props, State> {
 
 	constructor(props: Props) {
 		super(props);
-		this.state = { focusIndex: -1 };
+		this.state = { focusIndex: -1, notifDiag: null };
 		this._keySub = null;
 		this._actions = [];
 		this._rowY = {};
@@ -50,6 +64,16 @@ export default class SettingsScreen extends Component<Props, State> {
 		this._keySub = addKeyEventListener(function (e: KeyEvent) {
 			self._handleKeyEvent(e);
 		});
+		this._refreshNotifDiag();
+	}
+
+	async _refreshNotifDiag(): Promise<void> {
+		const diag = await getNotifDiagnostics();
+		if (diag) this.setState({ notifDiag: diag });
+	}
+
+	_sendTestNotification(): void {
+		sendTestNotification();
 	}
 
 	componentWillUnmount(): void {
@@ -58,16 +82,19 @@ export default class SettingsScreen extends Component<Props, State> {
 
 	_buildActions(): ActionItem[] {
 		const actions: ActionItem[] = [];
+		const self = this;
 		const {
 			notifEnabled,
 			onToggleNotif,
 			onToggleSound,
+			onToggleChannelsMentionOnly,
 			onChangeInterval,
 			onToggleTheme,
 			onChangeFontSize
 		} = this.props;
 		actions.push({ type: "toggle", action: onToggleNotif });
 		actions.push({ type: "toggle", action: onToggleSound });
+		actions.push({ type: "toggle", action: onToggleChannelsMentionOnly });
 		if (notifEnabled) {
 			for (let i = 0; i < INTERVAL_OPTIONS.length; i++) {
 				const opt = INTERVAL_OPTIONS[i];
@@ -80,6 +107,20 @@ export default class SettingsScreen extends Component<Props, State> {
 					})(opt.value)
 				});
 			}
+		}
+		if (hasNotifDiagnostics()) {
+			actions.push({
+				type: "button",
+				action: function () {
+					self._sendTestNotification();
+				}
+			});
+			actions.push({
+				type: "button",
+				action: function () {
+					self._refreshNotifDiag();
+				}
+			});
 		}
 		actions.push({ type: "toggle", action: onToggleTheme });
 		for (let j = 0; j < FONT_SIZE_OPTIONS.length; j++) {
@@ -198,6 +239,90 @@ export default class SettingsScreen extends Component<Props, State> {
 		);
 	}
 
+	renderButtonRow(icon: string, label: string, onPress: () => void): React.ReactElement {
+		const c = getColors();
+		const self = this;
+		const ri = this._renderIdx++;
+		const focused = this.state.focusIndex === ri;
+		return (
+			<TouchableHighlight
+				onLayout={function (e: LayoutChangeEvent) {
+					self._rowY[ri] = e.nativeEvent.layout.y;
+				}}
+				style={[
+					styles.row,
+					{ borderBottomColor: c.border },
+					focused && { backgroundColor: c.listUnderlay }
+				]}
+				underlayColor={c.listUnderlay}
+				onPress={onPress}
+				data-type="list-item">
+				<View style={styles.rowInner}>
+					<View style={styles.rowLeft}>
+						<Icon
+							name={icon}
+							size={18}
+							color={c.textTertiary}
+						/>
+						<Text style={[styles.rowLabel, { color: c.textSecondary }]}>{label}</Text>
+					</View>
+					<Icon
+						name="chevron-right"
+						size={14}
+						color={c.textPlaceholder}
+					/>
+				</View>
+			</TouchableHighlight>
+		);
+	}
+
+	renderNotifDiagnostics(): React.ReactElement | null {
+		if (!hasNotifDiagnostics()) return null;
+		const c = getColors();
+		const diag = this.state.notifDiag;
+		const self = this;
+
+		let statusLines: string[];
+		if (!diag) {
+			statusLines = ["No diagnostics yet."];
+		} else {
+			const lastPollAt = diag.lastPoll.at || 0;
+			statusLines = [
+				"Service started: " + formatAgo(diag.now, diag.serviceStartedAt),
+				"Last poll: " +
+					formatAgo(diag.now, lastPollAt) +
+					(lastPollAt ? (diag.lastPoll.foreground ? " (app open)" : " (background)") : "")
+			];
+			const results = diag.lastPoll.results || [];
+			for (let i = 0; i < results.length; i++) {
+				statusLines.push(results[i]);
+			}
+		}
+
+		return (
+			<View>
+				<Text style={[styles.sectionTitle, { color: c.textPlaceholder }]}>
+					NOTIFICATION DIAGNOSTICS
+				</Text>
+				{this.renderButtonRow("bell", "Send Test Notification", function () {
+					self._sendTestNotification();
+				})}
+				{this.renderButtonRow("refresh-cw", "Refresh Status", function () {
+					self._refreshNotifDiag();
+				})}
+				{statusLines.map(function (line, i) {
+					return (
+						<Text
+							key={i}
+							style={[styles.hint, { color: c.textPlaceholder, marginTop: i === 0 ? 8 : 2 }]}>
+							{line}
+						</Text>
+					);
+				})}
+			</View>
+		);
+	}
+
 	renderSelectList(
 		options: Array<{ label: string; value: string | number }>,
 		selectedValue: string | number,
@@ -248,6 +373,8 @@ export default class SettingsScreen extends Component<Props, State> {
 			onChangeInterval,
 			soundEnabled,
 			onToggleSound,
+			channelsMentionOnly,
+			onToggleChannelsMentionOnly,
 			themeMode: _themeMode,
 			onToggleTheme,
 			fontSize,
@@ -283,6 +410,12 @@ export default class SettingsScreen extends Component<Props, State> {
 					<Text style={[styles.sectionTitle, { color: c.textPlaceholder }]}>NOTIFICATIONS</Text>
 					{this.renderToggleRow("bell", "Push Notifications", notifEnabled, onToggleNotif)}
 					{this.renderToggleRow("mic", "Notification Sound", soundEnabled, onToggleSound)}
+					{this.renderToggleRow(
+						"hash",
+						"Channels: Mentions Only",
+						channelsMentionOnly,
+						onToggleChannelsMentionOnly
+					)}
 
 					{notifEnabled ? (
 						<Text style={[styles.sectionTitle, { color: c.textPlaceholder }]}>CHECK INTERVAL</Text>
@@ -295,6 +428,8 @@ export default class SettingsScreen extends Component<Props, State> {
 							How often the app checks for new DMs and mentions.
 						</Text>
 					) : null}
+
+					{this.renderNotifDiagnostics()}
 
 					<Text style={[styles.sectionTitle, { color: c.textPlaceholder }]}>APPEARANCE</Text>
 

@@ -1,7 +1,7 @@
 import { styles } from "./App.styles";
 import { SlackAPI } from "./api";
 import type { ISlackAPI } from "./api/types";
-import { ErrorBoundary, ErrorView } from "./components";
+import { ErrorBoundary, ErrorView, GlobalUnreadBadge, NotificationBanner } from "./components";
 import {
 	ChannelInfoScreen,
 	ChannelListScreen,
@@ -26,6 +26,7 @@ import { registerRTMHandlers } from "./services/rtmHandlers";
 import {
 	loadAllSettings,
 	loadThemeMode,
+	persistChannelsMentionOnly,
 	persistFontSize,
 	persistNotifEnabled,
 	persistNotifInterval,
@@ -39,15 +40,18 @@ import {
 	updateAccountTeamIcon
 } from "./services/slackDataLoader";
 import { getColors } from "./theme";
-import type { AccountEntry, SlackChannel, SlackMessage } from "./types";
+import type { AccountEntry, RTMEvent, SlackChannel, SlackMessage } from "./types";
 import type { AppProps as Props, AppState as State } from "./types";
-import { clearToken, logger } from "./utils";
+import { clearToken, getChannelLabel, getTotalUnread, logger, playNotification } from "./utils";
 import { errorMessage } from "./utils/error";
 import React, { Component } from "react";
 import { ActivityIndicator, StatusBar, View } from "react-native";
 
+const BANNER_TIMEOUT_MS = 4000;
+
 export default class App extends Component<Props, State> {
 	_channelPollTimer: ReturnType<typeof setInterval> | null;
+	_bannerTimer: ReturnType<typeof setTimeout> | null;
 	_loadingChannels: boolean;
 	_rtm: RTMClient;
 	_rtmChannelHandlers: Record<string, () => void>;
@@ -69,11 +73,14 @@ export default class App extends Component<Props, State> {
 			notifInterval: 120000,
 			notifEnabled: true,
 			soundEnabled: true,
+			channelsMentionOnly: false,
 			fontSize: "medium",
 			accounts: [],
-			rtmConnected: false
+			rtmConnected: false,
+			banner: null
 		};
 		this._channelPollTimer = null;
+		this._bannerTimer = null;
 		this._loadingChannels = false;
 		this._rtm = new RTMClient();
 		this._rtmChannelHandlers = {};
@@ -87,6 +94,7 @@ export default class App extends Component<Props, State> {
 
 	componentWillUnmount(): void {
 		this.stopChannelPolling();
+		if (this._bannerTimer) clearTimeout(this._bannerTimer);
 		this._rtm.disconnect();
 	}
 
@@ -156,6 +164,12 @@ export default class App extends Component<Props, State> {
 		const enabled = !this.state.soundEnabled;
 		await persistSoundEnabled(enabled);
 		this.setState({ soundEnabled: enabled });
+	}
+
+	async _handleToggleChannelsMentionOnly(): Promise<void> {
+		const enabled = !this.state.channelsMentionOnly;
+		await persistChannelsMentionOnly(enabled);
+		this.setState({ channelsMentionOnly: enabled });
 	}
 
 	async _handleChangeFontSize(size: string): Promise<void> {
@@ -335,6 +349,9 @@ export default class App extends Component<Props, State> {
 			onStatusChanged: function (connected: boolean) {
 				self.setState({ rtmConnected: connected });
 				self.startChannelPolling(slack);
+			},
+			onIncomingMessage: function (event: RTMEvent) {
+				self._handleIncomingMessage(event);
 			}
 		});
 		this._rtm.connect(slack);
@@ -346,6 +363,58 @@ export default class App extends Component<Props, State> {
 
 	_unregisterRTMHandler(channelId: string): void {
 		delete this._rtmChannelHandlers[channelId];
+	}
+
+	// Surfaces an in-app banner for a message arriving in a channel the user
+	// isn't viewing (the foreground equivalent of an OS notification).
+	_handleIncomingMessage(event: RTMEvent): void {
+		if (!this.state.notifEnabled) {
+			logger.info("App.banner", "skipped: notifications disabled");
+			return;
+		}
+		const channelId = event.channel;
+		if (!channelId) return;
+		const channel = this.state.channels.find(function (ch: SlackChannel) {
+			return ch.id === channelId;
+		});
+		if (!channel) {
+			logger.info("App.banner", "skipped: channel " + channelId + " not in loaded list");
+			return;
+		}
+		logger.info("App.banner", "showing banner for " + channelId);
+
+		const text = (event.text || "").trim();
+		const banner = {
+			channelId: channelId,
+			title: getChannelLabel(channel, this.state.usersMap),
+			body: text.length > 0 ? text : "New message"
+		};
+		this.setState({ banner: banner });
+		playNotification();
+
+		if (this._bannerTimer) clearTimeout(this._bannerTimer);
+		const self = this;
+		this._bannerTimer = setTimeout(function () {
+			self._dismissBanner();
+		}, BANNER_TIMEOUT_MS);
+	}
+
+	_dismissBanner(): void {
+		if (this._bannerTimer) {
+			clearTimeout(this._bannerTimer);
+			this._bannerTimer = null;
+		}
+		if (this.state.banner) this.setState({ banner: null });
+	}
+
+	_openBanner(): void {
+		const banner = this.state.banner;
+		if (!banner) return;
+		const channel = this.state.channels.find(function (ch: SlackChannel) {
+			return ch.id === banner.channelId;
+		});
+		this._dismissBanner();
+		if (channel) this.navigate("chat", { channel: channel });
 	}
 
 	// ── Channel Polling ────────────────────────────────────
@@ -594,6 +663,7 @@ export default class App extends Component<Props, State> {
 						notifEnabled={this.state.notifEnabled}
 						notifInterval={this.state.notifInterval}
 						soundEnabled={this.state.soundEnabled}
+						channelsMentionOnly={this.state.channelsMentionOnly}
 						fontSize={this.state.fontSize}
 						rtmConnected={this.state.rtmConnected}
 						onToggleNotif={function () {
@@ -604,6 +674,9 @@ export default class App extends Component<Props, State> {
 						}}
 						onToggleSound={function () {
 							self._handleToggleSound();
+						}}
+						onToggleChannelsMentionOnly={function () {
+							self._handleToggleChannelsMentionOnly();
 						}}
 						onToggleTheme={function () {
 							self._toggleTheme();
@@ -655,6 +728,12 @@ export default class App extends Component<Props, State> {
 			);
 		}
 
+		const { stack, channels, banner } = this.state;
+		const currentScreen = stack[stack.length - 1].screen;
+		const totalUnread = getTotalUnread(channels);
+		const shouldShowBadge = currentScreen !== "channelList" && currentScreen !== "login";
+		const self = this;
+
 		return (
 			<View style={[styles.app, { backgroundColor: colors.bgSplash }]}>
 				<StatusBar
@@ -662,6 +741,26 @@ export default class App extends Component<Props, State> {
 					barStyle={colors.statusBarStyle}
 				/>
 				<ErrorBoundary scope="App.screen">{this.renderScreen()}</ErrorBoundary>
+				{shouldShowBadge ? (
+					<GlobalUnreadBadge
+						count={totalUnread}
+						onPress={function () {
+							self.navigate("channelList");
+						}}
+					/>
+				) : null}
+				{banner ? (
+					<NotificationBanner
+						title={banner.title}
+						body={banner.body}
+						onPress={function () {
+							self._openBanner();
+						}}
+						onDismiss={function () {
+							self._dismissBanner();
+						}}
+					/>
+				) : null}
 			</View>
 		);
 	}

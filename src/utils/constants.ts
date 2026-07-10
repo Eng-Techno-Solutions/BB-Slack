@@ -4,6 +4,7 @@ export const STORAGE_KEYS = {
 	NOTIF_INTERVAL: "@BBSlack:notifInterval",
 	NOTIF_ENABLED: "@BBSlack:notifEnabled",
 	SOUND_ENABLED: "@BBSlack:soundEnabled",
+	CHANNELS_MENTION_ONLY: "@BBSlack:channelsMentionOnly",
 	FONT_SIZE: "@BBSlack:fontSize",
 	ACCOUNTS: "@BBSlack:accounts",
 	ACTIVE_ACCOUNT: "@BBSlack:activeAccount"

@@ -1,4 +1,5 @@
 import type { RTMEvent } from "../types";
+import { logger } from "../utils";
 import type RTMClient from "./rtmClient";
 
 type ChannelHandlerMap = Record<string, () => void>;
@@ -9,6 +10,10 @@ type RegisterArgs = {
 	currentUserId: () => string | null;
 	onChannelsChanged: () => void;
 	onStatusChanged: (connected: boolean) => void;
+	// Fired for a message arriving in a channel the user is not actively
+	// viewing (no channel-level handler registered). Drives the in-app
+	// foreground banner, since OS notifications are suppressed while open.
+	onIncomingMessage?: (event: RTMEvent) => void;
 };
 
 // Wires the standard set of RTM event listeners shared by both app entry points.
@@ -16,9 +21,19 @@ type RegisterArgs = {
 // two side-effects we care about: reloading the channel list and reacting to
 // connection-status changes (so polling cadence can adapt).
 export function registerRTMHandlers(args: RegisterArgs): void {
-	const { rtm, handlers, currentUserId, onChannelsChanged, onStatusChanged } = args;
+	const { rtm, handlers, currentUserId, onChannelsChanged, onStatusChanged, onIncomingMessage } =
+		args;
 
 	rtm.on("message", function (event: RTMEvent) {
+		logger.info(
+			"RTM.message",
+			"ch=" +
+				(event.channel || "?") +
+				" user=" +
+				(event.user || "?") +
+				" subtype=" +
+				(event.subtype || "-")
+		);
 		const channelId = event.channel;
 		if (!channelId) return;
 		const handler = handlers[channelId];
@@ -28,6 +43,7 @@ export function registerRTMHandlers(args: RegisterArgs): void {
 		}
 		if (event.user !== currentUserId()) {
 			onChannelsChanged();
+			if (onIncomingMessage) onIncomingMessage(event);
 		}
 	});
 
@@ -47,6 +63,7 @@ export function registerRTMHandlers(args: RegisterArgs): void {
 	rtm.on("im_marked", onChannelsChanged);
 
 	rtm.on("_status", function () {
+		logger.info("RTM.status", rtm.isConnected() ? "connected" : "disconnected");
 		onStatusChanged(rtm.isConnected());
 	});
 }

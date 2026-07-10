@@ -22,6 +22,75 @@ export async function fetchAllUsers(slack: ISlackAPI): Promise<Record<string, Sl
 	return usersMap;
 }
 
+// conversations.list never returns unread_count_display; Slack only exposes
+// it through users.counts (all conversation types, one call) or
+// conversations.info (DMs/group DMs only, one call each).
+const MAX_DM_UNREAD_LOOKUPS = 30;
+
+interface CountsEntry {
+	id?: string;
+	unread_count_display?: number;
+	dm_count?: number;
+	mention_count_display?: number;
+}
+
+function buildCountsMap(res: Record<string, unknown>): Record<string, number> {
+	const countsMap: Record<string, number> = {};
+	const groups = [res.channels, res.groups, res.mpims, res.ims];
+	for (let g = 0; g < groups.length; g++) {
+		const entries = (groups[g] as CountsEntry[]) || [];
+		for (let i = 0; i < entries.length; i++) {
+			const entry = entries[i];
+			if (!entry.id) continue;
+			// Field name varies by conversation type: channels/groups use
+			// unread_count_display, ims use dm_count.
+			const count = entry.unread_count_display || entry.dm_count || entry.mention_count_display || 0;
+			if (count > 0) countsMap[entry.id] = count;
+		}
+	}
+	return countsMap;
+}
+
+async function enrichDmUnreadCounts(
+	slack: ISlackAPI,
+	channels: SlackChannel[]
+): Promise<SlackChannel[]> {
+	const dms = channels.filter(function (ch: SlackChannel) {
+		return ch.is_im || ch.is_mpim;
+	});
+	const lookups = dms.slice(0, MAX_DM_UNREAD_LOOKUPS).map(async function (dm: SlackChannel) {
+		try {
+			const res = await slack.conversationsInfo(dm.id);
+			const info = res.channel as SlackChannel | undefined;
+			if (info && typeof info.unread_count_display === "number") {
+				dm.unread_count_display = info.unread_count_display;
+			}
+		} catch (_e) {
+			// Unread badge is best-effort; a failed lookup keeps the count at 0
+		}
+	});
+	await Promise.all(lookups);
+	return channels;
+}
+
+async function enrichUnreadCounts(
+	slack: ISlackAPI,
+	channels: SlackChannel[]
+): Promise<SlackChannel[]> {
+	try {
+		const res = await slack.usersCounts();
+		const countsMap = buildCountsMap(res);
+		for (let i = 0; i < channels.length; i++) {
+			channels[i].unread_count_display = countsMap[channels[i].id] || 0;
+		}
+		return channels;
+	} catch (_e) {
+		// users.counts is undocumented; if this token can't use it, fall back
+		// to the documented per-DM lookup (channels stay at 0).
+		return enrichDmUnreadCounts(slack, channels);
+	}
+}
+
 export async function fetchAllChannels(slack: ISlackAPI): Promise<SlackChannel[]> {
 	let allChannels: SlackChannel[] = [];
 	let cursor = "";
@@ -35,7 +104,7 @@ export async function fetchAllChannels(slack: ISlackAPI): Promise<SlackChannel[]
 		const meta = res.response_metadata as { next_cursor?: string } | undefined;
 		cursor = meta && meta.next_cursor ? meta.next_cursor : "";
 	} while (cursor);
-	return allChannels;
+	return enrichUnreadCounts(slack, allChannels);
 }
 
 export function detectNewUnreads(

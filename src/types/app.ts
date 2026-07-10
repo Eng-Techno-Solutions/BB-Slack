@@ -4,6 +4,12 @@ import type { ViewStyle } from "react-native";
 
 export interface AppProps {}
 
+export interface MessageBanner {
+	channelId: string;
+	title: string;
+	body: string;
+}
+
 export interface AppState {
 	initializing: boolean;
 	slack: ISlackAPI | null;
@@ -19,9 +25,11 @@ export interface AppState {
 	notifInterval: number;
 	notifEnabled: boolean;
 	soundEnabled: boolean;
+	channelsMentionOnly: boolean;
 	fontSize: string;
 	accounts: AccountEntry[];
 	rtmConnected: boolean;
+	banner: MessageBanner | null;
 }
 
 export interface AppStyles {

@@ -11,6 +11,7 @@ import type { KeyEvent, KeySub } from "../types";
 import { API } from "../utils/constants";
 import { errorMessage } from "../utils/error";
 import { addKeyEventListener, removeKeyEventListener } from "../utils/keyEvents";
+import { setMouseEnabled } from "../utils/pointer";
 import { styles } from "./LoginScreen.styles";
 import type { FieldName, FocusableRef, LoginProps as Props, LoginState as State } from "./types";
 import React, { Component } from "react";
@@ -57,10 +58,14 @@ export default class LoginScreen extends Component<Props, State> {
 		this._keySub = addKeyEventListener(function (e: KeyEvent) {
 			self._handleKeyEvent(e);
 		});
+		// Auth screen is hardware D-pad only — disable the BlackBerry trackpad
+		// cursor so pointer input can't fight the focus-index navigation.
+		setMouseEnabled(false);
 	}
 
 	componentWillUnmount(): void {
 		removeKeyEventListener(this._keySub);
+		setMouseEnabled(true);
 	}
 
 	_getFields(): FieldName[] {

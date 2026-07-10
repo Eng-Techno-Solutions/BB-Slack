@@ -33,11 +33,8 @@
 
         <service
             android:name=".NotificationPollService"
-            android:exported="false" />
-
-        <receiver
-            android:name=".NotificationAlarmReceiver"
-            android:exported="false" />
+            android:exported="false"
+            android:stopWithTask="false" />
 
         <receiver
             android:name=".BootReceiver"

@@ -77,3 +77,30 @@ export interface IconProps {
 	color?: string;
 	style?: object;
 }
+
+export interface NotificationBannerProps {
+	title: string;
+	body: string;
+	onPress: () => void;
+	onDismiss: () => void;
+}
+
+export interface NotificationBannerStyles {
+	wrap: ViewStyle;
+	banner: ViewStyle;
+	title: TextStyle;
+	body: TextStyle;
+	close: ViewStyle;
+	closeText: TextStyle;
+}
+
+export interface GlobalUnreadBadgeProps {
+	count: number;
+	onPress: () => void;
+}
+
+export interface GlobalUnreadBadgeStyles {
+	wrap: ViewStyle;
+	count: ViewStyle;
+	countText: TextStyle;
+}

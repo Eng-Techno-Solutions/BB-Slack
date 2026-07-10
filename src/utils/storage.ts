@@ -81,6 +81,15 @@ export async function getSoundEnabled(): Promise<boolean> {
 	return val !== "0";
 }
 
+export async function saveChannelsMentionOnly(enabled: boolean): Promise<void> {
+	await setItem(STORAGE_KEYS.CHANNELS_MENTION_ONLY, enabled ? "1" : "0");
+}
+
+export async function getChannelsMentionOnly(): Promise<boolean> {
+	const val = await getItem(STORAGE_KEYS.CHANNELS_MENTION_ONLY);
+	return val === "1";
+}
+
 export async function saveFontSize(size: FontSizeKey): Promise<void> {
 	await setItem(STORAGE_KEYS.FONT_SIZE, size);
 }

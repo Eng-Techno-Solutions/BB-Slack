@@ -1,3 +1,4 @@
+import type { NotifDiagnostics } from "../../services/nativeNotification";
 import type { TextStyle, ViewStyle } from "react-native";
 
 // Settings screen types
@@ -21,10 +22,12 @@ export interface SettingsProps {
 	notifEnabled: boolean;
 	notifInterval: number;
 	soundEnabled: boolean;
+	channelsMentionOnly: boolean;
 	fontSize: string;
 	onToggleNotif: () => void;
 	onChangeInterval: (value: number) => void;
 	onToggleSound: () => void;
+	onToggleChannelsMentionOnly: () => void;
 	onToggleTheme: () => void;
 	onChangeFontSize: (value: string) => void;
 	onBack: () => void;
@@ -34,6 +37,7 @@ export interface SettingsProps {
 
 export interface SettingsState {
 	focusIndex: number;
+	notifDiag: NotifDiagnostics | null;
 }
 
 export interface SettingsStyles {

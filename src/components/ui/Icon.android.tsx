@@ -31,6 +31,7 @@ const ICON_MAP: Record<string, string> = {
 	square: "square",
 	settings: "settings",
 	bell: "bell",
+	"refresh-cw": "refresh-cw",
 	globe: "globe",
 	user: "user",
 	coffee: "coffee",

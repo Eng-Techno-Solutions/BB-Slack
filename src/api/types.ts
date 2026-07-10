@@ -74,6 +74,7 @@ export interface ISlackAPI {
 		limit?: number
 	): Promise<SlackResponse>;
 	conversationsInfo(channel: string): Promise<SlackResponse>;
+	usersCounts(): Promise<SlackResponse>;
 	conversationsMembers(channel: string, cursor?: string, limit?: number): Promise<SlackResponse>;
 	conversationsOpen(users: string): Promise<SlackResponse>;
 	conversationsMark(channel: string, ts: string): Promise<SlackResponse>;

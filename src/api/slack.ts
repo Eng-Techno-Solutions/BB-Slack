@@ -92,6 +92,12 @@ export default class SlackAPI {
 		return this._get("conversations.info", { channel: channel });
 	}
 
+	// Undocumented endpoint (same family as the auth.signin login flow):
+	// returns unread counts for channels, groups, mpims, and ims in one call.
+	usersCounts(): Promise<SlackResponse> {
+		return this._get("users.counts", { mpim_aware: true });
+	}
+
 	conversationsMembers(channel: string, cursor?: string, limit?: number): Promise<SlackResponse> {
 		return this._get("conversations.members", {
 			channel: channel,
