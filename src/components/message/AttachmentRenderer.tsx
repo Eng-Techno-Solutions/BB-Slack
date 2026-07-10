@@ -68,7 +68,11 @@ export default class AttachmentRenderer extends Component<AttachmentRendererProp
 												<Text style={[styles.attachmentTitle, { color: c.accentLight }]}>{att.title}</Text>
 											</TouchableOpacity>
 										) : (
-											<Text style={[styles.attachmentTitle, { color: c.textSecondary }]}>{att.title}</Text>
+											<SlackText
+												text={att.title}
+												usersMap={usersMap}
+												style={[styles.attachmentTitle, { color: c.textSecondary }]}
+											/>
 										)
 									) : null}
 
@@ -81,7 +85,11 @@ export default class AttachmentRenderer extends Component<AttachmentRendererProp
 									) : null}
 
 									{att.footer ? (
-										<Text style={[styles.attachmentFooter, { color: c.textTertiary }]}>{att.footer}</Text>
+										<SlackText
+											text={att.footer}
+											usersMap={usersMap}
+											style={[styles.attachmentFooter, { color: c.textTertiary }]}
+										/>
 									) : null}
 								</View>
 							</View>
