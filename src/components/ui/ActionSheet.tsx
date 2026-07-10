@@ -4,6 +4,13 @@ import React, { Component } from "react";
 import { Modal, StyleSheet, Text, TouchableHighlight, TouchableOpacity, View } from "react-native";
 
 export default class ActionSheet extends Component<ActionSheetProps> {
+	// Mounted permanently in the chat screen; without this it reconciles its
+	// Modal on every render (e.g. each keystroke) while hidden.
+	shouldComponentUpdate(nextProps: ActionSheetProps): boolean {
+		if (!this.props.visible && !nextProps.visible) return false;
+		return true;
+	}
+
 	render(): React.ReactNode {
 		const { visible, actions, onClose } = this.props;
 		const c = getColors();

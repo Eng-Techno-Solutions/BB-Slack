@@ -37,6 +37,18 @@ export default class EmojiPicker extends Component<EmojiPickerProps, EmojiPicker
 		this._renderItem = this._renderItem.bind(this);
 	}
 
+	// The picker sits mounted at the bottom of the chat/thread screens, so it
+	// would otherwise rebuild its Modal and re-filter the full emoji list on
+	// every keystroke in the message input. Skip all of that while it's hidden.
+	shouldComponentUpdate(nextProps: EmojiPickerProps, nextState: EmojiPickerState): boolean {
+		if (!this.props.visible && !nextProps.visible) return false;
+		return (
+			nextProps.visible !== this.props.visible ||
+			nextState.search !== this.state.search ||
+			nextProps.onSelect !== this.props.onSelect
+		);
+	}
+
 	getFiltered(): EmojiEntry[] {
 		const q = this.state.search.toLowerCase().trim();
 		if (!q) return ALL_EMOJIS;

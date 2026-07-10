@@ -66,6 +66,13 @@ export default class ImageViewer extends Component<ImageViewerProps, ImageViewer
 		this._lastMoveY = 0;
 	}
 
+	// Mounted permanently in the chat screen; skip reconciling its Modal on
+	// unrelated parent renders (e.g. typing) while it's closed.
+	shouldComponentUpdate(nextProps: ImageViewerProps): boolean {
+		if (!this.props.visible && !nextProps.visible) return false;
+		return true;
+	}
+
 	componentDidUpdate(prevProps: ImageViewerProps): void {
 		if (this.props.source !== prevProps.source) {
 			this.setState({ loading: true, error: false, scale: 1, translateX: 0, translateY: 0 });

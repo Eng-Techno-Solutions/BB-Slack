@@ -6,6 +6,21 @@ import React, { Component } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default class Header extends Component<HeaderProps> {
+	// Presentational and rendered on every screen. Its props are stable while
+	// the parent re-renders for unrelated reasons (e.g. typing in the chat
+	// input), so a shallow compare skips those re-renders.
+	shouldComponentUpdate(nextProps: HeaderProps): boolean {
+		const p = this.props;
+		return (
+			p.title !== nextProps.title ||
+			p.subtitle !== nextProps.subtitle ||
+			p.onBack !== nextProps.onBack ||
+			p.rightLabel !== nextProps.rightLabel ||
+			p.rightIcon !== nextProps.rightIcon ||
+			p.onRight !== nextProps.onRight
+		);
+	}
+
 	render(): React.ReactNode {
 		const { title, subtitle, onBack, rightLabel, rightIcon, onRight } = this.props;
 		const c = getColors();

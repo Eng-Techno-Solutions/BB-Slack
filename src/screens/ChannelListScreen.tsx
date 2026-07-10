@@ -29,6 +29,108 @@ const TABS: TabItem[] = [
 	{ key: "dms", label: "DMs", icon: "message-square" }
 ];
 
+interface ChannelRowProps {
+	channel: SlackChannel;
+	name: string;
+	unread: number;
+	imageUrl: string | null;
+	isFocused: boolean;
+	// Theme token so a light/dark switch busts the row memo; getColors() itself
+	// is read at render time and isn't a prop.
+	mode: string;
+	onSelect: (ch: SlackChannel) => void;
+}
+
+// Memoized channel/DM row. The parent re-renders on every filter keystroke and
+// D-pad move; without this each visible row (and its SlackText topic parse)
+// would re-render too. Skips unless its own data or focus actually changed.
+class ChannelRow extends Component<ChannelRowProps> {
+	shouldComponentUpdate(next: ChannelRowProps): boolean {
+		return (
+			next.channel !== this.props.channel ||
+			next.isFocused !== this.props.isFocused ||
+			next.unread !== this.props.unread ||
+			next.name !== this.props.name ||
+			next.imageUrl !== this.props.imageUrl ||
+			next.mode !== this.props.mode
+		);
+	}
+
+	render(): React.ReactElement {
+		const { channel, name, unread, imageUrl, isFocused, onSelect } = this.props;
+		const c = getColors();
+		const isDm = channel.is_im || channel.is_mpim;
+		const isLock = !isDm && channel.is_private;
+
+		return (
+			<TouchableHighlight
+				style={[styles.item, isFocused && { backgroundColor: c.listUnderlay }]}
+				underlayColor={c.listUnderlay}
+				onPress={function () {
+					onSelect(channel);
+				}}
+				data-type="list-item">
+				<View style={styles.itemInner}>
+					{isDm ? (
+						imageUrl ? (
+							<Image
+								source={{ uri: imageUrl }}
+								style={styles.itemAvatar}
+							/>
+						) : (
+							<View
+								style={[
+									styles.itemAvatar,
+									styles.itemAvatarPlaceholder,
+									{ backgroundColor: c.avatarPlaceholderBg }
+								]}>
+								<Text style={styles.itemAvatarText}>{(name[0] || "?").toUpperCase()}</Text>
+							</View>
+						)
+					) : (
+						<View style={[styles.itemAvatar, { backgroundColor: c.channelAvatarBg }]}>
+							{isLock ? (
+								<Icon
+									name="lock"
+									size={14}
+									color={c.textTertiary}
+								/>
+							) : (
+								<Text style={[styles.channelAvatarHash, { color: c.textTertiary }]}>#</Text>
+							)}
+						</View>
+					)}
+					<View style={styles.itemLeft}>
+						<View style={styles.itemNameRow}>
+							<Text
+								style={[
+									styles.itemName,
+									{ color: c.textTertiary },
+									unread > 0 && { color: c.textPrimary, fontWeight: "bold" }
+								]}
+								numberOfLines={1}>
+								{name}
+							</Text>
+						</View>
+						{channel.topic && channel.topic.value ? (
+							<SlackText
+								text={channel.topic.value}
+								style={[styles.itemTopic, { color: c.textPlaceholder }]}
+								numberOfLines={1}
+							/>
+						) : null}
+					</View>
+					{unread > 0 ? (
+						<View style={[styles.badge, { backgroundColor: c.badgeBg }]}>
+							<Text style={styles.badgeText}>{unread > 99 ? "99+" : unread}</Text>
+						</View>
+					) : null}
+				</View>
+			</TouchableHighlight>
+		);
+	}
+}
+
 export default class ChannelListScreen extends Component<Props, State> {
 	_keySub: KeySub | null;
 	_data: SlackChannel[];
@@ -280,98 +382,31 @@ export default class ChannelListScreen extends Component<Props, State> {
 		return url;
 	}
 
-	renderItem(item: SlackChannel, isFocused: boolean): React.ReactElement {
-		const { usersMap, currentUserId, onSelect } = this.props;
-		const c = getColors();
-		const name = getChannelDisplayName(item, usersMap, currentUserId);
-		const unread = item.unread_count_display || 0;
-		let prefix = "";
-		const isDm = item.is_im || item.is_mpim;
-		if (!isDm) {
-			prefix = item.is_private ? "lock" : "# ";
-		}
-		const imageUrl = isDm && item.is_im ? this.getProfileImage(item.user || "") : null;
-
-		return (
-			<TouchableHighlight
-				style={[styles.item, isFocused && { backgroundColor: c.listUnderlay }]}
-				underlayColor={c.listUnderlay}
-				onPress={function () {
-					onSelect(item);
-				}}
-				data-type="list-item">
-				<View style={styles.itemInner}>
-					{isDm ? (
-						imageUrl ? (
-							<Image
-								source={{ uri: imageUrl }}
-								style={styles.itemAvatar}
-							/>
-						) : (
-							<View
-								style={[
-									styles.itemAvatar,
-									styles.itemAvatarPlaceholder,
-									{ backgroundColor: c.avatarPlaceholderBg }
-								]}>
-								<Text style={styles.itemAvatarText}>{(name[0] || "?").toUpperCase()}</Text>
-							</View>
-						)
-					) : (
-						<View style={[styles.itemAvatar, { backgroundColor: c.channelAvatarBg }]}>
-							{prefix === "lock" ? (
-								<Icon
-									name="lock"
-									size={14}
-									color={c.textTertiary}
-								/>
-							) : (
-								<Text style={[styles.channelAvatarHash, { color: c.textTertiary }]}>#</Text>
-							)}
-						</View>
-					)}
-					<View style={styles.itemLeft}>
-						<View style={styles.itemNameRow}>
-							<Text
-								style={[
-									styles.itemName,
-									{ color: c.textTertiary },
-									unread > 0 && { color: c.textPrimary, fontWeight: "bold" }
-								]}
-								numberOfLines={1}>
-								{name}
-							</Text>
-						</View>
-						{item.topic && item.topic.value ? (
-							<SlackText
-								text={item.topic.value}
-								style={[styles.itemTopic, { color: c.textPlaceholder }]}
-								numberOfLines={1}
-							/>
-						) : null}
-					</View>
-					{unread > 0 ? (
-						<View style={[styles.badge, { backgroundColor: c.badgeBg }]}>
-							<Text style={styles.badgeText}>{unread > 99 ? "99+" : unread}</Text>
-						</View>
-					) : null}
-				</View>
-			</TouchableHighlight>
-		);
-	}
-
 	_renderListItem(obj: { item: SlackChannel; index: number }): React.ReactElement {
-		const c = getColors();
-		if (obj.item._sectionHeader) {
+		const item = obj.item;
+		if (item._sectionHeader) {
+			const c = getColors();
 			return (
 				<View style={[styles.sectionHeader, { borderBottomColor: c.border }]}>
 					<Text style={[styles.sectionHeaderText, { color: c.textPlaceholder }]}>
-						{obj.item._sectionHeader}
+						{item._sectionHeader}
 					</Text>
 				</View>
 			);
 		}
-		return this.renderItem(obj.item, obj.index === this.state.focusIndex);
+		const { usersMap, currentUserId } = this.props;
+		const isDm = item.is_im || item.is_mpim;
+		return (
+			<ChannelRow
+				channel={item}
+				name={getChannelDisplayName(item, usersMap, currentUserId)}
+				unread={item.unread_count_display || 0}
+				imageUrl={isDm && item.is_im ? this.getProfileImage(item.user || "") : null}
+				isFocused={obj.index === this.state.focusIndex}
+				mode={getMode()}
+				onSelect={this.props.onSelect}
+			/>
+		);
 	}
 
 	render(): React.ReactElement {

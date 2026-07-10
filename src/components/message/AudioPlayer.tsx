@@ -45,6 +45,14 @@ export default class AudioPlayer extends Component<AudioPlayerProps, AudioPlayer
 		return this.Sound;
 	}
 
+	// Mounted permanently in the chat screen; skip re-renders on unrelated
+	// parent updates (e.g. typing) while closed. Visibility transitions still
+	// pass through, so componentDidUpdate keeps loading/releasing the sound.
+	shouldComponentUpdate(nextProps: AudioPlayerProps): boolean {
+		if (!this.props.visible && !nextProps.visible) return false;
+		return true;
+	}
+
 	componentDidUpdate(prevProps: AudioPlayerProps): void {
 		if (Platform.OS === "web") return;
 		if (this.props.visible && !prevProps.visible && this.props.source) {
