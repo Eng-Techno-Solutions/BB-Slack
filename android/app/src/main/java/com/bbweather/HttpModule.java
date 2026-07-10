@@ -13,6 +13,8 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Iterator;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
@@ -20,6 +22,11 @@ import javax.net.ssl.SSLSocketFactory;
 import org.json.JSONObject;
 
 public class HttpModule extends ReactContextBaseJavaModule {
+
+    // Reuse worker threads across requests instead of spawning (and tearing
+    // down) a fresh OS thread per call. Cached pool keeps idle threads for 60s
+    // and grows only under real concurrency, which is low for this app.
+    private static final ExecutorService EXECUTOR = Executors.newCachedThreadPool();
 
     public HttpModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -36,7 +43,7 @@ public class HttpModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void request(final String method, final String urlString, final String headersJson, final String body, final Promise promise) {
-        new Thread(new Runnable() {
+        EXECUTOR.execute(new Runnable() {
             @Override
             public void run() {
                 HttpURLConnection conn = null;
@@ -113,7 +120,7 @@ public class HttpModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void uploadMultipart(final String urlString, final String token, final String fieldsJson, final String fileName, final String fileType, final String fileBase64, final Promise promise) {
-        new Thread(new Runnable() {
+        EXECUTOR.execute(new Runnable() {
             @Override
             public void run() {
                 HttpURLConnection conn = null;
@@ -250,7 +257,7 @@ public class HttpModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void downloadFile(final String urlString, final String token, final String destPath, final Promise promise) {
-        new Thread(new Runnable() {
+        EXECUTOR.execute(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -265,7 +272,7 @@ public class HttpModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void uploadBinary(final String urlString, final String fileBase64, final String contentType, final Promise promise) {
-        new Thread(new Runnable() {
+        EXECUTOR.execute(new Runnable() {
             @Override
             public void run() {
                 HttpURLConnection conn = null;

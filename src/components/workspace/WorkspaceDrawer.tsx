@@ -28,6 +28,14 @@ export default class WorkspaceDrawer extends Component<WorkspaceDrawerProps> {
 		this._overlayAnim = new Animated.Value(0);
 	}
 
+	// Mounted permanently in the channel list, so without this it re-renders on
+	// every filter keystroke and D-pad move. Visibility transitions still pass
+	// through so componentDidUpdate keeps driving the open/close animation.
+	shouldComponentUpdate(nextProps: WorkspaceDrawerProps): boolean {
+		if (!this.props.visible && !nextProps.visible) return false;
+		return true;
+	}
+
 	componentDidUpdate(prevProps: WorkspaceDrawerProps): void {
 		if (this.props.visible && !prevProps.visible) {
 			this._open();

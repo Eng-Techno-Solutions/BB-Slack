@@ -17,15 +17,25 @@ public class Tls12SocketFactory extends SSLSocketFactory {
 
     private final SSLSocketFactory delegate;
 
+    // Building the SSLContext (Conscrypt provider lookup + init) is expensive on
+    // Android 4.3 and was previously repeated on every request. The factory is
+    // stateless and thread-safe, so build it once and reuse it across all polls,
+    // sends, uploads, and image loads.
+    private static volatile SSLSocketFactory cached;
+
     Tls12SocketFactory(SSLSocketFactory delegate) {
         this.delegate = delegate;
     }
 
     static SSLSocketFactory create() {
+        SSLSocketFactory local = cached;
+        if (local != null) return local;
         try {
             SSLContext sc = SSLContext.getInstance("TLSv1.2", "Conscrypt");
             sc.init(null, null, null);
-            return new Tls12SocketFactory(sc.getSocketFactory());
+            local = new Tls12SocketFactory(sc.getSocketFactory());
+            cached = local;
+            return local;
         } catch (Exception e) {
             return null;
         }
