@@ -34,6 +34,21 @@ export const styles = StyleSheet.create({
 
 	filesContainer: { marginTop: 6 } as ViewStyle,
 
+	attachmentsContainer: { marginTop: 6 } as ViewStyle,
+	attachmentPretext: { fontSize: 14, lineHeight: 20, marginBottom: 4 } as TextStyle,
+	attachmentBlock: {
+		flexDirection: "row",
+		marginBottom: 6,
+		alignSelf: "flex-start",
+		maxWidth: CONTENT_MAX_W
+	} as ViewStyle,
+	attachmentBar: { width: 4, borderRadius: 2, marginRight: 10 } as ViewStyle,
+	attachmentBody: { flex: 1 } as ViewStyle,
+	attachmentAuthor: { fontSize: 13, fontWeight: "600", marginBottom: 2 } as TextStyle,
+	attachmentTitle: { fontSize: 15, fontWeight: "bold", marginBottom: 2 } as TextStyle,
+	attachmentText: { fontSize: 14, lineHeight: 20 } as TextStyle,
+	attachmentFooter: { fontSize: 12, marginTop: 4 } as TextStyle,
+
 	imageWrapper: {
 		marginBottom: 6,
 		borderRadius: 8,

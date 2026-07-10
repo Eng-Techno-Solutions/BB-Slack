@@ -1,6 +1,7 @@
 import { getColors, getMessageFontSize } from "../../theme";
 import { isEmojiOnly } from "../../utils/fileHelpers";
 import { formatTime, getUserName } from "../../utils/format";
+import AttachmentRenderer from "./AttachmentRenderer";
 import Avatar from "./Avatar";
 import FileRenderer from "./FileRenderer";
 import { styles } from "./MessageItem.styles";
@@ -28,6 +29,9 @@ export default class MessageItem extends Component<MessageItemProps> {
 		const prevF = prev.files || [];
 		const nextF = next.files || [];
 		if (prevF.length !== nextF.length) return true;
+		const prevA = prev.attachments || [];
+		const nextA = next.attachments || [];
+		if (prevA.length !== nextA.length) return true;
 		return false;
 	}
 
@@ -61,6 +65,7 @@ export default class MessageItem extends Component<MessageItemProps> {
 		const threadCount = message.reply_count || 0;
 		const reactions = message.reactions || [];
 		const files = message.files || [];
+		const attachments = message.attachments || [];
 		const self = this;
 
 		return (
@@ -106,6 +111,13 @@ export default class MessageItem extends Component<MessageItemProps> {
 								token={token}
 								onImagePress={this.props.onImagePress}
 								onAudioPress={this.props.onAudioPress}
+							/>
+						) : null}
+
+						{attachments.length > 0 ? (
+							<AttachmentRenderer
+								attachments={attachments}
+								usersMap={usersMap}
 							/>
 						) : null}
 
